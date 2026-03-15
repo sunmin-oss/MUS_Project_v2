@@ -1,0 +1,12 @@
+Flask==2.3.3
+flask-cors==4.0.0
+requests==2.31.0
+python-dotenv==1.0.0
+Werkzeug==2.3.7
+
+# 視覺 API 依賴
+google-generativeai>=0.3.0  # Google Gemini API
+
+# 可選依賴（用於特定功能）
+# opencv-python>=4.8.0  # 如果需要本地圖片處理
+# gunicorn>=21.0        # 生產環境伺服器

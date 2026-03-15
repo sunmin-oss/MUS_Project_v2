@@ -1,0 +1,660 @@
+"""
+==============================================
+Google Gemini Vision API 包裝器
+==============================================
+
+【功能說明】
+使用 Google Gemini Vision API 進行藥物圖片識別。
+Gemini 是 Google 最強大的多模態 AI 模型，特別適合藥物辨識任務。
+
+【API 文件】
+https://ai.google.dev/
+
+【優點】
+- 支援高解析度圖片
+- 更好的物體識別能力
+- 支援中文指令
+- 可以理解複雜場景
+
+【作者】MUS2 團隊
+【日期】2025
+"""
+
+import base64
+import logging
+from typing import List, Dict, Any
+import json
+from pathlib import Path
+import requests
+
+logger = logging.getLogger(__name__)
+
+
+class GeminiVisionRecognizer:
+    """Google Gemini Vision API 藥物識別器 (使用 REST API)"""
+
+    def __init__(self, api_key: str, model_name: str = "gemini-2.5-flash"):
+        """
+        初始化 Gemini Vision 識別器
+
+        參數:
+            api_key: Google Generative AI API 密鑰
+        """
+        if not api_key:
+            raise ValueError("Gemini API 密鑰未提供")
+
+        self.api_key = api_key
+        self.base_url = "https://generativelanguage.googleapis.com/v1beta/models"
+        self.model_name = model_name
+
+        logger.info("✓ Google Gemini Vision API 識別器已初始化")
+
+    def recognize(self, image_path: str) -> List[Dict[str, Any]]:
+        """
+        識別圖片中的藥物
+
+        參數:
+            image_path: 圖片檔案路徑
+
+        回傳:
+            [{
+                'name': '藥物名稱',
+                'confidence': 0.95,
+                'description': '描述'
+            }, ...]
+        """
+        try:
+            # 讀取圖片
+            image_file = Path(image_path)
+            if not image_file.exists():
+                raise FileNotFoundError(f"圖片檔案不存在: {image_path}")
+
+            # 讀取圖片數據
+            with open(image_file, "rb") as f:
+                image_data = f.read()
+
+            # 判斷 MIME 類型
+            suffix = image_file.suffix.lower()
+            mime_type_map = {
+                ".jpg": "image/jpeg",
+                ".jpeg": "image/jpeg",
+                ".png": "image/png",
+                ".gif": "image/gif",
+                ".webp": "image/webp",
+            }
+            mime_type = mime_type_map.get(suffix, "image/jpeg")
+
+            # 編碼為 base64
+            image_b64 = base64.standard_b64encode(image_data).decode("utf-8")
+
+            # 準備提示詞
+            prompt = """請分析這張圖片中的藥物。回答以下問題：
+
+1. 圖片中是否有藥物？(是/否)
+2. 如果有藥物，請識別：
+   - 藥物名稱（中文或英文）
+   - 藥物形狀（例如：圓形、橢圓形、長方形）
+   - 藥物顏色（例如：白色、紅色、黃色）
+   - 任何可見的刻印或標記
+   - 你的識別信心度（0-1之間）
+
+請回傳 JSON 格式的結果，格式如下：
+{
+    "has_medicine": true/false,
+    "medicines": [
+        {
+            "name": "藥物名稱",
+            "shape": "形狀",
+            "color": "顏色",
+            "markings": "刻印標記",
+            "confidence": 0.85,
+            "description": "簡短描述"
+        }
+    ],
+    "additional_info": "任何其他相關信息"
+}
+
+只回傳 JSON，不需要其他文字。"""
+
+            # 調用 Gemini API (REST API v1beta)
+            logger.info(f"📤 發送圖片到 Gemini API: {image_path} (類型: {mime_type})")
+
+            # 構建 API URL
+            api_url = (
+                f"{self.base_url}/{self.model_name}:generateContent?key={self.api_key}"
+            )
+
+            # 構建請求體
+            payload = {
+                "contents": [
+                    {
+                        "parts": [
+                            {"text": prompt},
+                            {
+                                "inline_data": {
+                                    "mime_type": mime_type,
+                                    "data": image_b64,
+                                }
+                            },
+                        ]
+                    }
+                ]
+            }
+
+            # 發送請求
+            headers = {"Content-Type": "application/json"}
+
+            response = requests.post(api_url, json=payload, headers=headers, timeout=30)
+
+            logger.info(f"📥 Gemini API 回應狀態碼: {response.status_code}")
+
+            # 檢查是否成功
+            if response.status_code != 200:
+                error_detail = response.text
+                logger.error(
+                    f"✗ Gemini API 錯誤 ({response.status_code}): {error_detail}"
+                )
+                raise Exception(
+                    f"Gemini API 錯誤 (狀態碼 {response.status_code}): {error_detail}"
+                )
+
+            # 解析回應
+            response_data = response.json()
+            logger.info(f"✓ Gemini API 回應結構: {list(response_data.keys())}")
+
+            # 提取文本內容
+            if "candidates" not in response_data or not response_data["candidates"]:
+                logger.warning("⚠️ Gemini 無候選回應")
+                return []
+
+            candidate = response_data["candidates"][0]
+            if "content" not in candidate or "parts" not in candidate["content"]:
+                logger.warning("⚠️ Gemini 回應無內容部分")
+                return []
+
+            # 獲取文本回應
+            result_text = ""
+            for part in candidate["content"]["parts"]:
+                if "text" in part:
+                    result_text = part["text"]
+                    break
+
+            logger.info(f"✓ Gemini 回應文本: {result_text[:100]}...")
+
+            # 嘗試提取 JSON
+            medicines = self._parse_json_response(result_text)
+
+            logger.info(f"✓ Gemini 識別完成，找到 {len(medicines)} 個結果")
+            return medicines
+
+        except FileNotFoundError as e:
+            logger.error(f"✗ 檔案錯誤: {e}")
+            raise Exception(f"檔案錯誤: {str(e)}")
+        except requests.exceptions.RequestException as e:
+            logger.error(f"✗ 網路請求失敗: {e}")
+            raise Exception(f"網路請求失敗: {str(e)}")
+        except Exception as e:
+            logger.error(f"✗ Gemini 識別失敗: {e}")
+            import traceback
+
+            logger.error(f"錯誤堆棧: {traceback.format_exc()}")
+            raise Exception(f"Gemini Vision API 錯誤: {str(e)}")
+
+    def _parse_json_response(self, response_text: str) -> List[Dict[str, Any]]:
+        """解析 Gemini 的 JSON 回應"""
+        medicines = []
+
+        try:
+            # 嘗試直接解析 JSON
+            data = json.loads(response_text)
+        except json.JSONDecodeError:
+            # 如果直接解析失敗，嘗試提取 JSON 部分
+            import re
+
+            json_match = re.search(r"\{.*\}", response_text, re.DOTALL)
+            if json_match:
+                try:
+                    data = json.loads(json_match.group())
+                except json.JSONDecodeError:
+                    logger.warning(f"⚠ 無法解析 Gemini 回應: {response_text}")
+                    return []
+            else:
+                logger.warning(f"⚠ 無法找到 JSON 在回應中: {response_text}")
+                return []
+
+        # 檢查是否有藥物
+        if not data.get("has_medicine", False):
+            return []
+
+        # 提取藥物資訊
+        for medicine in data.get("medicines", [])[:10]:
+            medicines.append(
+                {
+                    "name": medicine.get("name", "未知藥物"),
+                    "confidence": medicine.get("confidence", 0.5),
+                    "description": medicine.get("description", ""),
+                    "shape": medicine.get("shape", ""),
+                    "color": medicine.get("color", ""),
+                    "markings": medicine.get("markings", ""),
+                    "source": "gemini_vision",
+                }
+            )
+
+        # 按信心度排序
+        medicines.sort(key=lambda x: x["confidence"], reverse=True)
+
+        return medicines[:10]  # 最多回傳 10 個結果
+
+    def search_by_text(self, query: str, limit: int = 5) -> List[Dict[str, Any]]:
+        """
+        使用 Gemini 進行文字搜尋
+        查詢藥物或取得相關建議
+
+        參數:
+            query: 搜尋關鍵字（藥物名稱、症狀等）
+            limit: 最多回傳結果數
+
+        回傳:
+            [{
+                'name': '藥物名稱',
+                'confidence': 0.8,
+                'description': '藥物描述',
+                'source': 'gemini_search'
+            }, ...]
+        """
+        try:
+            # 準備搜尋提示詞
+            prompt = f"""請幫我搜尋或推薦相關藥物。
+
+搜尋關鍵字: {query}
+
+請回傳最多 {limit} 個相關的藥物推薦，包括：
+1. 藥物名稱（中文或英文）
+2. 主要成分
+3. 適用症狀
+4. 你的推薦信心度（0-1之間）
+5. 簡短描述
+
+請回傳 JSON 格式的結果，格式如下：
+{{
+    "has_results": true/false,
+    "medicines": [
+        {{
+            "name": "藥物名稱",
+            "ingredient": "主要成分",
+            "uses": "適用症狀",
+            "confidence": 0.85,
+            "description": "簡短描述"
+        }}
+    ],
+    "note": "任何額外說明"
+}}
+
+只回傳 JSON，不需要其他文字。"""
+
+            logger.info(f"🔍 使用 Gemini 搜尋: {query}")
+
+            # 調用 Gemini 文字 API (REST API v1beta)
+            api_url = (
+                f"{self.base_url}/{self.model_name}:generateContent?key={self.api_key}"
+            )
+
+            payload = {"contents": [{"parts": [{"text": prompt}]}]}
+
+            headers = {"Content-Type": "application/json"}
+
+            response = requests.post(api_url, json=payload, headers=headers, timeout=30)
+
+            logger.info(f"📥 Gemini 搜尋回應狀態碼: {response.status_code}")
+
+            if response.status_code != 200:
+                error_detail = response.text
+                logger.error(
+                    f"✗ Gemini 搜尋錯誤 ({response.status_code}): {error_detail}"
+                )
+                return []
+
+            # 解析回應
+            response_data = response.json()
+
+            # 提取文本內容
+            if "candidates" not in response_data or not response_data["candidates"]:
+                logger.warning("⚠️ Gemini 無搜尋候選回應")
+                return []
+
+            candidate = response_data["candidates"][0]
+            if "content" not in candidate or "parts" not in candidate["content"]:
+                logger.warning("⚠️ Gemini 搜尋回應無內容部分")
+                return []
+
+            # 獲取文本回應
+            result_text = ""
+            for part in candidate["content"]["parts"]:
+                if "text" in part:
+                    result_text = part["text"]
+                    break
+
+            logger.info(f"✓ Gemini 搜尋回應: {result_text[:100]}...")
+
+            # 解析 JSON 回應
+            medicines = self._parse_search_response(result_text)
+
+            logger.info(f"✓ Gemini 搜尋完成，找到 {len(medicines)} 個結果")
+            return medicines
+
+        except Exception as e:
+            logger.error(f"✗ Gemini 搜尋失敗: {e}")
+            import traceback
+
+            logger.error(f"錯誤堆棧: {traceback.format_exc()}")
+            return []
+
+    def _parse_search_response(self, response_text: str) -> List[Dict[str, Any]]:
+        """解析 Gemini 搜尋的 JSON 回應"""
+        medicines = []
+
+        try:
+            # 嘗試直接解析 JSON
+            data = json.loads(response_text)
+        except json.JSONDecodeError:
+            # 如果直接解析失敗，嘗試提取 JSON 部分
+            import re
+
+            json_match = re.search(r"\{.*\}", response_text, re.DOTALL)
+            if json_match:
+                try:
+                    data = json.loads(json_match.group())
+                except json.JSONDecodeError:
+                    logger.warning(f"⚠ 無法解析 Gemini 搜尋回應: {response_text}")
+                    return []
+            else:
+                logger.warning(f"⚠ 無法找到 JSON 在搜尋回應中: {response_text}")
+                return []
+
+        # 檢查是否有結果
+        if not data.get("has_results", False):
+            return []
+
+        # 提取藥物資訊
+        for medicine in data.get("medicines", [])[:10]:
+            medicines.append(
+                {
+                    "name": medicine.get("name", "未知藥物"),
+                    "confidence": medicine.get("confidence", 0.5),
+                    "description": medicine.get("description", ""),
+                    "ingredient": medicine.get("ingredient", ""),
+                    "uses": medicine.get("uses", ""),
+                    "source": "gemini_search",
+                }
+            )
+
+        # 按信心度排序
+        medicines.sort(key=lambda x: x["confidence"], reverse=True)
+
+        return medicines[:10]  # 最多回傳 10 個結果
+
+    def recognize_with_rag(
+        self, image_path: str, drug_database=None
+    ) -> List[Dict[str, Any]]:
+        """
+        使用 RAG (檢索增強生成) 方式識別藥物
+
+        這種方法將資料庫中的所有藥物作為上下文提供給 Gemini，
+        讓 AI 從真實的藥物列表中選擇，而不是盲目猜測。
+        這大幅提高了識別準確度。
+
+        參數:
+            image_path: 圖片檔案路徑
+            drug_database: DrugDatabase 實例
+
+        回傳:
+            識別結果列表
+        """
+        try:
+            if drug_database is None:
+                logger.warning("⚠️ RAG 模式需要資料庫實例")
+                return self.recognize(image_path)
+
+            # 取得資料庫中的藥物特徵列表
+            drug_features = drug_database.get_drug_features_for_rag(sample_size=300)
+
+            if not drug_features:
+                logger.warning("⚠️ 無法取得藥物特徵清單，回退到普通模式")
+                return self.recognize(image_path)
+
+            # 讀取圖片
+            image_file = Path(image_path)
+            if not image_file.exists():
+                raise FileNotFoundError(f"圖片檔案不存在: {image_path}")
+
+            with open(image_file, "rb") as f:
+                image_data = f.read()
+
+            suffix = image_file.suffix.lower()
+            mime_type_map = {
+                ".jpg": "image/jpeg",
+                ".jpeg": "image/jpeg",
+                ".png": "image/png",
+                ".gif": "image/gif",
+                ".webp": "image/webp",
+            }
+            mime_type = mime_type_map.get(suffix, "image/jpeg")
+            image_b64 = base64.standard_b64encode(image_data).decode("utf-8")
+
+            # 準備改進的提示詞 - 讓 AI 從資料庫中選擇
+            prompt = f"""你是一個藥物識別專家。請分析這張藥物照片，並從以下資料庫中選擇最匹配的藥物。
+
+【重要說明】
+- 你MUST從下列藥物庫中選擇，不能自己創造藥物名稱
+- 根據藥物的形狀、顏色、刻印標記進行匹配
+- 如果有多個相似的藥物，都列出來，並按匹配度排序
+
+【資料庫藥物列表】
+{drug_features}
+
+【任務】
+1. 分析照片中藥物的視覺特徵：
+   - 形狀（圓形、橢圓形、長方形、菱形等）
+   - 顏色（具體描述，如白色、紅色、黃色等）
+   - 刻印文字或標記
+   - 大小相對比例
+
+2. 從上述資料庫中找出3-5個最匹配的藥物，按匹配度排序
+
+3. 回傳 JSON 格式結果：
+{{
+    "has_medicine": true/false,
+    "medicines": [
+        {{
+            "id": "藥物ID",
+            "license_number": "許可證號",
+            "name": "藥物名稱",
+            "confidence": 0.95,
+            "reason": "匹配理由，說明該藥物為什麼符合照片特徵"
+        }}
+    ]
+}}
+
+只回傳 JSON，不需要其他文字。"""
+
+            # 調用 Gemini API
+            logger.info(f"📤 使用 RAG 模式發送圖片到 Gemini API: {image_path}")
+
+            api_url = (
+                f"{self.base_url}/{self.model_name}:generateContent?key={self.api_key}"
+            )
+
+            payload = {
+                "contents": [
+                    {
+                        "parts": [
+                            {"text": prompt},
+                            {
+                                "inline_data": {
+                                    "mime_type": mime_type,
+                                    "data": image_b64,
+                                }
+                            },
+                        ]
+                    }
+                ]
+            }
+
+            headers = {"Content-Type": "application/json"}
+            response = requests.post(api_url, json=payload, headers=headers, timeout=30)
+
+            logger.info(f"📥 Gemini API 回應狀態碼: {response.status_code}")
+
+            if response.status_code != 200:
+                error_detail = response.text
+                logger.error(
+                    f"✗ Gemini API 錯誤 ({response.status_code}): {error_detail}"
+                )
+                return self.recognize(image_path)  # 回退到普通模式
+
+            # 解析回應
+            response_data = response.json()
+
+            if "candidates" not in response_data or not response_data["candidates"]:
+                logger.warning("⚠️ Gemini 無候選回應")
+                return []
+
+            candidate = response_data["candidates"][0]
+            if "content" not in candidate or "parts" not in candidate["content"]:
+                logger.warning("⚠️ Gemini 回應無內容部分")
+                return []
+
+            result_text = ""
+            for part in candidate["content"]["parts"]:
+                if "text" in part:
+                    result_text = part["text"]
+                    break
+
+            logger.info(f"✓ Gemini RAG 回應: {result_text[:100]}...")
+
+            # 解析 JSON 結果
+            medicines = self._parse_rag_response(result_text)
+            logger.info(f"✓ RAG 識別完成，找到 {len(medicines)} 個結果")
+
+            return medicines
+
+        except Exception as e:
+            logger.error(f"✗ RAG 識別失敗: {e}")
+            import traceback
+
+            logger.error(f"錯誤堆棧: {traceback.format_exc()}")
+            # 回退到普通模式
+            return self.recognize(image_path)
+
+    def _parse_rag_response(self, response_text: str) -> List[Dict[str, Any]]:
+        """解析 RAG 模式的 Gemini 回應"""
+        medicines = []
+
+        try:
+            data = json.loads(response_text)
+        except json.JSONDecodeError:
+            import re
+
+            json_match = re.search(r"\{.*\}", response_text, re.DOTALL)
+            if json_match:
+                try:
+                    data = json.loads(json_match.group())
+                except json.JSONDecodeError:
+                    logger.warning(f"⚠ 無法解析 RAG 回應: {response_text}")
+                    return []
+            else:
+                logger.warning(f"⚠ 無法找到 JSON 在 RAG 回應中: {response_text}")
+                return []
+
+        if not data.get("has_medicine", False):
+            return []
+
+        # 提取藥物資訊
+        for medicine in data.get("medicines", [])[:10]:
+            medicines.append(
+                {
+                    "name": medicine.get("name", "未知藥物"),
+                    "confidence": float(medicine.get("confidence", 0.5)),
+                    "license_number": medicine.get("license_number", ""),
+                    "drug_id": medicine.get("id", ""),
+                    "reason": medicine.get("reason", ""),
+                    "source": "gemini_rag",
+                }
+            )
+
+        # 按信心度排序
+        medicines.sort(key=lambda x: x["confidence"], reverse=True)
+
+        return medicines[:10]
+
+    def recognize_prescription(self, image_path: str) -> List[str]:
+        """
+        從藥單圖片中提取所有藥物名稱
+        """
+        try:
+            image_file = Path(image_path)
+            if not image_file.exists():
+                raise FileNotFoundError(f"圖片檔案不存在: {image_path}")
+
+            with open(image_file, "rb") as f:
+                image_data = f.read()
+
+            suffix = image_file.suffix.lower()
+            mime_type_map = {
+                ".jpg": "image/jpeg",
+                ".jpeg": "image/jpeg",
+                ".png": "image/png",
+                ".gif": "image/gif",
+                ".webp": "image/webp",
+            }
+            mime_type = mime_type_map.get(suffix, "image/jpeg")
+            image_b64 = base64.standard_b64encode(image_data).decode("utf-8")
+
+            prompt = """請分析這張醫院藥單/處方箋的照片。
+請提取出上面所有的「藥物名稱」(包含中文或英文商品名，不需要提取劑量或用法)。
+請回傳一個純 JSON 陣列格式，不需要其他說明文字。例如：
+["普拿疼", "Amoxicillin", "Cetirizine"]
+如果沒看到任何藥物，請回傳 []。"""
+
+            api_url = f"{self.base_url}/{self.model_name}:generateContent?key={self.api_key}"
+            payload = {
+                "contents": [
+                    {
+                        "parts": [
+                            {"text": prompt},
+                            {"inline_data": {"mime_type": mime_type, "data": image_b64}}
+                        ]
+                    }
+                ]
+            }
+            headers = {"Content-Type": "application/json"}
+            response = requests.post(api_url, json=payload, headers=headers, timeout=30)
+            
+            if response.status_code != 200:
+                logger.error(f"✗ Gemini OCR API 錯誤: {response.text}")
+                return []
+                
+            response_data = response.json()
+            if "candidates" not in response_data or not response_data["candidates"]:
+                return []
+                
+            candidate = response_data["candidates"][0]
+            if "content" not in candidate or "parts" not in candidate["content"]:
+                return []
+                
+            result_text = ""
+            for part in candidate["content"]["parts"]:
+                if "text" in part:
+                    result_text = part["text"]
+                    break
+                    
+            # 嘗試解析 JSON
+            import re
+            json_match = re.search(r'\[.*\]', result_text, re.DOTALL)
+            if json_match:
+                return json.loads(json_match.group())
+            return []
+            
+        except Exception as e:
+            logger.error(f"✗ 藥單 OCR 失敗: {e}")
+            return []

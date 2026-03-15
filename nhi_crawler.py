@@ -1,0 +1,120 @@
+import asyncio
+from playwright.async_api import async_playwright
+import json
+
+async def scrape_nhi_drug_info(drug_name: str) -> dict:
+    async with async_playwright() as p:
+        # Launch browser in headless mode
+        browser = await p.chromium.launch(headless=True)
+        page = await browser.new_page()
+        
+        try:
+            # Navigate to the NHI drug search page
+            await page.goto('https://info.nhi.gov.tw/INAE3000/INAE3000S01', timeout=30000)
+            
+            # Fill the drug name in the correct input field (placeholder "請輸入部分中英文名稱")
+            input_locator = page.get_by_placeholder("請輸入部分中英文名稱")
+            await input_locator.fill(drug_name)
+            
+            # Click the search button ("查詢")
+            button_locator = page.get_by_text("查詢", exact=True)
+            await button_locator.click()
+            
+            # Wait for results to load
+            await page.wait_for_timeout(3000)
+            
+            # Check if there are no results
+            no_data = await page.get_by_text("無資料").count()
+            if no_data > 0:
+                await browser.close()
+                return {"status": "success", "results": []}
+            
+            # Extract table data
+            await page.wait_for_selector('table tbody tr')
+            
+            rows = await page.locator('table tbody tr').all()
+            if not rows:
+                await browser.close()
+                return {"status": "success", "results": []}
+                
+            # Click the first drug's ID link to get to the details page
+            first_row = rows[0]
+            cells = await first_row.locator('td').all()
+            drug_id = await cells[0].inner_text()
+            drug_id = drug_id.strip()
+            
+            # The NHI drug ID link actually points to am external TFDA page
+            href = await first_row.locator("a").first.get_attribute("href")
+            
+            # Navigate to the detail page
+            if href:
+                if href.startswith("/"):
+                    href = "https://info.nhi.gov.tw" + href
+                await page.goto(href)
+                await page.wait_for_timeout(5000)
+                
+                # Try to click on the "適應症", "副作用" tabs if they exist (TFDA site might use tabs)
+                # Let's just dump the text first to see the structure
+                page_text = await page.locator("body").inner_text()
+                with open("tfda_detail_page_debug.txt", "w", encoding="utf-8") as f:
+                    f.write(page_text)
+                    
+            details = {"id": drug_id, "source_url": href}
+            
+            try:
+                # Based on TFDA detail layout, we grab all text and look for specific lines
+                page_text = await page.locator("body").inner_text()
+                
+                markers = ["中文品名", "英文品名", "適應症", "藥品類別", "主成分略述"]
+                lines = page_text.split('\n')
+                
+                for i, line in enumerate(lines):
+                    line = line.strip()
+                    if line in markers:
+                        # the value is usually the next non-empty line
+                        for j in range(i+1, len(lines)):
+                            next_line = lines[j].strip()
+                            if next_line and next_line not in markers:
+                                details[line] = next_line
+                                break
+                                
+                # Try to get images (TFDA usually has a tab for 仿單/外盒標籤/藥品外觀)
+                try:
+                    # Look for the tab and click it
+                    tab = page.get_by_text("仿單/外盒標籤/藥品外觀", exact=False)
+                    if await tab.count() > 0:
+                        await tab.first.click()
+                        await page.wait_for_timeout(2000)
+                        
+                        images = await page.locator("img").all()
+                        img_urls = []
+                        for img in images:
+                            src = await img.get_attribute("src")
+                            if src and ("DOH" in src or "fda.gov.tw" in src or "DRPIQ" in src):
+                                if src.startswith("/"):
+                                    src = "https://lmspiq.fda.gov.tw" + src
+                                img_urls.append(src)
+                        
+                        if img_urls:
+                            # Filter out common UI icons if possible
+                            img_urls = [u for u in img_urls if "icon" not in u.lower() and "logo" not in u.lower()]
+                            details["images"] = list(set(img_urls))
+                except Exception as e:
+                    details["image_error"] = str(e)
+                    
+            except Exception as e:
+                details["error_extracting"] = str(e)
+            
+            await browser.close()
+            return {"status": "success", "details": details}
+            
+        except Exception as e:
+            await browser.close()
+            return {"error": str(e)}
+
+if __name__ == "__main__":
+    result = asyncio.run(scrape_nhi_drug_info("普拿疼"))  # Switching back to a common name to test generic search if possible, or sticking to ACETAMINOPHEN
+    if not result.get("details"): # if it fails, try the active generic name
+        print("Failed with 普拿疼, trying ACETAMINOPHEN")
+        result = asyncio.run(scrape_nhi_drug_info("ACETAMINOPHEN"))
+    print(json.dumps(result, indent=2, ensure_ascii=False))

@@ -1,0 +1,68 @@
+# 環境和虛擬環境
+venv/
+env/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# 配置和密鑰
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+
+# 上傳和臨時檔案
+uploads/
+*.log
+.tmp/
+temp/
+
+# 資料庫（但保留 .gitkeep）
+*.db
+!.gitkeep
+
+# OS
+Thumbs.db
+.AppleDouble
+.LSOverride
+
+# 編輯器備份
+*.bak
+*.backup
+
+# npm (如果使用)
+node_modules/
+package-lock.json
+
+# 取消註解下面這一行如果您想將環境變數提交給 Git（不推薦！）
+# !.env
+
+# Large local datasets (keep outside GitHub repo)
+medicine_photos/
+
+# Crawler debug artifacts
+nhi_page.html
+nhi_results_page.html
+nhi_page.png
+nhi_results_page.png
+nhi_detail_page.png
+first_row_debug.txt
+nhi_detail_page_debug.txt
+tfda_detail_page_debug.txt

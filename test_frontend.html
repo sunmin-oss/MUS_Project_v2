@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MUS2 前端診斷工具</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: #252526;
+            border: 1px solid #3e3e42;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        h1 {
+            color: #4ec9b0;
+            border-bottom: 2px solid #4ec9b0;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #ce9178;
+            margin-top: 30px;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #1e1e1e;
+            border-left: 3px solid #007acc;
+            border-radius: 4px;
+        }
+        .test-item {
+            margin: 10px 0;
+            padding: 10px;
+            background: #2d2d30;
+            border-radius: 4px;
+        }
+        .success {
+            color: #6a9955;
+        }
+        .error {
+            color: #f48771;
+        }
+        .warning {
+            color: #dcdcaa;
+        }
+        .info {
+            color: #9cdcfe;
+        }
+        button {
+            background: #007acc;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            font-family: 'Courier New', monospace;
+        }
+        button:hover {
+            background: #0098ff;
+        }
+        .output {
+            background: #1e1e1e;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #3e3e42;
+        }
+        .log-line {
+            margin: 2px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 MUS2 前端診斷工具</h1>
+        
+        <div class="section">
+            <h2>1️⃣ 環境檢查</h2>
+            <div id="envCheck"></div>
+            <button onclick="checkEnvironment()">檢查環境</button>
+        </div>
+
+        <div class="section">
+            <h2>2️⃣ DOM 元素檢查</h2>
+            <div id="domCheck"></div>
+            <button onclick="checkDOM()">檢查 DOM 元素</button>
+        </div>
+
+        <div class="section">
+            <h2>3️⃣ API 連接測試</h2>
+            <div id="apiCheck"></div>
+            <button onclick="testAPI()">測試 API 連接</button>
+        </div>
+
+        <div class="section">
+            <h2>4️⃣ 控制台日誌</h2>
+            <div id="logs" class="output"></div>
+            <button onclick="clearLogs()">清空日誌</button>
+        </div>
+
+        <div class="section">
+            <h2>5️⃣ 快速測試</h2>
+            <button onclick="testUploadClick()">模擬點擊「拍照上傳」</button>
+            <button onclick="testSearchClick()">模擬點擊「搜尋藥物名稱」</button>
+        </div>
+    </div>
+
+    <script>
+        // 捕捉所有 console 輸出
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+        const logs = [];
+
+        function addLog(type, message) {
+            const timestamp = new Date().toLocaleTimeString();
+            logs.push({ type, timestamp, message });
+            updateLogs();
+        }
+
+        console.log = function(...args) {
+            originalLog(...args);
+            addLog('log', args.join(' '));
+        };
+
+        console.error = function(...args) {
+            originalError(...args);
+            addLog('error', args.join(' '));
+        };
+
+        console.warn = function(...args) {
+            originalWarn(...args);
+            addLog('warn', args.join(' '));
+        };
+
+        function updateLogs() {
+            const logsDiv = document.getElementById('logs');
+            logsDiv.innerHTML = logs.map(log => {
+                const color = log.type === 'error' ? '#ff6b6b' : log.type === 'warn' ? '#ffd93d' : '#d4d4d4';
+                return `<div class="log-line" style="color: ${color};">[${log.timestamp}] ${log.message}</div>`;
+            }).join('');
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+        }
+
+        function clearLogs() {
+            logs.length = 0;
+            updateLogs();
+        }
+
+        // 環境檢查
+        function checkEnvironment() {
+            const output = document.getElementById('envCheck');
+            let html = '';
+
+            const checks = [
+                { name: 'JavaScript 已啟用', test: () => true },
+                { name: '瀏覽器類型', test: () => navigator.userAgent },
+                { name: 'Fetch API 支持', test: () => typeof fetch !== 'undefined' },
+                { name: 'FileReader API 支持', test: () => typeof FileReader !== 'undefined' },
+                { name: 'FormData API 支持', test: () => typeof FormData !== 'undefined' },
+            ];
+
+            checks.forEach(check => {
+                try {
+                    const result = check.test();
+                    const status = result ? '<span class="success">✓ 支持</span>' : '<span class="error">✗ 不支持</span>';
+                    html += `<div class="test-item">${check.name}: ${status}</div>`;
+                } catch (e) {
+                    html += `<div class="test-item">${check.name}: <span class="error">✗ 錯誤</span></div>`;
+                }
+            });
+
+            output.innerHTML = html;
+        }
+
+        // DOM 元素檢查
+        function checkDOM() {
+            const output = document.getElementById('domCheck');
+            let html = '';
+
+            const elements = [
+                'homePage',
+                'capturePage',
+                'resultPage',
+                'searchPage',
+                'detailPage',
+                'uploadArea',
+                'imageInput',
+                'imagePreview',
+                'previewImage',
+                'searchInput',
+                'resultContent',
+                'searchResults',
+                'detailContent'
+            ];
+
+            // 檢查是否需要加載主 index.html
+            const isOnMainPage = window.location.pathname === '/' && !document.body.innerHTML.includes('id="homePage"');
+            
+            if (isOnMainPage) {
+                html = '<div class="test-item warning">⚠️ 您目前在診斷頁，不在主應用頁面上</div>';
+                html += '<div class="test-item">請訪問 <a href="/" style="color: #4ec9b0;">首頁</a> 來使用主應用</div>';
+            } else {
+                elements.forEach(elementId => {
+                    const element = document.getElementById(elementId);
+                    const status = element 
+                        ? `<span class="success">✓ 存在</span>` 
+                        : `<span class="error">✗ 不存在</span>`;
+                    html += `<div class="test-item">#${elementId}: ${status}</div>`;
+                });
+            }
+
+            output.innerHTML = html;
+        }
+
+        // API 連接測試
+        async function testAPI() {
+            const output = document.getElementById('apiCheck');
+            output.innerHTML = '<div class="test-item info">⏳ 測試中...</div>';
+
+            try {
+                // 測試健康檢查
+                const healthResponse = await fetch('http://localhost:5000/api/health');
+                const healthData = await healthResponse.json();
+
+                let html = `
+                    <div class="test-item success">✓ Health Check: ${healthResponse.status}</div>
+                    <div class="test-item">Vision API: ${healthData.services.vision_api}</div>
+                    <div class="test-item">Database: ${healthData.services.database}</div>
+                `;
+
+                // 測試搜尋（即使沒有數據庫也能測試 API 響應）
+                const searchResponse = await fetch('http://localhost:5000/api/search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: '測試', limit: 1 })
+                });
+                const searchData = await searchResponse.json();
+                html += `<div class="test-item success">✓ Search API: ${searchResponse.status}</div>`;
+                if (searchData.error) {
+                    html += `<div class="test-item warning">⚠️ 搜尋返回: ${searchData.error}</div>`;
+                } else {
+                    html += `<div class="test-item">搜尋結果: ${searchData.results?.length || 0} 項</div>`;
+                }
+
+                output.innerHTML = html;
+            } catch (error) {
+                output.innerHTML = `<div class="test-item error">✗ API 無法連接: ${error.message}</div>`;
+            }
+        }
+
+        // 模擬UI操作
+        function testUploadClick() {
+            const btn = document.querySelector('[onclick="goToPage(\'capturePage\')"]');
+            if (btn) {
+                btn.click();
+                addLog('log', '🖱️ 已點擊「拍照上傳」按鈕');
+            } else {
+                addLog('error', '❌ 找不到「拍照上傳」按鈕');
+            }
+        }
+
+        function testSearchClick() {
+            const btn = document.querySelector('[onclick="goToPage(\'searchPage\')"]');
+            if (btn) {
+                btn.click();
+                addLog('log', '🖱️ 已點擊「搜尋藥物名稱」按鈕');
+            } else {
+                addLog('error', '❌ 找不到「搜尋藥物名稱」按鈕');
+            }
+        }
+
+        // 初始檢查
+        window.addEventListener('load', () => {
+            console.log('🔧 診斷工具已載入');
+            checkEnvironment();
+            checkDOM();
+        });
+    </script>
+</body>
+</html>
