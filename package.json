@@ -1,0 +1,34 @@
+{
+  "name": "mus_project_v2",
+  "version": "1.0.0",
+  "description": "**MUS2** 是一個全新設計的**簡化版藥物辨識系統**，針對年長者使用習慣進行優化。本系統改用 **Google Vision API** 或 **Claude Vision API** 進行藥物識別，提供簡潔友好的使用介面。",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sunmin-oss/MUS_Project_v2.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/sunmin-oss/MUS_Project_v2/issues"
+  },
+  "homepage": "https://github.com/sunmin-oss/MUS_Project_v2#readme",
+  "dependencies": {
+    "@capacitor/camera": "^8.2.0",
+    "@capacitor/cli": "^8.3.4",
+    "@capacitor/core": "^8.3.4",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/ios": "^8.3.4",
+    "@capacitor/splash-screen": "^8.0.1",
+    "@capacitor/status-bar": "^8.0.2"
+  }
+}
