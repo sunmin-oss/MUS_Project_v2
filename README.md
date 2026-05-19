@@ -1,34 +1,48 @@
-# 藥物辨識系統 v2 (MUS2)
+# 藥知道 - 藥物辨識系統 v1.0.0
 
 ## 📋 專題簡介
 
-**MUS2** 是一個全新設計的**簡化版藥物辨識系統**，針對年長者使用習慣進行優化。本系統改用 **Google Vision API** 或 **Claude Vision API** 進行藥物識別，提供簡潔友好的使用介面。
+**藥知道** 是一個針對年長者設計的**藥物辨識系統**，透過 **Google Gemini API**、**Google Vision API** 或 **Claude Vision API** 進行藥物影像識別，提供簡潔友好的使用介面。
 
 ### 🎯 核心特性
 
-- ✅ **API 驅動** - 使用 Google Vision 或 Claude Vision API，無需複雜的本地模型
+- ✅ **多 API 支援** - 預設使用 Gemini API（推薦），亦支援 Google Vision 與 Claude Vision
 - ✅ **年長者友好** - 大字體、高對比度、簡單按鈕、少於 4 個選項
-- ✅ **快速部署** - 輕量級設計，易於在各種環境部署
+- ✅ **快速部署** - 輕量級設計，支援 Docker 一鍵部署
 - ✅ **多種識別方式** - 支援圖片拍照、上傳辨識和名稱搜尋
 - ✅ **完整藥物資訊** - 自動查詢中英文名稱、許可證、成分、用途等
 
 ---
 
-## 🗂️ 項目結構
+## 🗂️ 專案結構
 
 ```
-MUS2/
+MUS_Project_v2/
 ├── main.py                    # Flask 後端主程式
 ├── config.py                  # 配置管理
-├── vision_api_google.py       # Google Vision API 包裝器
-├── vision_api_claude.py       # Claude Vision API 包裝器
+├── admin_routes.py            # 管理員後台路由
 ├── drug_database.py           # 藥物資料庫查詢模組
-├── index.html                 # 前端本頁面（年長者友好設計）
+├── vision_api_gemini.py       # Gemini Vision API（預設）
+├── vision_api_google.py       # Google Vision API
+├── vision_api_claude.py       # Claude Vision API
+├── index.html                 # 前端首頁（年長者友好設計）
+├── admin.html                 # 管理員後台頁面
+├── drug_recognition.db        # SQLite 藥物資料庫
 ├── requirements.txt           # Python 依賴列表
 ├── .env.example               # 環境變數範例
-├── Dockerfile                 # Docker 構建檔案（選用）
-├── docker-compose.yml         # Docker Compose 配置（選用）
-└── README.md                  # 本文件
+├── Dockerfile                 # Docker 構建檔案
+├── docker-compose.yml         # Docker Compose 配置
+├── CONTRIBUTING.md            # 貢獻指南與 Git 規範
+├── README.md                  # 本文件
+├── docs/                      # 文件
+│   ├── ARCHITECTURE.md        # 系統架構說明
+│   ├── DESIGN.md              # 設計文件
+│   └── QUICKSTART.md          # 快速入門指南
+├── tests/                     # 測試檔案
+├── scripts/                   # 工具腳本（爬蟲、批次更新等）
+├── debug/                     # 除錯用暫存檔
+├── medicine_photos/           # 藥物圖片
+└── uploads/                   # 上傳暫存目錄
 ```
 
 ---
@@ -41,11 +55,11 @@ MUS2/
 - pip (Python 套件管理器)
 - Google Cloud Vision API 密鑰 **或** Claude API 密鑰
 
-### 1️⃣ 克隆/複製專案
+### 1️⃣ 克隆專案
 
 ```bash
-# 假設已有 MUS2 資料夾
-cd MUS2
+git clone https://github.com/sunmin-oss/MUS_Project_v2.git
+cd MUS_Project_v2
 ```
 
 ### 2️⃣ 安裝依賴
@@ -54,7 +68,7 @@ cd MUS2
 # 使用 pip 安裝
 pip install -r requirements.txt
 
-# 或使用 pienv 虛擬環境（推薦）
+# 或使用虛擬環境（推薦）
 python -m venv venv
 
 # 激活虛擬環境
@@ -78,29 +92,23 @@ cp .env.example .env
 編輯 `.env` 檔案：
 
 ```bash
-# .env 檔案內容訪問
+# API 提供商選擇 ('gemini', 'google' 或 'claude')
+API_PROVIDER=gemini
 
-# API 提供商選擇 ('google' 或 'claude')
-API_PROVIDER=google
+# Google Gemini API（推薦）
+# 取得方式: https://aistudio.google.com/ → Get API Key
+GEMINI_API_KEY=your_gemini_api_key_here
 
-# Google Cloud Vision API 密鑰
-# https://console.cloud.google.com/ → 建立專案 → 啟用 Vision API → 建立服務帳號
-GOOGLE_VISION_API_KEY=your_api_key_here
+# Google Cloud Vision API（備選）
+GOOGLE_VISION_API_KEY=your_google_vision_api_key_here
 
-# 或使用 Claude API
-CLAUDE_API_KEY=your_claude_key_here
+# Claude Vision API（備選）
+CLAUDE_API_KEY=your_claude_api_key_here
 ```
 
-### 4️⃣ 複製藥物資料庫（可選）
+### 4️⃣ 藥物資料庫
 
-為了完整功能，複製現有的 MUS_Project 資料庫：
-
-```bash
-# 從 MUS_Project 複製資料庫
-cp ../MUS_Project/drug_recognition.db ./
-```
-
-如果沒有資料庫，系統仍然可以工作，但只能進行圖片辨識，無法查詢詳細藥物資訊。
+專案已內建 `drug_recognition.db` 資料庫，無需額外設定。
 
 ---
 
@@ -249,31 +257,21 @@ GET /api/drug/{drug_id}
 
 ## 🔌 API 提供商選擇
 
-### Google Vision API
+### Google Gemini API（推薦）
 
-**優點：**
+- 使用模型：`gemini-2.5-flash`
+- 免費額度充足，辨識能力強
+- 設置：前往 [Google AI Studio](https://aistudio.google.com/) → Get API Key
+
+### Google Cloud Vision API
+
 - 功能完整（標籤識別、文字識別、物體偵測）
-- 識別準確度高
-- 免費額度充足（月 1000 次）
-
-**設置步驟：**
-1. 前往 [Google Cloud Console](https://console.cloud.google.com/)
-2. 建立新專案
-3. 啟用 Vision API
-4. 建立服務帳號並下載 JSON 密鑰
-5. 複製密鑰到 `.env` 檔案
+- 設置：前往 [Google Cloud Console](https://console.cloud.google.com/) → 啟用 Vision API
 
 ### Claude Vision API
 
-**優點：**
-- 更智能的理解能力
-- 可以理解複雜的醫學術語
-- 支援自然語言對話
-
-**設置步驟：**
-1. 前往 [Anthropic 官方網站](https://www.anthropic.com/)
-2. 獲取 API 密鑰
-3. 複製密鑰到 `.env` 檔案
+- 更智能的醫學術語理解能力
+- 設置：前往 [Anthropic](https://www.anthropic.com/) → 獲取 API 密鑰
 
 ---
 
@@ -303,7 +301,8 @@ curl -X POST http://localhost:5000/api/search \
 
 | 變數名 | 說明 | 預設值 | 必需 |
 |------|------|--------|-----|
-| `API_PROVIDER` | API 提供商 ('google' 或 'claude') | google | ✅ |
+| `API_PROVIDER` | API 提供商 ('gemini', 'google' 或 'claude') | gemini | ✅ |
+| `GEMINI_API_KEY` | Google Gemini API 密鑰 | - | 若使用 Gemini |
 | `GOOGLE_VISION_API_KEY` | Google Vision API 密鑰 | - | 若使用 Google |
 | `CLAUDE_API_KEY` | Claude API 密鑰 | - | 若使用 Claude |
 | `FLASK_ENV` | Flask 環境 (development/production) | development | ❌ |
@@ -402,8 +401,9 @@ conn.close()
 
 ## 👥 貢獻者
 
-- MUS2 開發團隊
-- 基於 MUS_Project 的資料庫和架構
+- 藥知道開發團隊
+
+協作規範請參閱 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 ---
 
@@ -411,4 +411,5 @@ conn.close()
 
 如有問題或建議，請聯絡開發團隊。
 
-**更新日期：** 2025 年 2 月 27 日
+**版本：** v1.0.0  
+**更新日期：** 2026 年 5 月 19 日
