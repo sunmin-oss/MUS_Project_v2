@@ -47,5 +47,16 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>藥知道需要使用相機來拍攝藥物照片進行辨識</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>藥知道需要存取相簿以選擇藥物照片進行辨識</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>藥知道需要儲存辨識結果的圖片到相簿</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
 </dict>
 </plist>
