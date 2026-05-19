@@ -67,6 +67,9 @@ class Config:
     CORS_ORIGINS = [
         "http://localhost:*",
         "http://127.0.0.1:*",
+        "capacitor://localhost",
+        "ionic://localhost",
+        "http://localhost",
         "https://mus2.vercel.app",
         "https://*.vercel.app",
         "https://*.ngrok-free.dev",
