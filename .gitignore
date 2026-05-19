@@ -47,9 +47,15 @@ Thumbs.db
 *.bak
 *.backup
 
-# npm (如果使用)
+# npm
 node_modules/
 package-lock.json
+
+# Capacitor / iOS
+ios/App/Pods/
+ios/App/App/public/
+ios/App/output/
+*.xcuserdatad
 
 # 取消註解下面這一行如果您想將環境變數提交給 Git（不推薦！）
 # !.env
