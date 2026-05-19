@@ -4,8 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>簡易藥物辨識 - MUS2</title>
-    <meta name="description" content="簡易藥物辨識系統 - 為年長者設計的簡潔介面">
+    <title>藥知道</title>
+    <meta name="description" content="藥知道 - 為年長者設計的簡潔藥物辨識系統">
     <meta name="viewport" content="user-scalable=yes, width=device-width">
     
     <!-- 用於年長者友好的 CSS -->
@@ -486,15 +486,211 @@
                 padding: 20px 15px;
             }
         }
+
+        /* ===== 設定按鈕 ===== */
+        .settings-toggle {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: #fff;
+            font-size: 22px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: background 0.2s;
+            z-index: 10;
+        }
+        .settings-toggle:hover { background: rgba(255,255,255,0.35); }
+
+        /* ===== 設定面板 ===== */
+        .settings-panel {
+            display: none;
+            position: absolute;
+            top: 56px;
+            right: 12px;
+            background: #fff;
+            color: #333;
+            border-radius: 14px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+            padding: 18px;
+            width: 260px;
+            z-index: 20;
+            animation: fadeIn 0.2s;
+        }
+        .settings-panel.show { display: block; }
+        .settings-panel h4 { font-size: 15px; margin-bottom: 12px; color: #555; }
+        .settings-section { margin-bottom: 16px; }
+        .settings-section:last-child { margin-bottom: 0; }
+        .settings-label { font-size: 13px; font-weight: 600; color: #666; margin-bottom: 6px; }
+
+        .opt-group { display: flex; gap: 6px; }
+        .opt-btn {
+            flex: 1;
+            padding: 8px 4px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background: #f8f8f8;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            text-align: center;
+            transition: all 0.2s;
+            font-family: inherit;
+            color: #333;
+        }
+        .opt-btn:hover { border-color: #aaa; }
+        .opt-btn.active { border-color: #667eea; background: #eef0ff; color: #667eea; font-weight: 700; }
+
+        .theme-btn {
+            flex: 1;
+            height: 36px;
+            border: 3px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .theme-btn:hover { transform: scale(1.05); }
+        .theme-btn.active { border-color: #667eea; box-shadow: 0 0 0 2px rgba(102,126,234,0.3); }
+        .theme-default { background: linear-gradient(135deg, #667eea, #764ba2); }
+        .theme-warm { background: linear-gradient(135deg, #f5af19, #f12711); }
+        .theme-dark { background: linear-gradient(135deg, #232526, #414345); }
+
+        .admin-entry-btn {
+            width: 100%;
+            padding: 10px;
+            background: #f0f0f0;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: 500;
+            color: #555;
+            transition: all 0.2s;
+        }
+        .admin-entry-btn:hover { background: #e8e8e8; color: #333; }
+
+        /* ===== 登入對話框 ===== */
+        .login-backdrop {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 200;
+            justify-content: center;
+            align-items: center;
+        }
+        .login-backdrop.show { display: flex; }
+        .login-modal {
+            background: #fff;
+            border-radius: 16px;
+            padding: 28px;
+            width: 320px;
+            text-align: center;
+            animation: fadeIn 0.2s;
+        }
+        .login-modal h3 { font-size: 20px; margin-bottom: 18px; color: #333; }
+        .login-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+            margin-bottom: 12px;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+        .login-input:focus { outline: none; border-color: #667eea; }
+        .login-error { color: #ea4335; font-size: 13px; margin-bottom: 10px; display: none; }
+        .login-actions { display: flex; gap: 10px; }
+        .login-actions button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .login-cancel { background: #f0f0f0; color: #555; }
+        .login-submit { background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; }
+
+        /* ===== 字體大小模式 ===== */
+        body.font-medium { font-size: 18px; }
+        body.font-medium .header h1 { font-size: 40px; }
+        body.font-medium .big-button { font-size: 26px; }
+        body.font-medium .back-button { font-size: 18px; }
+        body.font-medium .upload-area p { font-size: 22px; }
+        body.font-medium .search-input { font-size: 20px; }
+
+        body.font-large { font-size: 22px; }
+        body.font-large .header h1 { font-size: 46px; }
+        body.font-large .big-button { font-size: 30px; padding: 30px; }
+        body.font-large .back-button { font-size: 20px; padding: 18px; }
+        body.font-large .upload-area p { font-size: 26px; }
+        body.font-large .search-input { font-size: 24px; }
+        body.font-large .result-item { font-size: 20px; }
+
+        /* ===== 暖色對比主題 ===== */
+        body.theme-warm-mode { background: linear-gradient(135deg, #f5af19 0%, #f12711 100%); }
+        body.theme-warm-mode .header { background: linear-gradient(135deg, #f5af19 0%, #f12711 100%); }
+        body.theme-warm-mode .big-button { background: linear-gradient(135deg, #f5af19 0%, #f12711 100%); box-shadow: 0 4px 15px rgba(241,39,17,0.4); }
+        body.theme-warm-mode .upload-area { border-color: #f5af19; }
+        body.theme-warm-mode .upload-area:hover { border-color: #f12711; background: #fff8f0; }
+
+        /* ===== 深色高對比主題 ===== */
+        body.theme-dark-mode { background: #1a1a1a; }
+        body.theme-dark-mode .container { background: #2a2a2a; color: #f0f0f0; }
+        body.theme-dark-mode .header { background: linear-gradient(135deg, #232526 0%, #414345 100%); }
+        body.theme-dark-mode .big-button { background: linear-gradient(135deg, #434343 0%, #000000 100%); box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        body.theme-dark-mode .big-button.secondary { background: #444; color: #fff; }
+        body.theme-dark-mode .upload-area { background: #333; border-color: #666; color: #ddd; }
+        body.theme-dark-mode .upload-area:hover { background: #3a3a3a; border-color: #888; }
+        body.theme-dark-mode .upload-area p { color: #ddd; }
+        body.theme-dark-mode .back-button { background: #555; }
+        body.theme-dark-mode .search-input { background: #333; color: #fff; border-color: #555; }
+        body.theme-dark-mode .footer-hint { color: #888; border-top-color: #444; }
+        body.theme-dark-mode .result-item { background: #333; }
+        body.theme-dark-mode .settings-panel { background: #333; color: #eee; }
+        body.theme-dark-mode .settings-label { color: #bbb; }
+        body.theme-dark-mode .opt-btn { background: #444; color: #ddd; border-color: #555; }
+        body.theme-dark-mode .opt-btn.active { border-color: #88a0ff; background: #3a3a5a; color: #88a0ff; }
+        body.theme-dark-mode .admin-entry-btn { background: #444; color: #ccc; border-color: #555; }
     </style>
 </head>
 
 <body>
     <div class="container">
         <!-- 頁首 -->
-        <div class="header">
-            <h1>💊 藥物辨識</h1>
+        <div class="header" style="position:relative;">
+            <h1>💊 藥知道</h1>
             <p>簡單、快速、安全</p>
+            <button class="settings-toggle" onclick="toggleSettings()" title="設定">⚙️</button>
+            <div class="settings-panel" id="settingsPanel">
+                <div class="settings-section">
+                    <div class="settings-label">字體大小</div>
+                    <div class="opt-group">
+                        <button class="opt-btn active" data-font="normal" onclick="setFontSize('normal')">正常</button>
+                        <button class="opt-btn" data-font="medium" onclick="setFontSize('medium')">中</button>
+                        <button class="opt-btn" data-font="large" onclick="setFontSize('large')">大</button>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <div class="settings-label">顏色主題</div>
+                    <div class="opt-group">
+                        <div class="theme-btn theme-default active" data-theme="default" onclick="setTheme('default')" title="預設"></div>
+                        <div class="theme-btn theme-warm" data-theme="warm" onclick="setTheme('warm')" title="暖色"></div>
+                        <div class="theme-btn theme-dark" data-theme="dark" onclick="setTheme('dark')" title="深色高對比"></div>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <button class="admin-entry-btn" onclick="showLoginModal()">🔒 進入後台管理</button>
+                </div>
+            </div>
         </div>
 
         <!-- 主頁 -->
@@ -586,6 +782,21 @@
             <button class="back-button" onclick="goToPreviousPage()">← 返回</button>
 
             <div id="detailContent"></div>
+        </div>
+    </div>
+
+    <!-- 管理員登入對話框 -->
+    <div class="login-backdrop" id="loginBackdrop" onclick="if(event.target===this)closeLoginModal()">
+        <div class="login-modal">
+            <h3>🔒 管理員登入</h3>
+            <input type="text" class="login-input" id="loginUser" placeholder="帳號" autocomplete="username">
+            <input type="password" class="login-input" id="loginPass" placeholder="密碼" autocomplete="current-password"
+                onkeydown="if(event.key==='Enter')doLogin()">
+            <div class="login-error" id="loginError">帳號或密碼錯誤</div>
+            <div class="login-actions">
+                <button class="login-cancel" onclick="closeLoginModal()">取消</button>
+                <button class="login-submit" onclick="doLogin()">登入</button>
+            </div>
         </div>
     </div>
 
@@ -1094,7 +1305,6 @@
             </div>`;
 
             document.getElementById('detailContent').innerHTML = html;
-            goToPage('detailPage');
         }
 
         // ============================================
@@ -1193,6 +1403,76 @@
             }
             
             console.log('✓ 應用已載入，可以開始使用');
+        }
+        
+        // ============================================
+        // 設定功能
+        // ============================================
+        function toggleSettings() {
+            document.getElementById('settingsPanel').classList.toggle('show');
+        }
+        // 點擊外部關閉設定
+        document.addEventListener('click', function(e) {
+            const panel = document.getElementById('settingsPanel');
+            const toggle = document.querySelector('.settings-toggle');
+            if (panel && !panel.contains(e.target) && e.target !== toggle) {
+                panel.classList.remove('show');
+            }
+        });
+
+        function setFontSize(size) {
+            document.body.classList.remove('font-medium', 'font-large');
+            if (size === 'medium') document.body.classList.add('font-medium');
+            if (size === 'large') document.body.classList.add('font-large');
+            document.querySelectorAll('.opt-btn[data-font]').forEach(b => b.classList.remove('active'));
+            document.querySelector('.opt-btn[data-font="' + size + '"]').classList.add('active');
+            localStorage.setItem('mus2_font', size);
+        }
+
+        function setTheme(theme) {
+            document.body.classList.remove('theme-warm-mode', 'theme-dark-mode');
+            if (theme === 'warm') document.body.classList.add('theme-warm-mode');
+            if (theme === 'dark') document.body.classList.add('theme-dark-mode');
+            document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector('.theme-btn[data-theme="' + theme + '"]').classList.add('active');
+            localStorage.setItem('mus2_theme', theme);
+        }
+
+        // 載入儲存的設定
+        (function loadSavedSettings() {
+            const font = localStorage.getItem('mus2_font');
+            if (font && font !== 'normal') setFontSize(font);
+            const theme = localStorage.getItem('mus2_theme');
+            if (theme && theme !== 'default') setTheme(theme);
+        })();
+
+        // ============================================
+        // 管理員登入
+        // ============================================
+        function showLoginModal() {
+            document.getElementById('settingsPanel').classList.remove('show');
+            document.getElementById('loginBackdrop').classList.add('show');
+            document.getElementById('loginUser').value = '';
+            document.getElementById('loginPass').value = '';
+            document.getElementById('loginError').style.display = 'none';
+            setTimeout(() => document.getElementById('loginUser').focus(), 100);
+        }
+
+        function closeLoginModal() {
+            document.getElementById('loginBackdrop').classList.remove('show');
+        }
+
+        function doLogin() {
+            const user = document.getElementById('loginUser').value.trim();
+            const pass = document.getElementById('loginPass').value;
+            if (user === 'admin' && pass === 'admin') {
+                closeLoginModal();
+                window.location.href = '/admin/';
+            } else {
+                document.getElementById('loginError').style.display = 'block';
+                document.getElementById('loginPass').value = '';
+                document.getElementById('loginPass').focus();
+            }
         }
         
         // 在 DOM 加載完成後初始化

@@ -32,13 +32,15 @@ Flask 後端主程式，提供簡化 RESTful API 介面。
 【日期】2025
 """
 
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, g
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 from pathlib import Path
 import os
 import uuid
 import logging
+import sqlite3
+import time
 from datetime import datetime
 from typing import Dict, Any, Tuple
 import sys
@@ -61,7 +63,88 @@ app.config.from_object(config)
 config.init_upload_folder()
 
 # 配置 CORS
-CORS(app, resources={"/api/*": {"origins": config.CORS_ORIGINS}})
+CORS(
+    app,
+    resources={
+        "/api/*": {"origins": config.CORS_ORIGINS},
+        "/admin/*": {"origins": config.CORS_ORIGINS},
+    },
+)
+
+# 註冊管理員 Blueprint
+from admin_routes import admin_bp
+
+app.register_blueprint(admin_bp)
+
+
+# ============================================
+# API 使用追蹤
+# ============================================
+
+
+def _ensure_api_logs_table():
+    """確保 api_logs 表存在"""
+    try:
+        conn = sqlite3.connect(config.DATABASE_PATH)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS api_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                endpoint TEXT,
+                method TEXT,
+                status_code INTEGER,
+                duration_ms REAL,
+                query_params TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        logger.warning(f"⚠ 建立 api_logs 表失敗: {e}")
+
+
+_ensure_api_logs_table()
+
+
+@app.before_request
+def before_request_timer():
+    """記錄請求開始時間"""
+    g.start_time = time.time()
+
+
+@app.after_request
+def log_api_request(response):
+    """記錄 API 請求到資料庫"""
+    # 只記錄 API 端點，排除靜態資源和管理員 API
+    path = request.path
+    if not path.startswith("/api/") or path.startswith("/api/images/"):
+        return response
+
+    try:
+        duration_ms = (time.time() - getattr(g, "start_time", time.time())) * 1000
+        query_params = ""
+        if "search" in path:
+            data = request.get_json(silent=True)
+            if data and data.get("query"):
+                query_params = data["query"]
+
+        conn = sqlite3.connect(config.DATABASE_PATH)
+        conn.execute(
+            "INSERT INTO api_logs (endpoint, method, status_code, duration_ms, query_params) VALUES (?, ?, ?, ?, ?)",
+            (
+                path,
+                request.method,
+                response.status_code,
+                round(duration_ms, 1),
+                query_params,
+            ),
+        )
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass  # 日誌記錄失敗不應影響正常請求
+
+    return response
 
 
 # 禁用前端文件的緩存
@@ -385,7 +468,10 @@ def recognize_prescription():
     """
     try:
         if recognizer is None or not hasattr(recognizer, "recognize_prescription"):
-            return jsonify({"success": False, "error": "視覺 API 暫不支持藥單辨識"}), 503
+            return (
+                jsonify({"success": False, "error": "視覺 API 暫不支持藥單辨識"}),
+                503,
+            )
 
         if "image" not in request.files:
             return jsonify({"success": False, "error": "未找到圖片檔案"}), 400
@@ -416,18 +502,21 @@ def recognize_prescription():
             return jsonify({"success": False, "error": f"辨識失敗: {str(e)}"}), 500
 
         if not drug_names:
-            return jsonify({"success": False, "error": "未能從藥單中識別出任何藥物"}), 200
+            return (
+                jsonify({"success": False, "error": "未能從藥單中識別出任何藥物"}),
+                200,
+            )
 
         # 將名稱轉化並收集 DB 資料 (為了前端簡單顯示)
         drug_details = []
-        
+
         for name in drug_names:
             detail = {
                 "name": name,
                 "confidence": 1.0,
                 "source": "prescription",
                 "details": None,
-                "drug_id": None
+                "drug_id": None,
             }
             if db:
                 try:
@@ -442,9 +531,9 @@ def recognize_prescription():
                             "license_number": db_drug.get("license_number"),
                             "shape": db_drug.get("shape"),
                             "color": db_drug.get("color"),
-                            "usage": db_drug.get("usage")
+                            "usage": db_drug.get("usage"),
                         }
-                        
+
                         # Add image if exists
                         try:
                             images = db.get_drug_images(detail["drug_id"], limit=1)
@@ -453,7 +542,7 @@ def recognize_prescription():
                             detail["images"] = []
                 except Exception as e:
                     logger.warning(f"⚠ 查詢藥單藥物 {name} 失敗: {e}")
-            
+
             drug_details.append(detail)
 
         response = {
@@ -461,7 +550,7 @@ def recognize_prescription():
             "request_id": filename.split("_")[0],
             "recognized_drugs": drug_names,
             "recognized_items": drug_details,  # 保持與 recognize_drug 一致的格式
-            "message": f"辨識完成，找到 {len(drug_names)} 種藥物"
+            "message": f"辨識完成，找到 {len(drug_names)} 種藥物",
         }
 
         return jsonify(response), 200
@@ -577,33 +666,48 @@ def get_drug_detail(drug_id):
         if not drug:
             return jsonify({"success": False, "error": "藥物不存在"}), 404
 
-        # 整合 NHI 爬蟲取得最新副作用與適應症資訊
+        # 整合 NHI 爬蟲取得最新副作用與適應症資訊（含快取機制）
         try:
-            # 決定搜尋關鍵字 (優先使用英文學名的第一個單字)
+            # 決定搜尋關鍵字 (優先使用中文品名，較精確；備選使用完整英文名)
             search_name = ""
-            if drug.get("english_name"):
-                search_name = drug.get("english_name").split()[0]
-            elif drug.get("chinese_name"):
+            if drug.get("chinese_name"):
                 search_name = drug.get("chinese_name")
+            elif drug.get("english_name"):
+                search_name = drug.get("english_name")
 
-            if search_name:
-                logger.info(f"🕸️ 嘗試從 NHI/TFDA 獲取最新藥物資訊: {search_name}")
-                import asyncio
-                from nhi_crawler import scrape_nhi_drug_info
-                
-                # 在 Flask 中執行 async 爬蟲
-                try:
-                    loop = asyncio.get_event_loop()
-                except RuntimeError:
-                    loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(loop)
-                    
-                nhi_result = loop.run_until_complete(scrape_nhi_drug_info(search_name))
-                
-                if nhi_result and nhi_result.get("status") == "success":
-                    details = nhi_result.get("details", {})
-                    drug["nhi_details"] = details
-                    logger.info("✓ 成功獲取 NHI/TFDA 補充資訊")
+            if search_name and db:
+                # 1. 先查快取（7 天內有效）
+                cached = db.get_nhi_cache(int(drug_id))
+                if cached:
+                    drug["nhi_details"] = cached
+                    logger.info(f"⚡ 使用 NHI 快取資料 (drug_id={drug_id})")
+                else:
+                    # 2. 快取未命中，啟動爬蟲
+                    logger.info(f"🕸️ 快取未命中，從 NHI/TFDA 爬取: {search_name}")
+                    import asyncio
+                    from nhi_crawler import scrape_nhi_drug_info
+
+                    try:
+                        loop = asyncio.get_event_loop()
+                    except RuntimeError:
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+
+                    nhi_result = loop.run_until_complete(
+                        scrape_nhi_drug_info(search_name)
+                    )
+
+                    if nhi_result and nhi_result.get("status") == "success":
+                        details = nhi_result.get("details", {})
+                        if (
+                            details and len(details) > 2
+                        ):  # 至少有 id + source_url 以外的欄位
+                            drug["nhi_details"] = details
+                            # 3. 存入快取
+                            db.set_nhi_cache(int(drug_id), search_name, details)
+                            logger.info("✓ NHI/TFDA 資訊已爬取並快取")
+                        else:
+                            logger.info("ℹ NHI/TFDA 無額外資訊可快取")
         except Exception as e:
             logger.warning(f"⚠ NHI 資訊擷取失敗: {e}")
 

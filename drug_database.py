@@ -317,3 +317,96 @@ class DrugDatabase:
         except Exception as e:
             logger.error(f"✗ 取得藥物圖片失敗: {e}")
             return []
+
+    # ============================================
+    # NHI/TFDA 快取機制
+    # ============================================
+
+    def _ensure_nhi_cache_table(self):
+        """確保 nhi_cache 表存在"""
+        try:
+            conn = self._get_connection()
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS nhi_cache (
+                    drug_id INTEGER PRIMARY KEY,
+                    search_name TEXT NOT NULL,
+                    nhi_data TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            logger.error(f"✗ 建立 nhi_cache 表失敗: {e}")
+
+    def get_nhi_cache(
+        self, drug_id: int, max_age_days: int = 7
+    ) -> Optional[Dict[str, Any]]:
+        """
+        從快取取得 NHI/TFDA 資料
+
+        參數:
+            drug_id: 藥物 ID
+            max_age_days: 快取有效天數（預設 7 天）
+
+        回傳:
+            快取的 NHI 資料，或 None（無快取或已過期）
+        """
+        import json
+
+        self._ensure_nhi_cache_table()
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT nhi_data, updated_at FROM nhi_cache
+                WHERE drug_id = ?
+                AND updated_at >= datetime('now', ?)
+            """,
+                (drug_id, f"-{max_age_days} days"),
+            )
+
+            row = cursor.fetchone()
+            conn.close()
+
+            if row:
+                logger.info(f"✓ NHI 快取命中 (drug_id={drug_id})")
+                return json.loads(row[0])
+            return None
+
+        except Exception as e:
+            logger.error(f"✗ 讀取 NHI 快取失敗: {e}")
+            return None
+
+    def set_nhi_cache(self, drug_id: int, search_name: str, nhi_data: Dict[str, Any]):
+        """
+        儲存 NHI/TFDA 資料到快取
+
+        參數:
+            drug_id: 藥物 ID
+            search_name: 搜尋使用的關鍵字
+            nhi_data: 從爬蟲取得的 NHI 資料字典
+        """
+        import json
+
+        self._ensure_nhi_cache_table()
+        try:
+            conn = self._get_connection()
+            conn.execute(
+                """
+                INSERT INTO nhi_cache (drug_id, search_name, nhi_data, created_at, updated_at)
+                VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                ON CONFLICT(drug_id) DO UPDATE SET
+                    search_name = excluded.search_name,
+                    nhi_data = excluded.nhi_data,
+                    updated_at = CURRENT_TIMESTAMP
+            """,
+                (drug_id, search_name, json.dumps(nhi_data, ensure_ascii=False)),
+            )
+            conn.commit()
+            conn.close()
+            logger.info(f"✓ NHI 快取已儲存 (drug_id={drug_id}, name={search_name})")
+        except Exception as e:
+            logger.error(f"✗ 儲存 NHI 快取失敗: {e}")

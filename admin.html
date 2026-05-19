@@ -1,0 +1,1536 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>藥知道 - 後台管理</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft JhengHei', '微軟正黑體', 'Segoe UI', sans-serif;
+            background: #f0f2f5;
+            color: #333;
+        }
+
+        /* ===== 側邊欄 ===== */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 220px;
+            height: 100vh;
+            background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            padding: 20px 0;
+            z-index: 100;
+            overflow-y: auto;
+        }
+
+        .sidebar-header {
+            text-align: center;
+            padding: 10px 20px 25px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .sidebar-header h2 {
+            font-size: 20px;
+            margin-bottom: 4px;
+        }
+
+        .sidebar-header small {
+            color: #8892b0;
+            font-size: 12px;
+        }
+
+        .nav-menu {
+            list-style: none;
+            padding: 10px 0;
+        }
+
+        .nav-menu li {
+            margin: 2px 10px;
+        }
+
+        .nav-menu a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 11px 16px;
+            color: #b0b8d0;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+
+        .nav-menu a:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+        }
+
+        .nav-menu a.active {
+            background: rgba(102, 126, 234, 0.3);
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .nav-menu .icon {
+            font-size: 18px;
+            width: 24px;
+            text-align: center;
+        }
+
+        /* ===== 主內容 ===== */
+        .main-content {
+            margin-left: 220px;
+            padding: 24px;
+            min-height: 100vh;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .page-header h1 {
+            font-size: 24px;
+            color: #1a1a2e;
+        }
+
+        .page-header .subtitle {
+            color: #666;
+            font-size: 13px;
+            margin-top: 2px;
+        }
+
+        /* ===== 卡片 ===== */
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .card-header h3 {
+            font-size: 16px;
+            color: #333;
+        }
+
+        /* ===== 統計卡片 ===== */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+        }
+
+        .stat-icon.blue {
+            background: #e8f0fe;
+            color: #4285f4;
+        }
+
+        .stat-icon.green {
+            background: #e6f4ea;
+            color: #34a853;
+        }
+
+        .stat-icon.orange {
+            background: #fef0e6;
+            color: #ea8600;
+        }
+
+        .stat-icon.purple {
+            background: #f0e8fe;
+            color: #7c3aed;
+        }
+
+        .stat-icon.red {
+            background: #fce8e8;
+            color: #ea4335;
+        }
+
+        .stat-icon.teal {
+            background: #e0f7f7;
+            color: #0d9488;
+        }
+
+        .stat-value {
+            font-size: 26px;
+            font-weight: 700;
+            color: #1a1a2e;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: #888;
+        }
+
+        /* ===== 表格 ===== */
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        th {
+            background: #f8f9fa;
+            color: #555;
+            font-weight: 600;
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 2px solid #e9ecef;
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #f0f0f0;
+            max-width: 250px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        tr:hover {
+            background: #f8f9ff;
+        }
+
+        /* ===== 按鈕 ===== */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: #4285f4;
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: #3367d6;
+        }
+
+        .btn-success {
+            background: #34a853;
+            color: #fff;
+        }
+
+        .btn-success:hover {
+            background: #2d9249;
+        }
+
+        .btn-danger {
+            background: #ea4335;
+            color: #fff;
+        }
+
+        .btn-danger:hover {
+            background: #d33426;
+        }
+
+        .btn-warning {
+            background: #ea8600;
+            color: #fff;
+        }
+
+        .btn-warning:hover {
+            background: #d07700;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid #ddd;
+            color: #555;
+        }
+
+        .btn-outline:hover {
+            background: #f5f5f5;
+        }
+
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        /* ===== 表單 ===== */
+        .form-group {
+            margin-bottom: 14px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 4px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #4285f4;
+            box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.15);
+        }
+
+        .search-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .search-bar input {
+            flex: 1;
+        }
+
+        /* ===== 分頁 ===== */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            padding: 16px 0;
+        }
+
+        .pagination button {
+            padding: 6px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background: #fff;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            background: #f0f0f0;
+        }
+
+        .pagination button:disabled {
+            opacity: 0.4;
+            cursor: default;
+        }
+
+        .pagination .current {
+            background: #4285f4;
+            color: #fff;
+            border-color: #4285f4;
+        }
+
+        /* ===== 對話框 ===== */
+        .modal-backdrop {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 200;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-backdrop.show {
+            display: flex;
+        }
+
+        .modal {
+            background: #fff;
+            border-radius: 14px;
+            padding: 28px;
+            width: 90%;
+            max-width: 550px;
+            max-height: 80vh;
+            overflow-y: auto;
+            animation: modalIn 0.2s;
+        }
+
+        @keyframes modalIn {
+            from {
+                transform: translateY(-20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal h3 {
+            margin-bottom: 18px;
+            font-size: 18px;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        /* ===== 頁面切換 ===== */
+        .page-section {
+            display: none;
+        }
+
+        .page-section.active {
+            display: block;
+        }
+
+        /* ===== 日誌 ===== */
+        .log-viewer {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 16px;
+            border-radius: 8px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        /* ===== 設定列表 ===== */
+        .settings-list {
+            list-style: none;
+        }
+
+        .settings-list li {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 14px;
+        }
+
+        .settings-list li:last-child {
+            border-bottom: none;
+        }
+
+        .settings-key {
+            font-weight: 600;
+            color: #555;
+        }
+
+        .settings-val {
+            color: #333;
+            text-align: right;
+            max-width: 60%;
+            word-break: break-all;
+        }
+
+        /* ===== 標籤 ===== */
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: #e6f4ea;
+            color: #1b7340;
+        }
+
+        .badge-warning {
+            background: #fef0e6;
+            color: #b35900;
+        }
+
+        .badge-error {
+            background: #fce8e8;
+            color: #c62828;
+        }
+
+        /* ===== toast 提示 ===== */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 999;
+        }
+
+        .toast {
+            background: #323232;
+            color: #fff;
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            font-size: 14px;
+            animation: toastIn 0.3s;
+            max-width: 350px;
+        }
+
+        .toast.success {
+            background: #2d9249;
+        }
+
+        .toast.error {
+            background: #d33426;
+        }
+
+        @keyframes toastIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* ===== 載入 ===== */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 32px;
+            height: 32px;
+            border: 3px solid #e0e0e0;
+            border-top-color: #4285f4;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* ===== 響應式 ===== */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 60px;
+            }
+
+            .sidebar-header h2,
+            .sidebar-header small,
+            .nav-menu .label {
+                display: none;
+            }
+
+            .nav-menu a {
+                justify-content: center;
+                padding: 12px;
+            }
+
+            .main-content {
+                margin-left: 60px;
+                padding: 16px;
+            }
+
+            .stat-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- ===== 側邊欄 ===== -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2>💊 藥知道</h2>
+            <small>後台管理</small>
+        </div>
+        <ul class="nav-menu">
+            <li><a href="#" class="active" data-page="dashboard"><span class="icon">📊</span><span
+                        class="label">儀表板</span></a></li>
+            <li><a href="#" data-page="drugs"><span class="icon">💊</span><span class="label">藥物管理</span></a></li>
+            <li><a href="#" data-page="cache"><span class="icon">🗄️</span><span class="label">NHI 快取</span></a></li>
+            <li><a href="#" data-page="uploads"><span class="icon">📁</span><span class="label">上傳檔案</span></a></li>
+            <li><a href="#" data-page="settings"><span class="icon">⚙️</span><span class="label">系統設定</span></a>
+            </li>
+            <li><a href="#" data-page="stats"><span class="icon">📈</span><span class="label">API 統計</span></a></li>
+            <li><a href="#" data-page="batch"><span class="icon">🔄</span><span class="label">批次更新</span></a></li>
+        </ul>
+        <div style="position:absolute;bottom:16px;left:0;right:0;text-align:center;">
+            <a href="/" style="color:#8892b0;text-decoration:none;font-size:12px;">← 回前台</a>
+        </div>
+    </div>
+
+    <!-- ===== Toast ===== -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- ===== 主內容 ===== -->
+    <div class="main-content">
+
+        <!-- ========== 1. 儀表板 ========== -->
+        <div class="page-section active" id="page-dashboard">
+            <div class="page-header">
+                <div>
+                    <h1>儀表板</h1>
+                    <div class="subtitle">系統狀態總覽</div>
+                </div>
+                <button class="btn btn-outline" onclick="loadDashboard()">🔄 重新整理</button>
+            </div>
+            <div class="stat-grid" id="dashboardStats"></div>
+            <div class="card">
+                <div class="card-header">
+                    <h3>最近 API 請求</h3>
+                </div>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>端點</th>
+                                <th>方法</th>
+                                <th>狀態</th>
+                                <th>耗時</th>
+                                <th>時間</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recentLogs"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== 2. 藥物管理 ========== -->
+        <div class="page-section" id="page-drugs">
+            <div class="page-header">
+                <div>
+                    <h1>藥物管理</h1>
+                    <div class="subtitle">新增、編輯、刪除藥物資料</div>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-success" onclick="showAddDrugModal()">＋ 新增藥物</button>
+                    <a class="btn btn-outline" href="/admin/api/drugs/export" target="_blank">📥 匯出 CSV</a>
+                </div>
+            </div>
+            <div class="search-bar">
+                <input type="text" class="form-control" id="drugSearch" placeholder="搜尋藥物名稱、許可證字號..."
+                    onkeydown="if(event.key==='Enter')searchDrugs()">
+                <button class="btn btn-primary" onclick="searchDrugs()">搜尋</button>
+            </div>
+            <div class="card">
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>中文名稱</th>
+                                <th>英文名稱</th>
+                                <th>許可證字號</th>
+                                <th>形狀</th>
+                                <th>顏色</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="drugTableBody"></tbody>
+                    </table>
+                </div>
+                <div class="pagination" id="drugPagination"></div>
+            </div>
+        </div>
+
+        <!-- ========== 3. NHI 快取 ========== -->
+        <div class="page-section" id="page-cache">
+            <div class="page-header">
+                <div>
+                    <h1>NHI 快取管理</h1>
+                    <div class="subtitle">管理藥品健保資料快取</div>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-warning" onclick="clearExpiredCache()">🧹 清除過期快取</button>
+                    <button class="btn btn-outline" onclick="loadCache()">🔄 重新整理</button>
+                </div>
+            </div>
+            <div class="card">
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>藥物 ID</th>
+                                <th>中文名稱</th>
+                                <th>搜尋名稱</th>
+                                <th>欄位數</th>
+                                <th>含適應症</th>
+                                <th>更新時間</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cacheTableBody"></tbody>
+                    </table>
+                </div>
+                <div id="cacheEmpty" class="loading" style="display:none;">目前沒有快取資料</div>
+            </div>
+        </div>
+
+        <!-- ========== 4. 上傳檔案 ========== -->
+        <div class="page-section" id="page-uploads">
+            <div class="page-header">
+                <div>
+                    <h1>上傳檔案管理</h1>
+                    <div class="subtitle">管理使用者上傳的檔案</div>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-warning" onclick="cleanupUploads()">🧹 清理舊檔案</button>
+                    <button class="btn btn-outline" onclick="loadUploads()">🔄 重新整理</button>
+                </div>
+            </div>
+            <div class="stat-grid" id="uploadStats"></div>
+            <div class="card">
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>檔案名稱</th>
+                                <th>大小</th>
+                                <th>修改時間</th>
+                                <th>存在時長</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="uploadTableBody"></tbody>
+                    </table>
+                </div>
+                <div id="uploadsEmpty" class="loading" style="display:none;">目前沒有上傳檔案</div>
+            </div>
+        </div>
+
+        <!-- ========== 5. 系統設定 ========== -->
+        <div class="page-section" id="page-settings">
+            <div class="page-header">
+                <div>
+                    <h1>系統設定</h1>
+                    <div class="subtitle">檢視目前系統配置</div>
+                </div>
+                <button class="btn btn-outline" onclick="loadSettings()">🔄 重新整理</button>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <h3>系統參數</h3>
+                </div>
+                <ul class="settings-list" id="settingsList"></ul>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <h3>系統日誌</h3>
+                    <button class="btn btn-sm btn-outline" onclick="loadLogs()">重新載入</button>
+                </div>
+                <div class="log-viewer" id="logViewer">載入中...</div>
+            </div>
+        </div>
+
+        <!-- ========== 6. API 統計 ========== -->
+        <div class="page-section" id="page-stats">
+            <div class="page-header">
+                <div>
+                    <h1>API 使用統計</h1>
+                    <div class="subtitle">API 請求分析與統計</div>
+                </div>
+                <button class="btn btn-outline" onclick="loadApiStats()">🔄 重新整理</button>
+            </div>
+            <div class="stat-grid" id="apiStatCards"></div>
+            <div class="card">
+                <div class="card-header">
+                    <h3>每日請求數（近 7 天）</h3>
+                </div>
+                <div id="dailyChart" style="display:flex;align-items:flex-end;gap:8px;height:160px;padding:10px 0;"></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>各端點使用次數</h3>
+                    </div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>端點</th>
+                                    <th>次數</th>
+                                    <th>平均耗時</th>
+                                </tr>
+                            </thead>
+                            <tbody id="endpointTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3>熱門搜尋關鍵字</h3>
+                    </div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>關鍵字</th>
+                                    <th>次數</th>
+                                </tr>
+                            </thead>
+                            <tbody id="searchTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== 7. 批次更新 ========== -->
+        <div class="page-section" id="page-batch">
+            <div class="page-header">
+                <div>
+                    <h1>批次更新資料庫</h1>
+                    <div class="subtitle">從健保署/TFDA 平台批次爬取所有藥物資訊並更新資料庫</div>
+                </div>
+            </div>
+
+            <!-- 控制面板 -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>更新控制</h3>
+                    <div id="batchStatusBadge"></div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:16px;">
+                    <div class="form-group">
+                        <label>請求間隔（秒）</label>
+                        <input type="number" class="form-control" id="batchDelay" value="3" min="1" max="30" step="0.5">
+                    </div>
+                    <div class="form-group">
+                        <label>跳過已有快取</label>
+                        <select class="form-control" id="batchSkipCached">
+                            <option value="true" selected>是（跳過 7 天內有快取的）</option>
+                            <option value="false">否（全部重新爬取）</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>更新範圍</label>
+                        <select class="form-control" id="batchOnlyEmpty">
+                            <option value="true" selected>只更新空欄位的藥物</option>
+                            <option value="false">更新所有藥物</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-success" id="btnBatchStart" onclick="batchStart()">▶ 開始更新</button>
+                    <button class="btn btn-warning" id="btnBatchPause" onclick="batchPause()" disabled>⏸ 暫停</button>
+                    <button class="btn btn-primary" id="btnBatchResume" onclick="batchResume()" style="display:none;">▶ 繼續</button>
+                    <button class="btn btn-danger" id="btnBatchStop" onclick="batchStop()" disabled>⏹ 停止</button>
+                </div>
+            </div>
+
+            <!-- 進度 -->
+            <div class="stat-grid" id="batchStats"></div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3>進度</h3>
+                    <span id="batchCurrent" style="color:#888;font-size:13px;"></span>
+                </div>
+                <div style="background:#e9ecef;border-radius:8px;height:28px;overflow:hidden;margin-bottom:10px;">
+                    <div id="batchProgressBar" style="height:100%;background:linear-gradient(90deg,#4285f4,#34a853);border-radius:8px;transition:width 0.5s;width:0%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:600;">0%</div>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:13px;color:#888;">
+                    <span id="batchProcessed">已處理: 0 / 0</span>
+                    <span id="batchElapsed">耗時: 0s</span>
+                    <span id="batchEta">預估剩餘: -</span>
+                </div>
+            </div>
+
+            <!-- 即時日誌 -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>執行日誌</h3>
+                </div>
+                <div class="log-viewer" id="batchLogViewer" style="max-height:300px;">等待開始...</div>
+            </div>
+
+            <!-- 錯誤記錄 -->
+            <div class="card" id="batchErrorCard" style="display:none;">
+                <div class="card-header">
+                    <h3>❌ 錯誤記錄</h3>
+                </div>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th>藥物 ID</th><th>名稱</th><th>錯誤</th><th>時間</th></tr>
+                        </thead>
+                        <tbody id="batchErrorTable"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 欄位對應說明 -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>📋 欄位對應說明</h3>
+                </div>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th>NHI/TFDA 欄位</th><th>資料庫欄位</th><th>說明</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>適應症</td><td>indications</td><td>藥物的臨床適應症</td></tr>
+                            <tr><td>主成分略述</td><td>ingredient</td><td>藥物主要成分</td></tr>
+                            <tr><td>劑型</td><td>special_dosage_form</td><td>藥物劑型</td></tr>
+                            <tr><td>藥品類別</td><td>category</td><td>OTC / 處方藥等</td></tr>
+                            <tr><td>製造廠名稱</td><td>manufacturer</td><td>藥品製造商</td></tr>
+                            <tr><td>有效日期</td><td>expiry_info</td><td>許可證有效日期</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ===== 藥物編輯對話框 ===== -->
+    <div class="modal-backdrop" id="drugModal">
+        <div class="modal">
+            <h3 id="drugModalTitle">新增藥物</h3>
+            <input type="hidden" id="editDrugId">
+            <div class="form-group">
+                <label>中文名稱</label>
+                <input type="text" class="form-control" id="drugChName">
+            </div>
+            <div class="form-group">
+                <label>英文名稱</label>
+                <input type="text" class="form-control" id="drugEnName">
+            </div>
+            <div class="form-group">
+                <label>許可證字號</label>
+                <input type="text" class="form-control" id="drugLicense">
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div class="form-group">
+                    <label>形狀</label>
+                    <input type="text" class="form-control" id="drugShape">
+                </div>
+                <div class="form-group">
+                    <label>顏色</label>
+                    <input type="text" class="form-control" id="drugColor">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>用途 / 適應症</label>
+                <input type="text" class="form-control" id="drugUsage">
+            </div>
+            <div class="form-group">
+                <label>劑型</label>
+                <input type="text" class="form-control" id="drugFormulation">
+            </div>
+            <div class="form-group">
+                <label>劑量</label>
+                <input type="text" class="form-control" id="drugDosage">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-outline" onclick="closeDrugModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveDrug()">儲存</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // 全域設定
+        // ============================================
+        const BASE = '/admin/api';
+        let currentDrugPage = 1;
+        let currentDrugSearch = '';
+
+        // ============================================
+        // 頁面導航
+        // ============================================
+        document.querySelectorAll('.nav-menu a').forEach(a => {
+            a.addEventListener('click', e => {
+                e.preventDefault();
+                const page = a.dataset.page;
+                // 切換 active
+                document.querySelectorAll('.nav-menu a').forEach(x => x.classList.remove('active'));
+                a.classList.add('active');
+                // 切換頁面
+                document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+                document.getElementById('page-' + page).classList.add('active');
+                // 載入資料
+                const loaders = {
+                    dashboard: loadDashboard,
+                    drugs: () => loadDrugs(1),
+                    cache: loadCache,
+                    uploads: loadUploads,
+                    settings: () => { loadSettings(); loadLogs(); },
+                    stats: loadApiStats,
+                    batch: () => { loadBatchStatus(); startBatchPolling(); },
+                };
+                if (loaders[page]) loaders[page]();
+            });
+        });
+
+        // ============================================
+        // Toast 提示
+        // ============================================
+        function showToast(msg, type = '') {
+            const c = document.getElementById('toastContainer');
+            const t = document.createElement('div');
+            t.className = 'toast ' + type;
+            t.textContent = msg;
+            c.appendChild(t);
+            setTimeout(() => t.remove(), 3000);
+        }
+
+        // ============================================
+        // API 工具
+        // ============================================
+        async function api(path, opts = {}) {
+            const res = await fetch(BASE + path, {
+                headers: { 'Content-Type': 'application/json', ...opts.headers },
+                ...opts,
+            });
+            return res.json();
+        }
+
+        // ============================================
+        // 1. 儀表板
+        // ============================================
+        async function loadDashboard() {
+            const data = await api('/dashboard');
+            if (!data.success) return showToast('載入失敗: ' + data.error, 'error');
+            const s = data.stats;
+            document.getElementById('dashboardStats').innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-icon blue">💊</div>
+                    <div><div class="stat-value">${s.drug_count}</div><div class="stat-label">藥物總數</div></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon green">🖼️</div>
+                    <div><div class="stat-value">${s.image_count}</div><div class="stat-label">圖片總數</div></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon purple">🗄️</div>
+                    <div><div class="stat-value">${s.cache_count}</div><div class="stat-label">NHI 快取</div></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon orange">📡</div>
+                    <div><div class="stat-value">${s.today_requests}</div><div class="stat-label">今日請求</div></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon teal">🔍</div>
+                    <div><div class="stat-value">${s.recognize_count}</div><div class="stat-label">辨識次數</div></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon red">📂</div>
+                    <div><div class="stat-value">${s.uploads_size_mb} MB</div><div class="stat-label">上傳資料 (${s.uploads_file_count} 檔)</div></div>
+                </div>
+            `;
+            // 最近日誌
+            const tbody = document.getElementById('recentLogs');
+            if (data.recent_logs.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;">尚無請求記錄</td></tr>';
+            } else {
+                tbody.innerHTML = data.recent_logs.map(l => {
+                    const badge = l.status_code < 400 ? 'success' : l.status_code < 500 ? 'warning' : 'error';
+                    return `<tr>
+                        <td>${l.endpoint}</td>
+                        <td>${l.method}</td>
+                        <td><span class="badge badge-${badge}">${l.status_code}</span></td>
+                        <td>${l.duration_ms ? l.duration_ms.toFixed(0) + ' ms' : '-'}</td>
+                        <td>${l.created_at ? new Date(l.created_at).toLocaleString('zh-TW') : '-'}</td>
+                    </tr>`;
+                }).join('');
+            }
+        }
+
+        // ============================================
+        // 2. 藥物管理
+        // ============================================
+        async function loadDrugs(page = 1) {
+            currentDrugPage = page;
+            const q = currentDrugSearch ? `&search=${encodeURIComponent(currentDrugSearch)}` : '';
+            const data = await api(`/drugs?page=${page}&per_page=15${q}`);
+            if (!data.success) return showToast('載入失敗', 'error');
+
+            const tbody = document.getElementById('drugTableBody');
+            if (data.drugs.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#999;">無符合結果</td></tr>';
+            } else {
+                tbody.innerHTML = data.drugs.map(d => `<tr>
+                    <td>${d.id}</td>
+                    <td>${d.chinese_name || '-'}</td>
+                    <td title="${d.english_name || ''}">${(d.english_name || '-').substring(0, 40)}</td>
+                    <td>${d.license_number || '-'}</td>
+                    <td>${d.shape || '-'}</td>
+                    <td>${d.color || '-'}</td>
+                    <td>
+                        <button class="btn btn-sm btn-primary" onclick='editDrug(${JSON.stringify(d).replace(/'/g, "\\'")})'>編輯</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteDrug(${d.id})">刪除</button>
+                    </td>
+                </tr>`).join('');
+            }
+
+            // 分頁
+            const pg = document.getElementById('drugPagination');
+            pg.innerHTML = `
+                <button ${page <= 1 ? 'disabled' : ''} onclick="loadDrugs(${page - 1})">上一頁</button>
+                <span>第 ${page} / ${data.total_pages} 頁（共 ${data.total} 筆）</span>
+                <button ${page >= data.total_pages ? 'disabled' : ''} onclick="loadDrugs(${page + 1})">下一頁</button>
+            `;
+        }
+
+        function searchDrugs() {
+            currentDrugSearch = document.getElementById('drugSearch').value.trim();
+            loadDrugs(1);
+        }
+
+        function showAddDrugModal() {
+            document.getElementById('drugModalTitle').textContent = '新增藥物';
+            document.getElementById('editDrugId').value = '';
+            ['drugChName', 'drugEnName', 'drugLicense', 'drugShape', 'drugColor', 'drugUsage', 'drugFormulation', 'drugDosage']
+                .forEach(id => document.getElementById(id).value = '');
+            document.getElementById('drugModal').classList.add('show');
+        }
+
+        function editDrug(d) {
+            document.getElementById('drugModalTitle').textContent = '編輯藥物';
+            document.getElementById('editDrugId').value = d.id;
+            document.getElementById('drugChName').value = d.chinese_name || '';
+            document.getElementById('drugEnName').value = d.english_name || '';
+            document.getElementById('drugLicense').value = d.license_number || '';
+            document.getElementById('drugShape').value = d.shape || '';
+            document.getElementById('drugColor').value = d.color || '';
+            document.getElementById('drugUsage').value = d.usage || '';
+            document.getElementById('drugFormulation').value = d.formulation || '';
+            document.getElementById('drugDosage').value = d.dosage_strength || '';
+            document.getElementById('drugModal').classList.add('show');
+        }
+
+        function closeDrugModal() {
+            document.getElementById('drugModal').classList.remove('show');
+        }
+
+        async function saveDrug() {
+            const id = document.getElementById('editDrugId').value;
+            const body = {
+                chinese_name: document.getElementById('drugChName').value,
+                english_name: document.getElementById('drugEnName').value,
+                license_number: document.getElementById('drugLicense').value,
+                shape: document.getElementById('drugShape').value,
+                color: document.getElementById('drugColor').value,
+                usage: document.getElementById('drugUsage').value,
+                formulation: document.getElementById('drugFormulation').value,
+                dosage_strength: document.getElementById('drugDosage').value,
+            };
+            const res = id
+                ? await api(`/drugs/${id}`, { method: 'PUT', body: JSON.stringify(body) })
+                : await api('/drugs', { method: 'POST', body: JSON.stringify(body) });
+
+            if (res.success) {
+                showToast(res.message, 'success');
+                closeDrugModal();
+                loadDrugs(currentDrugPage);
+            } else {
+                showToast('儲存失敗: ' + res.error, 'error');
+            }
+        }
+
+        async function deleteDrug(id) {
+            if (!confirm(`確定要刪除藥物 ID=${id}？此操作無法復原。`)) return;
+            const res = await api(`/drugs/${id}`, { method: 'DELETE' });
+            if (res.success) {
+                showToast('已刪除', 'success');
+                loadDrugs(currentDrugPage);
+            } else {
+                showToast('刪除失敗: ' + res.error, 'error');
+            }
+        }
+
+        // ============================================
+        // 3. NHI 快取管理
+        // ============================================
+        async function loadCache() {
+            const data = await api('/cache');
+            if (!data.success) return showToast('載入失敗', 'error');
+            const tbody = document.getElementById('cacheTableBody');
+            const empty = document.getElementById('cacheEmpty');
+
+            if (data.caches.length === 0) {
+                tbody.innerHTML = '';
+                empty.style.display = 'block';
+            } else {
+                empty.style.display = 'none';
+                tbody.innerHTML = data.caches.map(c => `<tr>
+                    <td>${c.drug_id}</td>
+                    <td>${c.chinese_name || '-'}</td>
+                    <td>${c.search_name || '-'}</td>
+                    <td>${c.nhi_fields}</td>
+                    <td>${c.has_indication ? '<span class="badge badge-success">有</span>' : '<span class="badge badge-warning">無</span>'}</td>
+                    <td>${c.updated_at ? new Date(c.updated_at).toLocaleString('zh-TW') : '-'}</td>
+                    <td>
+                        <button class="btn btn-sm btn-warning" onclick="refreshCache(${c.drug_id})">重新爬取</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteCache(${c.drug_id})">刪除</button>
+                    </td>
+                </tr>`).join('');
+            }
+        }
+
+        async function deleteCache(drugId) {
+            const res = await api(`/cache/${drugId}`, { method: 'DELETE' });
+            showToast(res.success ? '快取已刪除' : '失敗: ' + res.error, res.success ? 'success' : 'error');
+            if (res.success) loadCache();
+        }
+
+        async function refreshCache(drugId) {
+            showToast('正在重新爬取，請稍候...', '');
+            const res = await api(`/cache/refresh/${drugId}`, { method: 'POST' });
+            showToast(res.success ? res.message : '失敗: ' + res.error, res.success ? 'success' : 'error');
+            if (res.success) loadCache();
+        }
+
+        async function clearExpiredCache() {
+            if (!confirm('確定要清除超過 7 天的過期快取？')) return;
+            const res = await api('/cache/clear', { method: 'POST', body: JSON.stringify({ days: 7 }) });
+            showToast(res.success ? res.message : '失敗: ' + res.error, res.success ? 'success' : 'error');
+            if (res.success) loadCache();
+        }
+
+        // ============================================
+        // 4. 上傳檔案管理
+        // ============================================
+        async function loadUploads() {
+            const data = await api('/uploads');
+            if (!data.success) return showToast('載入失敗', 'error');
+
+            document.getElementById('uploadStats').innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-icon blue">📄</div>
+                    <div><div class="stat-value">${data.total}</div><div class="stat-label">檔案數量</div></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon orange">💾</div>
+                    <div><div class="stat-value">${data.total_size_mb} MB</div><div class="stat-label">總大小</div></div>
+                </div>
+            `;
+
+            const tbody = document.getElementById('uploadTableBody');
+            const empty = document.getElementById('uploadsEmpty');
+            if (data.files.length === 0) {
+                tbody.innerHTML = '';
+                empty.style.display = 'block';
+            } else {
+                empty.style.display = 'none';
+                tbody.innerHTML = data.files.map(f => `<tr>
+                    <td title="${f.name}">${f.name.length > 40 ? f.name.substring(0, 37) + '...' : f.name}</td>
+                    <td>${f.size_kb} KB</td>
+                    <td>${new Date(f.modified).toLocaleString('zh-TW')}</td>
+                    <td>${f.age_hours < 1 ? '< 1 小時' : Math.round(f.age_hours) + ' 小時'}</td>
+                    <td><button class="btn btn-sm btn-danger" onclick="deleteUpload('${f.name}')">刪除</button></td>
+                </tr>`).join('');
+            }
+        }
+
+        async function deleteUpload(name) {
+            if (!confirm(`確定要刪除 ${name}？`)) return;
+            const res = await api(`/uploads/${encodeURIComponent(name)}`, { method: 'DELETE' });
+            showToast(res.success ? '已刪除' : '失敗: ' + res.error, res.success ? 'success' : 'error');
+            if (res.success) loadUploads();
+        }
+
+        async function cleanupUploads() {
+            if (!confirm('確定要清理 24 小時前的舊檔案？')) return;
+            const res = await api('/uploads/cleanup', { method: 'POST', body: JSON.stringify({ hours: 24 }) });
+            showToast(res.success ? res.message : '失敗: ' + res.error, res.success ? 'success' : 'error');
+            if (res.success) loadUploads();
+        }
+
+        // ============================================
+        // 5. 系統設定
+        // ============================================
+        async function loadSettings() {
+            const data = await api('/settings');
+            if (!data.success) return showToast('載入失敗', 'error');
+            const s = data.settings;
+            const labels = {
+                api_provider: 'API 提供商',
+                gemini_model: 'Gemini 模型',
+                min_confidence: '最低信心度',
+                max_results: '最大結果數',
+                max_file_size_mb: '最大檔案大小 (MB)',
+                allowed_extensions: '允許副檔名',
+                cors_origins: 'CORS 來源',
+                log_level: '日誌等級',
+                database_path: '資料庫路徑',
+                upload_folder: '上傳資料夾',
+                flask_env: 'Flask 環境',
+            };
+            document.getElementById('settingsList').innerHTML =
+                Object.entries(s).map(([k, v]) => `<li>
+                    <span class="settings-key">${labels[k] || k}</span>
+                    <span class="settings-val">${Array.isArray(v) ? v.join(', ') : v}</span>
+                </li>`).join('');
+        }
+
+        async function loadLogs() {
+            const data = await api('/logs');
+            if (!data.success) return;
+            const viewer = document.getElementById('logViewer');
+            viewer.textContent = data.logs.filter(l => l.trim()).slice(-50).join('\n') || '(無日誌)';
+            viewer.scrollTop = viewer.scrollHeight;
+        }
+
+        // ============================================
+        // 6. API 統計
+        // ============================================
+        async function loadApiStats() {
+            const data = await api('/stats');
+            if (!data.success) return showToast('載入失敗', 'error');
+            const s = data.stats;
+
+            // 統計卡片
+            const totalReqs = s.endpoints.reduce((sum, e) => sum + e.count, 0);
+            document.getElementById('apiStatCards').innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-icon blue">📡</div>
+                    <div><div class="stat-value">${totalReqs}</div><div class="stat-label">總請求數</div></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon red">⚠️</div>
+                    <div><div class="stat-value">${s.errors}</div><div class="stat-label">錯誤數</div></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon green">🔍</div>
+                    <div><div class="stat-value">${s.top_searches.length}</div><div class="stat-label">不同搜尋字</div></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon purple">📊</div>
+                    <div><div class="stat-value">${s.daily.length}</div><div class="stat-label">有記錄天數</div></div>
+                </div>
+            `;
+
+            // 每日圖表 (簡易柱狀圖)
+            const chart = document.getElementById('dailyChart');
+            if (s.daily.length === 0) {
+                chart.innerHTML = '<div style="margin:auto;color:#999;">尚無每日統計資料</div>';
+            } else {
+                const maxCount = Math.max(...s.daily.map(d => d.count), 1);
+                chart.innerHTML = s.daily.map(d => {
+                    const h = Math.max((d.count / maxCount) * 130, 4);
+                    const label = d.date.slice(5);  // MM-DD
+                    return `<div style="flex:1;text-align:center;">
+                        <div style="font-size:11px;color:#333;margin-bottom:4px;">${d.count}</div>
+                        <div style="height:${h}px;background:linear-gradient(180deg,#4285f4,#667eea);border-radius:4px 4px 0 0;"></div>
+                        <div style="font-size:10px;color:#888;margin-top:4px;">${label}</div>
+                    </div>`;
+                }).join('');
+            }
+
+            // 端點表
+            document.getElementById('endpointTable').innerHTML =
+                s.endpoints.map(e => `<tr>
+                    <td>${e.endpoint}</td>
+                    <td>${e.count}</td>
+                    <td>${e.avg_ms ? e.avg_ms + ' ms' : '-'}</td>
+                </tr>`).join('') || '<tr><td colspan="3" style="text-align:center;color:#999;">尚無資料</td></tr>';
+
+            // 搜尋表
+            document.getElementById('searchTable').innerHTML =
+                s.top_searches.map(e => `<tr>
+                    <td>${e.query}</td>
+                    <td>${e.count}</td>
+                </tr>`).join('') || '<tr><td colspan="2" style="text-align:center;color:#999;">尚無搜尋記錄</td></tr>';
+        }
+
+        // ============================================
+        // 7. 批次更新
+        // ============================================
+        let batchPollTimer = null;
+
+        async function batchStart() {
+            if (!confirm('確定要啟動批次更新？這將從健保署平台逐一搜尋藥物並更新資料庫，過程可能需要數小時。')) return;
+            const res = await api('/batch-update/start', {
+                method: 'POST',
+                body: JSON.stringify({
+                    delay: parseFloat(document.getElementById('batchDelay').value) || 3,
+                    skip_cached: document.getElementById('batchSkipCached').value === 'true',
+                    only_empty: document.getElementById('batchOnlyEmpty').value === 'true',
+                }),
+            });
+            if (res.success) {
+                showToast(res.message, 'success');
+                startBatchPolling();
+            } else {
+                showToast(res.message || res.error, 'error');
+            }
+        }
+
+        async function batchStop() {
+            if (!confirm('確定要停止批次更新？')) return;
+            const res = await api('/batch-update/stop', { method: 'POST' });
+            showToast(res.message, res.success ? 'success' : 'error');
+        }
+
+        async function batchPause() {
+            const res = await api('/batch-update/pause', { method: 'POST' });
+            showToast(res.message, res.success ? 'success' : 'error');
+        }
+
+        async function batchResume() {
+            const res = await api('/batch-update/resume', { method: 'POST' });
+            showToast(res.message, res.success ? 'success' : 'error');
+        }
+
+        function startBatchPolling() {
+            if (batchPollTimer) clearInterval(batchPollTimer);
+            batchPollTimer = setInterval(loadBatchStatus, 2000);
+            loadBatchStatus();
+        }
+
+        function stopBatchPolling() {
+            if (batchPollTimer) {
+                clearInterval(batchPollTimer);
+                batchPollTimer = null;
+            }
+        }
+
+        async function loadBatchStatus() {
+            const data = await api('/batch-update/status');
+            if (!data.success) return;
+
+            const s = data;
+            const isRunning = s.status === 'running';
+            const isPaused = s.status === 'paused';
+            const isActive = isRunning || isPaused || s.status === 'stopping';
+
+            // 按鈕狀態
+            document.getElementById('btnBatchStart').disabled = isActive;
+            document.getElementById('btnBatchPause').disabled = !isRunning;
+            document.getElementById('btnBatchPause').style.display = isPaused ? 'none' : '';
+            document.getElementById('btnBatchResume').style.display = isPaused ? '' : 'none';
+            document.getElementById('btnBatchStop').disabled = !isActive;
+
+            // 狀態標籤
+            const statusMap = { idle: '閒置', running: '執行中', paused: '已暫停', stopping: '停止中', completed: '已完成', stopped: '已停止', error: '錯誤' };
+            const badgeClass = isRunning ? 'badge-success' : isPaused ? 'badge-warning' : s.status === 'error' ? 'badge-error' : 'badge-success';
+            document.getElementById('batchStatusBadge').innerHTML = `<span class="badge ${badgeClass}">${statusMap[s.status] || s.status}</span>`;
+
+            // 統計卡片
+            document.getElementById('batchStats').innerHTML = `
+                <div class="stat-card"><div class="stat-icon green">✅</div><div><div class="stat-value">${s.updated}</div><div class="stat-label">已更新</div></div></div>
+                <div class="stat-card"><div class="stat-icon orange">⏭️</div><div><div class="stat-value">${s.skipped}</div><div class="stat-label">已跳過</div></div></div>
+                <div class="stat-card"><div class="stat-icon red">❌</div><div><div class="stat-value">${s.failed}</div><div class="stat-label">失敗</div></div></div>
+                <div class="stat-card"><div class="stat-icon blue">📊</div><div><div class="stat-value">${s.progress}%</div><div class="stat-label">完成度</div></div></div>
+            `;
+
+            // 進度條
+            const bar = document.getElementById('batchProgressBar');
+            bar.style.width = s.progress + '%';
+            bar.textContent = s.progress + '%';
+
+            // 資訊
+            document.getElementById('batchCurrent').textContent = s.current_drug || '';
+            document.getElementById('batchProcessed').textContent = `已處理: ${s.processed} / ${s.total}`;
+            document.getElementById('batchElapsed').textContent = `耗時: ${formatDuration(s.elapsed)}`;
+            document.getElementById('batchEta').textContent = s.eta_seconds > 0 ? `預估剩餘: ${formatDuration(s.eta_seconds)}` : '預估剩餘: -';
+
+            // 日誌
+            if (s.log && s.log.length > 0) {
+                document.getElementById('batchLogViewer').textContent = s.log.join('\n');
+                const lv = document.getElementById('batchLogViewer');
+                lv.scrollTop = lv.scrollHeight;
+            }
+
+            // 錯誤
+            const errorCard = document.getElementById('batchErrorCard');
+            if (s.errors && s.errors.length > 0) {
+                errorCard.style.display = 'block';
+                document.getElementById('batchErrorTable').innerHTML = s.errors.map(e =>
+                    `<tr><td>${e.drug_id}</td><td>${e.name}</td><td>${e.error}</td><td>${e.time}</td></tr>`
+                ).join('');
+            } else {
+                errorCard.style.display = 'none';
+            }
+
+            // 停止輪詢
+            if (!isActive && s.status !== 'idle') {
+                stopBatchPolling();
+            }
+        }
+
+        function formatDuration(seconds) {
+            if (seconds < 60) return Math.round(seconds) + 's';
+            if (seconds < 3600) return Math.floor(seconds / 60) + 'm ' + Math.round(seconds % 60) + 's';
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            return h + 'h ' + m + 'm';
+        }
+
+        // ============================================
+        // 初始載入
+        // ============================================
+        loadDashboard();
+    </script>
+</body>
+
+</html>
