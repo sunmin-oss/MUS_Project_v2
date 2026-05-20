@@ -597,6 +597,11 @@ def search_drug():
             if results:
                 source = "database"
                 logger.info(f"✓ 資料庫搜尋找到 {len(results)} 筆結果")
+                # 為每筆結果附上圖片資訊
+                for r in results:
+                    drug_id = r.get("drug_id") or r.get("id")
+                    if drug_id:
+                        r["images"] = db.get_drug_images(drug_id, limit=3)
                 return (
                     jsonify(
                         {
