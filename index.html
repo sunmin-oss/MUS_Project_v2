@@ -582,7 +582,7 @@
         .theme-btn.active { border-color: #5B7553; box-shadow: 0 0 0 2px rgba(91,117,83,0.3); }
         .theme-default { background: linear-gradient(135deg, #5B7553, #7CB342); }
         .theme-warm { background: #fff; border: 2px solid #bbb; }
-        .theme-dark { background: linear-gradient(135deg, #232526, #414345); }
+        .theme-dark { background: linear-gradient(135deg, #0F0C29, #302B63, #24243E); }
 
         .admin-entry-btn {
             width: 100%;
@@ -696,24 +696,131 @@
         body.theme-warm-mode .admin-entry-btn { background: #F5F5F5; color: #333; border: 2px solid #CCC; }
         body.theme-warm-mode .admin-entry-btn:hover { background: #E8E8E8; border-color: #999; }
 
-        /* ===== 深色高對比主題 ===== */
-        body.theme-dark-mode { background: #1a1a1a; }
-        body.theme-dark-mode .container { background: #2a2a2a; color: #f0f0f0; }
-        body.theme-dark-mode .header { background: linear-gradient(135deg, #232526 0%, #414345 100%); }
-        body.theme-dark-mode .big-button { background: linear-gradient(135deg, #434343 0%, #000000 100%); box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-        body.theme-dark-mode .big-button.secondary { background: #444; color: #fff; }
-        body.theme-dark-mode .upload-area { background: #333; border-color: #666; color: #ddd; }
-        body.theme-dark-mode .upload-area:hover { background: #3a3a3a; border-color: #888; }
-        body.theme-dark-mode .upload-area p { color: #ddd; }
-        body.theme-dark-mode .back-button { background: #555; }
-        body.theme-dark-mode .search-input { background: #333; color: #fff; border-color: #555; }
-        body.theme-dark-mode .footer-hint { color: #888; border-top-color: #444; }
-        body.theme-dark-mode .result-item { background: #333; }
-        body.theme-dark-mode .settings-panel { background: #333; color: #eee; }
-        body.theme-dark-mode .settings-label { color: #bbb; }
-        body.theme-dark-mode .opt-btn { background: #444; color: #ddd; border-color: #555; }
-        body.theme-dark-mode .opt-btn.active { border-color: #7CB342; background: #2a3a2a; color: #7CB342; }
-        body.theme-dark-mode .admin-entry-btn { background: #444; color: #ccc; border-color: #555; }
+        /* ===== 深色漸變主題 ===== */
+        body.theme-dark-mode {
+            background: linear-gradient(135deg, #0F0C29 0%, #302B63 40%, #24243E 70%, #0F2027 100%);
+            background-attachment: fixed;
+        }
+        body.theme-dark-mode .container {
+            background: rgba(20, 18, 45, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            color: #EAEAEA;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        body.theme-dark-mode .container::before,
+        body.theme-dark-mode .container::after { display: none; }
+        body.theme-dark-mode .header {
+            background: linear-gradient(135deg, #1A1640 0%, #302B63 50%, #1B4332 100%);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        body.theme-dark-mode .big-button {
+            background: rgba(255,255,255,0.06) !important;
+            color: #F0F0F0 !important;
+            border: 2px solid rgba(255,255,255,0.15);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05);
+            transition: all 0.25s ease;
+        }
+        body.theme-dark-mode .big-button:hover {
+            background: rgba(255,255,255,0.12) !important;
+            border-color: rgba(150,130,255,0.4);
+            box-shadow: 0 6px 25px rgba(48,43,99,0.5), inset 0 1px 0 rgba(255,255,255,0.08);
+            transform: translateY(-2px);
+        }
+        body.theme-dark-mode .big-button.secondary { background: rgba(255,255,255,0.04) !important; color: #ddd !important; border-color: rgba(255,255,255,0.12); }
+        body.theme-dark-mode .upload-area {
+            background: rgba(255,255,255,0.04);
+            border: 2px dashed rgba(255,255,255,0.2);
+            color: #ccc;
+        }
+        body.theme-dark-mode .upload-area:hover {
+            background: rgba(255,255,255,0.08);
+            border-color: rgba(150,130,255,0.4);
+        }
+        body.theme-dark-mode .upload-area p { color: #bbb; }
+        body.theme-dark-mode .back-button {
+            background: rgba(255,255,255,0.08);
+            color: #ddd;
+            border: 1px solid rgba(255,255,255,0.15);
+            transition: all 0.25s ease;
+        }
+        body.theme-dark-mode .back-button:hover {
+            background: rgba(255,255,255,0.14);
+            border-color: rgba(150,130,255,0.35);
+        }
+        body.theme-dark-mode .search-input {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border: 2px solid rgba(255,255,255,0.15);
+        }
+        body.theme-dark-mode .search-input:focus {
+            border-color: rgba(150,130,255,0.5);
+            box-shadow: 0 0 0 3px rgba(150,130,255,0.15);
+        }
+        body.theme-dark-mode .search-button {
+            background: linear-gradient(135deg, #302B63, #4A3F8F) !important;
+            color: #fff !important;
+            border: none;
+        }
+        body.theme-dark-mode .search-button:hover {
+            background: linear-gradient(135deg, #3D3680, #5A4FA0) !important;
+        }
+        body.theme-dark-mode .footer-hint { color: rgba(255,255,255,0.4); border-top-color: rgba(255,255,255,0.08); }
+        body.theme-dark-mode .result-item {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.25s ease;
+        }
+        body.theme-dark-mode .result-item:hover {
+            background: rgba(255,255,255,0.1);
+            border-color: rgba(150,130,255,0.3);
+        }
+        body.theme-dark-mode .settings-panel {
+            background: rgba(25, 22, 55, 0.95);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            color: #eee;
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        }
+        body.theme-dark-mode .settings-label { color: rgba(255,255,255,0.6); }
+        body.theme-dark-mode .opt-btn {
+            background: rgba(255,255,255,0.06);
+            color: #ddd;
+            border: 2px solid rgba(255,255,255,0.12);
+            transition: all 0.2s ease;
+        }
+        body.theme-dark-mode .opt-btn:hover { border-color: rgba(150,130,255,0.3); }
+        body.theme-dark-mode .opt-btn.active {
+            border-color: #9682FF;
+            background: rgba(150,130,255,0.12);
+            color: #C4B8FF;
+            font-weight: 700;
+        }
+        body.theme-dark-mode .admin-entry-btn {
+            background: rgba(255,255,255,0.06);
+            color: #bbb;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        body.theme-dark-mode .admin-entry-btn:hover {
+            background: rgba(255,255,255,0.1);
+            color: #ddd;
+            border-color: rgba(255,255,255,0.2);
+        }
+        body.theme-dark-mode .login-modal {
+            background: rgba(25, 22, 55, 0.95);
+            backdrop-filter: blur(16px);
+            color: #eee;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        body.theme-dark-mode .login-modal h3 { color: #eee; }
+        body.theme-dark-mode .login-input {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-color: rgba(255,255,255,0.15);
+        }
+        body.theme-dark-mode .login-cancel { background: rgba(255,255,255,0.08); color: #ccc; }
+        body.theme-dark-mode .login-submit { background: linear-gradient(135deg, #302B63, #4A3F8F); }
     </style>
 </head>
 
