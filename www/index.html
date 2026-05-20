@@ -6,730 +6,926 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
     <title>藥知道</title>
     <meta name="description" content="藥知道 - 為年長者設計的簡潔藥物辨識系統">
-    
-    <!-- 用於年長者友好的 CSS -->
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        /* ===== Reset & Base ===== */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg: #F5F5F7;
+            --surface: #FFFFFF;
+            --text-primary: #1D1D1F;
+            --text-secondary: #86868B;
+            --text-tertiary: #AEAEB2;
+            --accent: #0071E3;
+            --accent-hover: #0077ED;
+            --accent-light: rgba(0, 113, 227, 0.08);
+            --accent-grad-start: #007AFF;
+            --accent-grad-end: #5856D6;
+            --green: #34C759;
+            --green-dark: #30B350;
+            --orange: #FF9500;
+            --red: #FF3B30;
+            --separator: rgba(60, 60, 67, 0.08);
+            --card-shadow: 0 2px 12px rgba(0,0,0,0.06), 0 0.5px 1px rgba(0,0,0,0.04);
+            --card-shadow-hover: 0 4px 24px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.06);
+            --glass-bg: rgba(255,255,255,0.72);
+            --glass-border: rgba(255,255,255,0.6);
+            --radius-sm: 10px;
+            --radius-md: 14px;
+            --radius-lg: 20px;
+            --radius-xl: 24px;
         }
 
         body {
-            font-family: -apple-system, 'PingFang TC', 'Microsoft JhengHei', '微軟正黑體', 'Arial', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, 'SF Pro Display', 'SF Pro Text', 'PingFang TC', 'Helvetica Neue', sans-serif;
+            background: var(--bg);
             min-height: 100vh;
-            padding: 10px;
-            padding-top: calc(10px + env(safe-area-inset-top));
-            padding-bottom: calc(10px + env(safe-area-inset-bottom));
+            color: var(--text-primary);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
 
         .container {
             max-width: 500px;
             margin: 0 auto;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            min-height: 100vh;
+            position: relative;
             overflow: hidden;
         }
 
+        /* ===== Header ===== */
         .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px 20px;
-            text-align: center;
+            padding: 48px 24px 24px;
+            padding-top: calc(48px + env(safe-area-inset-top));
+            position: relative;
+            z-index: 10;
         }
 
         .header h1 {
-            font-size: 36px;
-            font-weight: bold;
-            margin-bottom: 10px;
+            font-size: 34px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            color: var(--text-primary);
+            line-height: 1.15;
         }
 
         .header p {
-            font-size: 16px;
-            opacity: 0.9;
+            font-size: 17px;
+            color: var(--text-secondary);
+            margin-top: 6px;
+            font-weight: 400;
+            letter-spacing: -0.2px;
         }
 
+        /* ===== Content ===== */
         .content {
-            padding: 30px 20px;
+            padding: 8px 20px 40px;
+            padding-bottom: calc(40px + env(safe-area-inset-bottom));
             min-height: 400px;
         }
 
-        /* ===== 頁面樣式 ===== */
-        .page {
-            display: none;
-        }
-
+        /* ===== Pages ===== */
+        .page { display: none; }
         .page.active {
             display: block;
-            animation: fadeIn 0.3s ease-in;
+            animation: pageIn 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
         }
 
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-            to {
-                opacity: 1;
-            }
+        @keyframes pageIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
-        /* ===== 主頁 (HOME) ===== */
-        .home-buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
+        /* ===== Home Cards ===== */
+        .home-cards { display: flex; flex-direction: column; gap: 14px; }
 
-        .big-button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 25px 20px;
-            border-radius: 15px;
-            font-size: 24px;
-            font-weight: bold;
+        .action-card {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: 22px 20px;
             cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-            text-decoration: none;
-            display: block;
+            transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            box-shadow: var(--card-shadow);
+            border: 0.5px solid rgba(0,0,0,0.04);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            -webkit-tap-highlight-color: transparent;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .action-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.5) 100%);
+            pointer-events: none;
+        }
+
+        .action-card:hover { box-shadow: var(--card-shadow-hover); transform: scale(1.01); }
+        .action-card:active { transform: scale(0.98); }
+
+        .card-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .card-icon.accent-bg { background: linear-gradient(135deg, var(--accent-grad-start), var(--accent-grad-end)); }
+        .card-icon.green-bg { background: linear-gradient(135deg, #34C759, #30D158); }
+        .card-icon.orange-bg { background: linear-gradient(135deg, #FF9500, #FF6B00); }
+
+        .card-icon svg { width: 26px; height: 26px; stroke: #FFFFFF; fill: none; stroke-width: 1.8; }
+
+        .card-body { flex: 1; }
+
+        .card-title {
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: -0.2px;
+        }
+
+        .card-desc {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 3px;
+            letter-spacing: -0.1px;
+        }
+
+        .card-chevron { color: var(--text-tertiary); flex-shrink: 0; }
+        .card-chevron svg { width: 16px; height: 16px; }
+
+        /* ===== Upload Area ===== */
+        .upload-area {
+            background: var(--surface);
+            border: 2px dashed rgba(0,0,0,0.1);
+            border-radius: var(--radius-lg);
+            padding: 56px 24px;
             text-align: center;
-            min-height: 80px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+
+        .upload-area:hover {
+            border-color: var(--accent);
+            background: var(--accent-light);
+        }
+
+        .upload-area.dragover {
+            border-color: var(--accent);
+            background: var(--accent-light);
+            transform: scale(1.01);
+        }
+
+        .upload-icon-wrap {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 16px;
+            background: linear-gradient(135deg, var(--accent-grad-start), var(--accent-grad-end));
+            border-radius: 16px;
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
-        .big-button:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
-        }
+        .upload-icon-wrap svg { width: 30px; height: 30px; stroke: #FFFFFF; fill: none; stroke-width: 1.8; }
 
-        .big-button:active {
-            transform: translateY(-1px);
-        }
+        .upload-icon-wrap.green-bg { background: linear-gradient(135deg, #34C759, #30D158); }
 
-        .big-button.secondary {
-            background: #f0f0f0;
-            color: #333;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        }
+        .upload-area .upload-title { font-size: 17px; font-weight: 600; color: var(--text-primary); }
+        .upload-area .upload-sub { font-size: 13px; color: var(--text-secondary); margin-top: 6px; }
 
-        .big-button.secondary:hover {
-            background: #e0e0e0;
-        }
+        #imageInput, #prescriptionImageInput { display: none; }
 
-        /* ===== 拍照上傳區 ===== */
-        .upload-area {
-            border: 3px dashed #667eea;
-            border-radius: 15px;
-            padding: 40px 20px;
-            text-align: center;
+        .image-preview { margin-top: 20px; text-align: center; }
+        .image-preview img { max-width: 100%; max-height: 300px; border-radius: var(--radius-md); }
+
+        /* ===== Buttons ===== */
+        .btn-primary {
+            width: 100%;
+            padding: 16px;
+            background: var(--accent);
+            color: #FFFFFF;
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 17px;
+            font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
-            background: #f9f9f9;
+            transition: all 0.2s ease;
+            font-family: inherit;
+            letter-spacing: -0.2px;
         }
 
-        .upload-area:hover {
-            background: #f0f0ff;
-            border-color: #764ba2;
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-primary:active { transform: scale(0.98); }
+        .btn-primary.green { background: var(--green); }
+        .btn-primary.green:hover { background: var(--green-dark); }
+
+        .btn-secondary {
+            width: 100%;
+            padding: 16px;
+            background: var(--accent-light);
+            color: var(--accent);
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 17px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+            letter-spacing: -0.2px;
         }
 
-        .upload-area.dragover {
-            background: #f0f0ff;
-            border-color: #764ba2;
-            transform: scale(1.02);
+        .btn-secondary:hover { background: rgba(0,113,227,0.12); }
+        .btn-secondary:active { transform: scale(0.98); }
+
+        .btn-gray {
+            width: 100%;
+            padding: 16px;
+            background: rgba(60,60,67,0.06);
+            color: var(--text-primary);
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 17px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
         }
 
-        .upload-icon {
-            font-size: 48px;
-            margin-bottom: 15px;
+        .btn-gray:hover { background: rgba(60,60,67,0.1); }
+
+        .btn-group { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+
+        button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* ===== Nav Back ===== */
+        .nav-back {
+            background: none;
+            border: none;
+            color: var(--accent);
+            font-size: 17px;
+            font-weight: 400;
+            cursor: pointer;
+            padding: 8px 0;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-family: inherit;
+            transition: opacity 0.15s;
+            letter-spacing: -0.2px;
         }
 
-        .upload-area p {
-            font-size: 20px;
-            color: #333;
+        .nav-back:hover { opacity: 0.7; }
+        .nav-back svg { width: 20px; height: 20px; }
+
+        /* ===== Search ===== */
+        .search-wrap { position: relative; margin-bottom: 12px; }
+
+        .search-field {
+            width: 100%;
+            padding: 12px 16px 12px 40px;
+            font-size: 17px;
+            background: rgba(118,118,128,0.12);
+            border: none;
+            border-radius: var(--radius-sm);
+            outline: none;
+            font-family: inherit;
+            color: var(--text-primary);
+            transition: all 0.2s ease;
+            letter-spacing: -0.2px;
+        }
+
+        .search-field::placeholder { color: var(--text-tertiary); }
+        .search-field:focus { background: rgba(118,118,128,0.16); }
+
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-tertiary);
+        }
+
+        .search-icon svg { width: 18px; height: 18px; }
+
+        .search-action { margin-top: 12px; }
+
+        /* ===== Results ===== */
+        .results-list { margin-top: 8px; }
+
+        .result-card {
+            background: var(--surface);
+            border-radius: var(--radius-md);
+            padding: 16px;
             margin-bottom: 10px;
-        }
-
-        .upload-area small {
-            font-size: 14px;
-            color: #999;
-        }
-
-        #imageInput {
-            display: none;
-        }
-
-        .image-preview {
-            margin-top: 20px;
-            text-align: center;
-        }
-
-        .image-preview img {
-            max-width: 100%;
-            max-height: 300px;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-        }
-
-        /* ===== 結果顯示 ===== */
-        .results-container {
-            margin-top: 20px;
-        }
-
-        .result-item {
-            background: #f9f9f9;
-            border-left: 5px solid #667eea;
-            padding: 20px;
-            margin-bottom: 15px;
-            border-radius: 10px;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.25s ease;
+            box-shadow: var(--card-shadow);
+            border: 0.5px solid rgba(0,0,0,0.04);
         }
 
-        .result-item:hover {
-            background: #f0f0ff;
-            transform: translateX(5px);
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
+        .result-card:hover { box-shadow: var(--card-shadow-hover); }
+        .result-card:active { transform: scale(0.98); }
+
+        .result-header { display: flex; justify-content: space-between; align-items: flex-start; }
+
+        .result-name {
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: -0.2px;
         }
 
-        .result-title {
-            font-size: 20px;
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 8px;
+        .result-badge {
+            background: var(--accent-light);
+            color: var(--accent);
+            font-size: 12px;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 6px;
+            flex-shrink: 0;
         }
 
-        .result-info {
+        .result-meta {
+            margin-top: 8px;
             font-size: 14px;
-            color: #666;
-            line-height: 1.6;
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+
+        .confidence-track {
+            margin-top: 10px;
+            height: 4px;
+            background: rgba(0,0,0,0.05);
+            border-radius: 2px;
+            overflow: hidden;
         }
 
         .confidence-bar {
-            margin-top: 10px;
-            height: 8px;
-            background: #eee;
-            border-radius: 4px;
-            overflow: hidden;
-        }
-
-        .confidence-fill {
             height: 100%;
-            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-            border-radius: 4px;
+            background: linear-gradient(90deg, var(--accent-grad-start), var(--accent-grad-end));
+            border-radius: 2px;
         }
 
-        /* ===== 加載動畫 ===== */
-        .loading {
-            text-align: center;
-            padding: 40px 20px;
+        .drug-thumb {
+            width: 56px;
+            height: 56px;
+            object-fit: cover;
+            border-radius: var(--radius-sm);
+            border: 0.5px solid rgba(0,0,0,0.06);
+            margin: 6px 0;
         }
 
-        .spinner {
-            border: 5px solid #f3f3f3;
-            border-top: 5px solid #667eea;
+        /* ===== Detail Page ===== */
+        .detail-hero { text-align: center; padding: 20px 0 28px; }
+
+        .detail-hero h2 {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            color: var(--text-primary);
+            line-height: 1.2;
+        }
+
+        .detail-source-tag {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 5px 12px;
+            background: var(--accent-light);
+            color: var(--accent);
+            font-size: 12px;
+            font-weight: 500;
+            border-radius: 20px;
+        }
+
+        .detail-card {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--card-shadow);
+            border: 0.5px solid rgba(0,0,0,0.04);
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+
+        .detail-row {
+            padding: 14px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+        }
+
+        .detail-row + .detail-row { border-top: 0.5px solid var(--separator); }
+
+        .detail-key {
+            font-size: 15px;
+            color: var(--text-primary);
+            font-weight: 400;
+            flex-shrink: 0;
+            min-width: 72px;
+        }
+
+        .detail-val {
+            font-size: 15px;
+            color: var(--text-secondary);
+            text-align: right;
+            word-break: break-all;
+            flex: 1;
+        }
+
+        .detail-block { padding: 14px 20px; }
+        .detail-block + .detail-block,
+        .detail-row + .detail-block { border-top: 0.5px solid var(--separator); }
+
+        .detail-block-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            margin-bottom: 6px;
+        }
+
+        .detail-block-value {
+            font-size: 15px;
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .detail-images {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 8px;
+        }
+
+        .detail-images img {
+            max-width: 160px;
+            max-height: 160px;
+            border-radius: var(--radius-md);
+            border: 0.5px solid rgba(0,0,0,0.06);
+        }
+
+        /* ===== Warning Banner ===== */
+        .warning-banner {
+            background: rgba(255,149,0,0.08);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+
+        .warning-icon-box {
+            width: 28px;
+            height: 28px;
+            background: var(--orange);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            color: #FFFFFF;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .warning-text { font-size: 13px; color: #7A5600; line-height: 1.5; }
+        .warning-text strong { display: block; font-size: 14px; color: #5C4100; margin-bottom: 2px; }
+
+        /* ===== Alerts ===== */
+        .alert-card {
+            background: var(--surface);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 16px;
+        }
+
+        .alert-card.warning { border-left: 3px solid var(--orange); }
+        .alert-card.error { border-left: 3px solid var(--red); }
+        .alert-card.success { border-left: 3px solid var(--green); }
+
+        .alert-card .alert-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .alert-card.warning .alert-title { color: #92400E; }
+        .alert-card.error .alert-title { color: #991B1B; }
+
+        .alert-card.warning p { color: #7A5600; font-size: 14px; }
+        .alert-card.error p { color: #991B1B; font-size: 14px; }
+
+        /* ===== Loading ===== */
+        .loading-view { text-align: center; padding: 60px 20px; }
+
+        .apple-spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid rgba(0,0,0,0.08);
+            border-top-color: var(--text-secondary);
             border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            animation: spin 1s linear infinite;
+            animation: spin 0.8s linear infinite;
             margin: 0 auto 20px;
         }
 
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-            100% {
-                transform: rotate(360deg);
-            }
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
-        .loading-text {
-            font-size: 18px;
-            color: #667eea;
-            font-weight: bold;
-        }
-        /* ===== 進度條樣式 ===== */
-        .progress-container {
-            margin: 20px 0;
-            padding: 0 20px;
-        }
+        .loading-label { font-size: 15px; color: var(--text-secondary); }
 
-        .progress-bar {
-            width: 100%;
-            height: 8px;
-            background: #e0e0e0;
-            border-radius: 10px;
+        .progress-track {
+            width: 180px;
+            height: 3px;
+            background: rgba(0,0,0,0.06);
+            border-radius: 2px;
+            margin: 20px auto 8px;
             overflow: hidden;
-            margin-top: 10px;
         }
 
-        .progress-fill {
+        .progress-thumb {
             height: 100%;
-            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-            width: 0%;
-            animation: progress 2s ease-in-out infinite;
+            background: var(--accent);
+            border-radius: 2px;
+            animation: slide 1.8s ease-in-out infinite;
         }
 
-        @keyframes progress {
-            0% { width: 10%; }
-            50% { width: 70%; }
-            100% { width: 10%; }
+        @keyframes slide {
+            0% { width: 5%; margin-left: 0; }
+            50% { width: 40%; margin-left: 30%; }
+            100% { width: 5%; margin-left: 95%; }
         }
 
-        .progress-text {
-            font-size: 14px;
-            color: #666;
-            margin-top: 8px;
-            text-align: center;
-        }
-
-        /* ===== 按鈕禁用狀態 ===== */
-        .big-button:disabled,
-        .search-button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            background: #999;
-        }
-
-        .big-button:disabled:hover,
-        .search-button:disabled:hover {
-            transform: none;
-        }
-        /* ===== 進度條樣式 ===== */
-        .progress-container {
-            margin: 20px 0;
-            padding: 0 20px;
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 8px;
-            background: #e0e0e0;
-            border-radius: 10px;
-            overflow: hidden;
-            margin-top: 10px;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-            width: 0%;
-            animation: progress 2s ease-in-out infinite;
-        }
-
-        @keyframes progress {
-            0% {
-                width: 10%;
-            }
-            50% {
-                width: 70%;
-            }
-            100% {
-                width: 10%;
-            }
-        }
-
-        .progress-text {
-            font-size: 14px;
-            color: #666;
-            margin-top: 8px;
-            text-align: center;
-        }
-
-        /* ===== 按鈕禁用狀態 ===== */
-        .big-button:disabled,
-        .search-button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            background: #999;
-        }
-
-        .big-button:disabled:hover,
-        .search-button:disabled:hover {
-            transform: none;
-        }
-
-        /* ===== 細節頁面 ===== */
-        .detail-info {
-            background: #f9f9f9;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 15px;
-        }
-
-        .detail-label {
-            font-size: 14px;
-            color: #999;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-
-        .detail-value {
-            font-size: 18px;
-            color: #333;
-            margin-bottom: 15px;
-            word-break: break-all;
-        }
-
-        /* ===== 警告和錯誤 ===== */
-        .alert {
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            font-size: 16px;
-            text-align: center;
-        }
-
-        .alert.warning {
-            background: #fff3cd;
-            color: #856404;
-            border: 2px solid #ffeaa7;
-        }
-
-        .alert.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 2px solid #f5c6cb;
-        }
-
-        .alert.success {
-            background: #d4edda;
-            color: #155724;
-            border: 2px solid #c3e6cb;
-        }
-
-        /* ===== 搜尋功能 ===== */
-        .search-box {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-
-        .search-input {
-            flex: 1;
-            padding: 15px;
-            font-size: 18px;
-            border: 2px solid #ddd;
-            border-radius: 10px;
-            outline: none;
-            transition: border-color 0.3s;
-        }
-
-        .search-input:focus {
-            border-color: #667eea;
-        }
-
-        .search-button {
-            padding: 15px 25px;
-            background: #667eea;
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 18px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: all 0.3s;
-        }
-
-        .search-button:hover {
-            background: #764ba2;
-            transform: translateY(-2px);
-        }
-
-        /* ===== 返回按鈕 ===== */
-        .back-button {
-            background: #6c757d;
-            color: white;
-            padding: 15px;
-            border: none;
-            border-radius: 10px;
-            font-size: 16px;
-            cursor: pointer;
-            width: 100%;
-            margin-bottom: 20px;
-            font-weight: bold;
-            transition: all 0.3s;
-        }
-
-        .back-button:hover {
-            background: #5a6268;
-            transform: translateY(-2px);
-        }
-
-        /* ===== 底部提示 ===== */
-        .footer-hint {
-            text-align: center;
-            font-size: 12px;
-            color: #999;
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 1px solid #eee;
-        }
-
-        /* ===== 響應式設計 ===== */
-        @media (max-width: 480px) {
-            .header h1 {
-                font-size: 28px;
-            }
-
-            .big-button {
-                font-size: 20px;
-                padding: 20px;
-                min-height: 70px;
-            }
-
-            .content {
-                padding: 20px 15px;
-            }
-        }
-
-        /* ===== 設定按鈕 ===== */
+        /* ===== Settings Toggle ===== */
         .settings-toggle {
             position: absolute;
-            top: 12px;
-            right: 12px;
-            background: rgba(255,255,255,0.2);
+            top: 44px;
+            top: calc(44px + env(safe-area-inset-top));
+            right: 20px;
+            background: rgba(118,118,128,0.12);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             border: none;
-            color: #fff;
-            font-size: 22px;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
             cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             transition: background 0.2s;
-            z-index: 10;
+            color: var(--text-secondary);
         }
-        .settings-toggle:hover { background: rgba(255,255,255,0.35); }
 
-        /* ===== 設定面板 ===== */
+        .settings-toggle:hover { background: rgba(118,118,128,0.2); }
+        .settings-toggle svg { width: 20px; height: 20px; }
+
+        /* ===== Settings Panel (Glassmorphism) ===== */
         .settings-panel {
             display: none;
             position: absolute;
-            top: 56px;
-            right: 12px;
-            background: #fff;
-            color: #333;
-            border-radius: 14px;
-            box-shadow: 0 8px 30px rgba(0,0,0,0.25);
-            padding: 18px;
-            width: 260px;
-            z-index: 20;
-            animation: fadeIn 0.2s;
+            top: 88px;
+            top: calc(88px + env(safe-area-inset-top));
+            right: 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(40px) saturate(180%);
+            -webkit-backdrop-filter: blur(40px) saturate(180%);
+            border: 0.5px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            width: 250px;
+            z-index: 50;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.12), 0 1px 3px rgba(0,0,0,0.06);
         }
-        .settings-panel.show { display: block; }
-        .settings-panel h4 { font-size: 15px; margin-bottom: 12px; color: #555; }
-        .settings-section { margin-bottom: 16px; }
-        .settings-section:last-child { margin-bottom: 0; }
-        .settings-label { font-size: 13px; font-weight: 600; color: #666; margin-bottom: 6px; }
 
-        .opt-group { display: flex; gap: 6px; }
-        .opt-btn {
+        .settings-panel.show { display: block; animation: panelIn 0.25s ease; }
+
+        @keyframes panelIn {
+            from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .settings-section { margin-bottom: 18px; }
+        .settings-section:last-child { margin-bottom: 0; }
+
+        .settings-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .seg-control {
+            display: flex;
+            background: rgba(118,118,128,0.12);
+            border-radius: 9px;
+            padding: 2px;
+        }
+
+        .seg-btn {
             flex: 1;
-            padding: 8px 4px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            background: #f8f8f8;
-            cursor: pointer;
+            padding: 7px 4px;
+            border: none;
+            background: transparent;
+            border-radius: 7px;
             font-size: 13px;
             font-weight: 500;
-            text-align: center;
-            transition: all 0.2s;
-            font-family: inherit;
-            color: #333;
-        }
-        .opt-btn:hover { border-color: #aaa; }
-        .opt-btn.active { border-color: #667eea; background: #eef0ff; color: #667eea; font-weight: 700; }
-
-        .theme-btn {
-            flex: 1;
-            height: 36px;
-            border: 3px solid #ddd;
-            border-radius: 8px;
             cursor: pointer;
-            transition: all 0.2s;
+            font-family: inherit;
+            color: var(--text-primary);
+            transition: all 0.2s ease;
         }
-        .theme-btn:hover { transform: scale(1.05); }
-        .theme-btn.active { border-color: #667eea; box-shadow: 0 0 0 2px rgba(102,126,234,0.3); }
-        .theme-default { background: linear-gradient(135deg, #667eea, #764ba2); }
-        .theme-warm { background: linear-gradient(135deg, #f5af19, #f12711); }
-        .theme-dark { background: linear-gradient(135deg, #232526, #414345); }
 
-        .admin-entry-btn {
+        .seg-btn.active {
+            background: var(--surface);
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08), 0 0.5px 1px rgba(0,0,0,0.04);
+            font-weight: 600;
+        }
+
+        /* Theme color dots */
+        .theme-dots { display: flex; gap: 12px; justify-content: center; }
+
+        .theme-dot {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2.5px solid transparent;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .theme-dot:hover { transform: scale(1.1); }
+        .theme-dot.active { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(0,113,227,0.2); }
+
+        .theme-dot.dot-white { background: #F5F5F7; border-color: #D1D1D6; }
+        .theme-dot.dot-white.active { border-color: #0071E3; }
+
+        .theme-dot.dot-blue { background: linear-gradient(135deg, #007AFF, #5856D6); }
+        .theme-dot.dot-blue.active { border-color: #5856D6; }
+
+        .theme-dot.dot-green { background: linear-gradient(135deg, #34C759, #30D158); }
+        .theme-dot.dot-green.active { border-color: #34C759; }
+
+        .admin-link {
             width: 100%;
             padding: 10px;
-            background: #f0f0f0;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 13px;
+            background: transparent;
+            border: none;
+            font-size: 14px;
             cursor: pointer;
             font-family: inherit;
+            color: var(--accent);
             font-weight: 500;
-            color: #555;
-            transition: all 0.2s;
+            transition: opacity 0.15s;
+            text-align: center;
         }
-        .admin-entry-btn:hover { background: #e8e8e8; color: #333; }
 
-        /* ===== 登入對話框 ===== */
+        .admin-link:hover { opacity: 0.7; }
+
+        /* ===== Login Modal ===== */
         .login-backdrop {
             display: none;
             position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5);
+            inset: 0;
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
             z-index: 200;
             justify-content: center;
             align-items: center;
         }
+
         .login-backdrop.show { display: flex; }
+
         .login-modal {
-            background: #fff;
-            border-radius: 16px;
-            padding: 28px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(40px) saturate(180%);
+            -webkit-backdrop-filter: blur(40px) saturate(180%);
+            border: 0.5px solid var(--glass-border);
+            border-radius: var(--radius-xl);
+            padding: 32px 28px;
             width: 320px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+            animation: modalIn 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        @keyframes modalIn {
+            from { opacity: 0; transform: scale(0.95) translateY(10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .login-modal h3 {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-primary);
             text-align: center;
-            animation: fadeIn 0.2s;
+            margin-bottom: 24px;
+            letter-spacing: -0.3px;
         }
-        .login-modal h3 { font-size: 20px; margin-bottom: 18px; color: #333; }
-        .login-input {
+
+        .login-field {
             width: 100%;
-            padding: 12px;
-            border: 2px solid #ddd;
-            border-radius: 10px;
+            padding: 12px 14px;
+            background: rgba(118,118,128,0.12);
+            border: none;
+            border-radius: var(--radius-sm);
             font-size: 16px;
-            margin-bottom: 12px;
             font-family: inherit;
-            transition: border-color 0.2s;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+            outline: none;
+            transition: background 0.2s;
         }
-        .login-input:focus { outline: none; border-color: #667eea; }
-        .login-error { color: #ea4335; font-size: 13px; margin-bottom: 10px; display: none; }
-        .login-actions { display: flex; gap: 10px; }
-        .login-actions button {
+
+        .login-field:focus { background: rgba(118,118,128,0.18); }
+        .login-field::placeholder { color: var(--text-tertiary); }
+
+        .login-error { color: var(--red); font-size: 13px; text-align: center; margin-bottom: 10px; display: none; }
+
+        .login-btns { display: flex; gap: 10px; margin-top: 6px; }
+        .login-btns button {
             flex: 1;
             padding: 12px;
             border: none;
-            border-radius: 10px;
-            font-size: 15px;
+            border-radius: var(--radius-sm);
+            font-size: 16px;
             font-weight: 600;
             cursor: pointer;
             font-family: inherit;
+            transition: all 0.15s;
         }
-        .login-cancel { background: #f0f0f0; color: #555; }
-        .login-submit { background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; }
 
-        /* ===== 字體大小模式 ===== */
+        .login-cancel-btn { background: rgba(118,118,128,0.12); color: var(--text-primary); }
+        .login-ok-btn { background: var(--accent); color: #FFFFFF; }
+
+        /* ===== Footer ===== */
+        .footer-hint {
+            margin-top: 36px;
+            text-align: center;
+            font-size: 13px;
+            color: var(--text-tertiary);
+            line-height: 1.5;
+        }
+
+        /* ===== Font Sizes ===== */
         body.font-medium { font-size: 18px; }
-        body.font-medium .header h1 { font-size: 40px; }
-        body.font-medium .big-button { font-size: 26px; }
-        body.font-medium .back-button { font-size: 18px; }
-        body.font-medium .upload-area p { font-size: 22px; }
-        body.font-medium .search-input { font-size: 20px; }
+        body.font-medium .header h1 { font-size: 38px; }
+        body.font-medium .card-title { font-size: 19px; }
+        body.font-medium .upload-title { font-size: 19px; }
+        body.font-medium .search-field { font-size: 19px; }
+        body.font-medium .btn-primary,
+        body.font-medium .btn-secondary { font-size: 19px; }
 
         body.font-large { font-size: 22px; }
-        body.font-large .header h1 { font-size: 46px; }
-        body.font-large .big-button { font-size: 30px; padding: 30px; }
-        body.font-large .back-button { font-size: 20px; padding: 18px; }
-        body.font-large .upload-area p { font-size: 26px; }
-        body.font-large .search-input { font-size: 24px; }
-        body.font-large .result-item { font-size: 20px; }
+        body.font-large .header h1 { font-size: 42px; }
+        body.font-large .card-title { font-size: 22px; }
+        body.font-large .card-desc { font-size: 15px; }
+        body.font-large .upload-title { font-size: 22px; }
+        body.font-large .search-field { font-size: 22px; padding: 16px 16px 16px 44px; }
+        body.font-large .btn-primary,
+        body.font-large .btn-secondary { font-size: 22px; padding: 18px; }
+        body.font-large .result-name { font-size: 20px; }
+        body.font-large .nav-back { font-size: 19px; }
 
-        /* ===== 暖色對比主題 ===== */
-        body.theme-warm-mode { background: linear-gradient(135deg, #f5af19 0%, #f12711 100%); }
-        body.theme-warm-mode .header { background: linear-gradient(135deg, #f5af19 0%, #f12711 100%); }
-        body.theme-warm-mode .big-button { background: linear-gradient(135deg, #f5af19 0%, #f12711 100%); box-shadow: 0 4px 15px rgba(241,39,17,0.4); }
-        body.theme-warm-mode .upload-area { border-color: #f5af19; }
-        body.theme-warm-mode .upload-area:hover { border-color: #f12711; background: #fff8f0; }
+        /* ===== Theme: Blue ===== */
+        body.theme-blue { --bg: #EEF2FF; }
+        body.theme-blue .header {
+            background: linear-gradient(180deg, rgba(0,122,255,0.06) 0%, transparent 100%);
+        }
+        body.theme-blue .action-card { border: 0.5px solid rgba(0,122,255,0.08); }
 
-        /* ===== 深色高對比主題 ===== */
-        body.theme-dark-mode { background: #1a1a1a; }
-        body.theme-dark-mode .container { background: #2a2a2a; color: #f0f0f0; }
-        body.theme-dark-mode .header { background: linear-gradient(135deg, #232526 0%, #414345 100%); }
-        body.theme-dark-mode .big-button { background: linear-gradient(135deg, #434343 0%, #000000 100%); box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-        body.theme-dark-mode .big-button.secondary { background: #444; color: #fff; }
-        body.theme-dark-mode .upload-area { background: #333; border-color: #666; color: #ddd; }
-        body.theme-dark-mode .upload-area:hover { background: #3a3a3a; border-color: #888; }
-        body.theme-dark-mode .upload-area p { color: #ddd; }
-        body.theme-dark-mode .back-button { background: #555; }
-        body.theme-dark-mode .search-input { background: #333; color: #fff; border-color: #555; }
-        body.theme-dark-mode .footer-hint { color: #888; border-top-color: #444; }
-        body.theme-dark-mode .result-item { background: #333; }
-        body.theme-dark-mode .settings-panel { background: #333; color: #eee; }
-        body.theme-dark-mode .settings-label { color: #bbb; }
-        body.theme-dark-mode .opt-btn { background: #444; color: #ddd; border-color: #555; }
-        body.theme-dark-mode .opt-btn.active { border-color: #88a0ff; background: #3a3a5a; color: #88a0ff; }
-        body.theme-dark-mode .admin-entry-btn { background: #444; color: #ccc; border-color: #555; }
+        /* ===== Theme: Green ===== */
+        body.theme-green {
+            --bg: #EEFBF3;
+            --accent: #34C759;
+            --accent-hover: #30B350;
+            --accent-light: rgba(52,199,89,0.08);
+            --accent-grad-start: #34C759;
+            --accent-grad-end: #30D158;
+        }
+        body.theme-green .header {
+            background: linear-gradient(180deg, rgba(52,199,89,0.06) 0%, transparent 100%);
+        }
+        body.theme-green .action-card { border: 0.5px solid rgba(52,199,89,0.08); }
+        body.theme-green .seg-btn.active { background: var(--surface); }
+        body.theme-green .theme-dot.dot-green.active { border-color: #34C759; box-shadow: 0 0 0 2px rgba(52,199,89,0.25); }
+        body.theme-green .nav-back { color: #34C759; }
+        body.theme-green .admin-link { color: #34C759; }
+        body.theme-green .login-ok-btn { background: #34C759; }
+        body.theme-green .result-badge { background: rgba(52,199,89,0.1); color: #34C759; }
+        body.theme-green .detail-source-tag { background: rgba(52,199,89,0.08); color: #34C759; }
+
+        /* ===== Responsive ===== */
+        @media (max-width: 480px) {
+            .header { padding-top: calc(40px + env(safe-area-inset-top)); }
+            .header h1 { font-size: 30px; }
+            .content { padding: 8px 16px 32px; }
+        }
     </style>
 </head>
 
 <body>
     <div class="container">
-        <!-- 頁首 -->
-        <div class="header" style="position:relative;">
-            <h1>💊 藥知道</h1>
-            <p>簡單、快速、安全</p>
-            <button class="settings-toggle" onclick="toggleSettings()" title="設定">⚙️</button>
+        <!-- Header -->
+        <div class="header">
+            <h1>藥知道</h1>
+            <p>簡單・快速・安全的藥物辨識</p>
+            <button class="settings-toggle" onclick="toggleSettings()" title="設定">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </button>
             <div class="settings-panel" id="settingsPanel">
                 <div class="settings-section">
                     <div class="settings-label">字體大小</div>
-                    <div class="opt-group">
-                        <button class="opt-btn active" data-font="normal" onclick="setFontSize('normal')">正常</button>
-                        <button class="opt-btn" data-font="medium" onclick="setFontSize('medium')">中</button>
-                        <button class="opt-btn" data-font="large" onclick="setFontSize('large')">大</button>
+                    <div class="seg-control">
+                        <button class="seg-btn active" data-font="normal" onclick="setFontSize('normal')">標準</button>
+                        <button class="seg-btn" data-font="medium" onclick="setFontSize('medium')">中</button>
+                        <button class="seg-btn" data-font="large" onclick="setFontSize('large')">大</button>
                     </div>
                 </div>
                 <div class="settings-section">
                     <div class="settings-label">顏色主題</div>
-                    <div class="opt-group">
-                        <div class="theme-btn theme-default active" data-theme="default" onclick="setTheme('default')" title="預設"></div>
-                        <div class="theme-btn theme-warm" data-theme="warm" onclick="setTheme('warm')" title="暖色"></div>
-                        <div class="theme-btn theme-dark" data-theme="dark" onclick="setTheme('dark')" title="深色高對比"></div>
+                    <div class="theme-dots">
+                        <div class="theme-dot dot-white active" data-theme="default" onclick="setTheme('default')" title="預設白"></div>
+                        <div class="theme-dot dot-blue" data-theme="blue" onclick="setTheme('blue')" title="藍色"></div>
+                        <div class="theme-dot dot-green" data-theme="green" onclick="setTheme('green')" title="綠色"></div>
                     </div>
                 </div>
-                <div class="settings-section">
-                    <button class="admin-entry-btn" onclick="showLoginModal()">🔒 進入後台管理</button>
+                <div class="settings-section" id="adminSection">
+                    <button class="admin-link" onclick="showLoginModal()">進入後台管理</button>
                 </div>
             </div>
         </div>
 
-        <!-- 主頁 -->
+        <!-- 首頁 -->
         <div class="content page active" id="homePage">
-            <div class="home-buttons">
-                <button class="big-button" onclick="goToPage('capturePage')">
-                    📷 拍照辨識藥物
-                </button>
-                <button class="big-button" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);" onclick="goToPage('prescriptionCapturePage')">
-                    📄 拍攝藥單辨識
-                </button>
-                <button class="big-button secondary" onclick="goToPage('searchPage')">
-                    🔍 搜尋藥物名稱
-                </button>
+            <div class="home-cards">
+                <div class="action-card" onclick="goToPage('capturePage')">
+                    <div class="card-icon accent-bg">
+                        <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                    </div>
+                    <div class="card-body">
+                        <div class="card-title">拍照辨識藥物</div>
+                        <div class="card-desc">拍攝藥物照片進行 AI 辨識</div>
+                    </div>
+                    <div class="card-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+                </div>
+
+                <div class="action-card" onclick="goToPage('prescriptionCapturePage')">
+                    <div class="card-icon green-bg">
+                        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                    </div>
+                    <div class="card-body">
+                        <div class="card-title">拍攝藥單辨識</div>
+                        <div class="card-desc">上傳醫院藥單自動提取藥物</div>
+                    </div>
+                    <div class="card-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+                </div>
+
+                <div class="action-card" onclick="goToPage('searchPage')">
+                    <div class="card-icon orange-bg">
+                        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    </div>
+                    <div class="card-body">
+                        <div class="card-title">搜尋藥物名稱</div>
+                        <div class="card-desc">依名稱查詢藥物資訊</div>
+                    </div>
+                    <div class="card-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+                </div>
             </div>
             <div class="footer-hint">
-                <p>💡 提示：請在光線充足的地方，對準藥物清晰拍照</p>
+                在光線充足的地方對準藥物清晰拍照<br>可獲得最佳辨識效果
             </div>
         </div>
 
         <!-- 拍照上傳頁 -->
         <div class="content page" id="capturePage">
-            <button class="back-button" onclick="goToPage('homePage')">← 返回首頁</button>
+            <button class="nav-back" onclick="goToPage('homePage')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+                返回
+            </button>
 
             <div class="upload-area" id="uploadArea">
-                <div class="upload-icon">📸</div>
-                <p>點擊選擇圖片或拖放</p>
-                <small>支援 JPG, PNG, GIF 等格式</small>
+                <div class="upload-icon-wrap">
+                    <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                </div>
+                <p class="upload-title">點擊選擇或拖放圖片</p>
+                <p class="upload-sub">支援 JPG、PNG、GIF 格式</p>
             </div>
 
             <div id="imagePreview" class="image-preview" style="display: none;">
                 <img id="previewImage" alt="preview">
-                <button id="uploadBtn" class="big-button" style="margin-top: 20px; background: #28a745;" onclick="uploadImage()">
-                    ✓ 開始辨識
-                </button>
-                <button class="big-button secondary" style="margin-top: 12px;" onclick="resetAndRephoto()">
-                    ↺ 重新拍照
-                </button>
+                <div class="btn-group">
+                    <button id="uploadBtn" class="btn-primary green" onclick="uploadImage()">開始辨識</button>
+                    <button class="btn-secondary" onclick="resetAndRephoto()">重新選擇</button>
+                </div>
             </div>
 
             <input type="file" id="imageInput" accept="image/*">
@@ -737,22 +933,25 @@
 
         <!-- 藥單拍照上傳頁 -->
         <div class="content page" id="prescriptionCapturePage">
-            <button class="back-button" onclick="goToPage('homePage')">← 返回首頁</button>
+            <button class="nav-back" onclick="goToPage('homePage')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+                返回
+            </button>
 
             <div class="upload-area" id="prescriptionUploadArea">
-                <div class="upload-icon">📄</div>
-                <p>點擊上傳藥單照片</p>
-                <small>支援整張醫院藥單/處方箋</small>
+                <div class="upload-icon-wrap green-bg">
+                    <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                </div>
+                <p class="upload-title">點擊上傳藥單照片</p>
+                <p class="upload-sub">支援整張醫院藥單 / 處方箋</p>
             </div>
 
             <div id="prescriptionImagePreview" class="image-preview" style="display: none;">
                 <img id="prescriptionPreviewImg" alt="preview">
-                <button id="prescriptionUploadBtn" class="big-button" style="margin-top: 20px; background: #28a745;" onclick="uploadPrescriptionImage()">
-                    ✓ 開始提取藥物
-                </button>
-                <button class="big-button secondary" style="margin-top: 12px;" onclick="resetPrescriptionPhoto()">
-                    ↺ 重新拍照
-                </button>
+                <div class="btn-group">
+                    <button id="prescriptionUploadBtn" class="btn-primary green" onclick="uploadPrescriptionImage()">開始提取藥物</button>
+                    <button class="btn-secondary" onclick="resetPrescriptionPhoto()">重新選擇</button>
+                </div>
             </div>
 
             <input type="file" id="prescriptionImageInput" accept="image/*">
@@ -760,28 +959,40 @@
 
         <!-- 辨識結果頁 -->
         <div class="content page" id="resultPage">
-            <button class="back-button" onclick="goToPage('homePage')">← 返回首頁</button>
-
+            <button class="nav-back" onclick="goToPage('homePage')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+                返回首頁
+            </button>
             <div id="resultContent"></div>
         </div>
 
         <!-- 搜尋頁 -->
         <div class="content page" id="searchPage">
-            <button class="back-button" onclick="goToPage('homePage')">← 返回首頁</button>
+            <button class="nav-back" onclick="goToPage('homePage')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+                返回
+            </button>
 
-            <div class="search-box">
-                <input type="text" id="searchInput" class="search-input" placeholder="輸入藥物名稱..." 
+            <div class="search-wrap">
+                <span class="search-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                </span>
+                <input type="text" id="searchInput" class="search-field" placeholder="搜尋藥物名稱..."
                     onkeypress="if(event.key==='Enter') searchDrug()">
-                <button id="searchBtn" class="search-button" onclick="searchDrug()">搜尋</button>
+            </div>
+            <div class="search-action">
+                <button id="searchBtn" class="btn-primary" onclick="searchDrug()">搜尋</button>
             </div>
 
-            <div id="searchResults"></div>
+            <div id="searchResults" style="margin-top: 20px;"></div>
         </div>
 
         <!-- 藥物詳細頁 -->
         <div class="content page" id="detailPage">
-            <button class="back-button" onclick="goToPreviousPage()">← 返回</button>
-
+            <button class="nav-back" onclick="goToPreviousPage()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+                返回
+            </button>
             <div id="detailContent"></div>
         </div>
     </div>
@@ -789,21 +1000,21 @@
     <!-- 管理員登入對話框 -->
     <div class="login-backdrop" id="loginBackdrop" onclick="if(event.target===this)closeLoginModal()">
         <div class="login-modal">
-            <h3>🔒 管理員登入</h3>
-            <input type="text" class="login-input" id="loginUser" placeholder="帳號" autocomplete="username">
-            <input type="password" class="login-input" id="loginPass" placeholder="密碼" autocomplete="current-password"
+            <h3>管理員登入</h3>
+            <input type="text" class="login-field" id="loginUser" placeholder="帳號" autocomplete="username">
+            <input type="password" class="login-field" id="loginPass" placeholder="密碼" autocomplete="current-password"
                 onkeydown="if(event.key==='Enter')doLogin()">
             <div class="login-error" id="loginError">帳號或密碼錯誤</div>
-            <div class="login-actions">
-                <button class="login-cancel" onclick="closeLoginModal()">取消</button>
-                <button class="login-submit" onclick="doLogin()">登入</button>
+            <div class="login-btns">
+                <button class="login-cancel-btn" onclick="closeLoginModal()">取消</button>
+                <button class="login-ok-btn" onclick="doLogin()">登入</button>
             </div>
         </div>
     </div>
 
     <script>
         // ============================================
-        // 全局狀態 (必須在最開始初始化)
+        // 全局狀態
         // ============================================
         var API_URL = 'http://192.168.1.103:5000/api';
         var currentPage = 'homePage';
@@ -814,16 +1025,17 @@
         // 頁面導航
         // ============================================
         function goToPage(pageId) {
-            console.log('🔄 切換頁面:', pageId);
+            console.log('切換頁面:', pageId);
             previousPage = currentPage;
             currentPage = pageId;
-            
+
             document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
             const targetPage = document.getElementById(pageId);
             if (targetPage) {
                 targetPage.classList.add('active');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             } else {
-                console.error('❌ 頁面不存在:', pageId);
+                console.error('頁面不存在:', pageId);
             }
         }
 
@@ -839,11 +1051,10 @@
         function initPrescriptionUploadArea() {
             const uploadArea = document.getElementById('prescriptionUploadArea');
             const imageInput = document.getElementById('prescriptionImageInput');
-
             if (!uploadArea || !imageInput) return;
 
             uploadArea.addEventListener('click', () => imageInput.click());
-            
+
             uploadArea.addEventListener('dragover', (e) => {
                 e.preventDefault();
                 uploadArea.classList.add('dragover');
@@ -861,10 +1072,7 @@
         }
 
         function handlePrescriptionFile(file) {
-            if (!file.type.startsWith('image/')) {
-                alert('請選擇圖片檔案');
-                return;
-            }
+            if (!file.type.startsWith('image/')) { alert('請選擇圖片檔案'); return; }
             prescriptionFile = file;
             const reader = new FileReader();
             reader.onload = (e) => {
@@ -884,15 +1092,12 @@
         }
 
         async function uploadPrescriptionImage() {
-            if (!prescriptionFile) {
-                alert('請先選擇圖片');
-                return;
-            }
+            if (!prescriptionFile) { alert('請先選擇圖片'); return; }
 
             const uploadBtn = document.getElementById('prescriptionUploadBtn');
             if (uploadBtn) uploadBtn.disabled = true;
 
-            showLoading('正在擷取藥單內容...\n請稍候片刻...');
+            showLoading('正在擷取藥單內容...');
             goToPage('resultPage');
 
             try {
@@ -909,10 +1114,10 @@
                 if (data.success && data.recognized_items && data.recognized_items.length > 0) {
                     displayResults(data.recognized_items);
                 } else {
-                    showError(data.error || '未能從藥單中識別出任何藥物\n\n請拍清楚藥單上的藥物名稱');
+                    showError(data.error || '未能從藥單中識別出任何藥物\n請拍清楚藥單上的藥物名稱');
                 }
             } catch (error) {
-                showError('網路連線失敗\n\n請檢查網路後重試');
+                showError('網路連線失敗\n請檢查網路後重試');
             } finally {
                 if (uploadBtn) uploadBtn.disabled = false;
             }
@@ -928,51 +1133,34 @@
             const previewImage = document.getElementById('previewImage');
 
             if (!uploadArea || !imageInput || !imagePreview || !previewImage) {
-                console.error('❌ 上傳區元素未找到');
+                console.error('上傳區元素未找到');
                 return;
             }
 
-            // 點擊上傳區
-            uploadArea.addEventListener('click', () => {
-                console.log('📁 點擊上傳區');
-                imageInput.click();
-            });
+            uploadArea.addEventListener('click', () => imageInput.click());
 
-            // 拖放
             uploadArea.addEventListener('dragover', (e) => {
                 e.preventDefault();
                 uploadArea.classList.add('dragover');
             });
 
-            uploadArea.addEventListener('dragleave', () => {
-                uploadArea.classList.remove('dragover');
-            });
+            uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
 
             uploadArea.addEventListener('drop', (e) => {
                 e.preventDefault();
                 uploadArea.classList.remove('dragover');
-                if (e.dataTransfer.files[0]) {
-                    handleFileSelect(e.dataTransfer.files[0]);
-                }
+                if (e.dataTransfer.files[0]) handleFileSelect(e.dataTransfer.files[0]);
             });
 
-            // 檔案輸入
             imageInput.addEventListener('change', (e) => {
-                if (e.target.files[0]) {
-                    handleFileSelect(e.target.files[0]);
-                }
+                if (e.target.files[0]) handleFileSelect(e.target.files[0]);
             });
         }
 
         function handleFileSelect(file) {
-            if (!file.type.startsWith('image/')) {
-                alert('請選擇圖片檔案');
-                return;
-            }
-
+            if (!file.type.startsWith('image/')) { alert('請選擇圖片檔案'); return; }
             selectedFile = file;
 
-            // 顯示預覽
             const reader = new FileReader();
             reader.onload = (e) => {
                 previewImage.src = e.target.result;
@@ -986,45 +1174,33 @@
         // 上傳和辨識
         // ============================================
         async function uploadImage() {
-            console.log('📤 開始上傳圖片');
-            
-            if (!selectedFile) {
-                alert('請先選擇圖片');
-                return;
-            }
+            if (!selectedFile) { alert('請先選擇圖片'); return; }
 
-            // 禁用按鈕
             const uploadBtn = document.getElementById('uploadBtn');
             if (uploadBtn) uploadBtn.disabled = true;
 
-            showLoading('正在辨識圖片中...\n請稍候...');
+            showLoading('正在辨識圖片中...');
             goToPage('resultPage');
 
             try {
                 const formData = new FormData();
                 formData.append('image', selectedFile);
 
-                console.log(`📡 呼叫 API: ${API_URL}/recognize`);
                 const response = await fetch(`${API_URL}/recognize`, {
                     method: 'POST',
                     body: formData
                 });
 
-                console.log('✓ API 回應:', response.status);
                 const data = await response.json();
 
                 if (data.success && data.recognized_items && data.recognized_items.length > 0) {
-                    console.log('✓ 辨識成功:', data.recognized_items.length, '項');
                     displayResults(data.recognized_items);
                 } else {
-                    console.warn('⚠ 未能識別出藥物');
                     showError('未能識別出藥物\n\n請嘗試：\n1. 更換光線條件\n2. 拍攝更清晰的照片\n3. 靠近藥物');
                 }
             } catch (error) {
-                console.error('❌ 辨識失敗:', error);
-                showError('網路連線失敗\n\n請檢查網路後重試');
+                showError('網路連線失敗\n請檢查網路後重試');
             } finally {
-                // 重新啟用按鈕
                 if (uploadBtn) uploadBtn.disabled = false;
             }
         }
@@ -1033,22 +1209,12 @@
         // 搜尋
         // ============================================
         async function searchDrug() {
-            console.log('🔍 開始搜尋');
-            
             const searchInput = document.getElementById('searchInput');
-            if (!searchInput) {
-                console.error('❌ 搜尋框未找到');
-                return;
-            }
-            
+            if (!searchInput) return;
+
             const query = searchInput.value.trim();
+            if (!query || query.length < 2) { alert('請輸入至少 2 個字'); return; }
 
-            if (!query || query.length < 2) {
-                alert('請輸入至少 2 個字符');
-                return;
-            }
-
-            // 禁用按鈕和輸入框
             const searchBtn = document.getElementById('searchBtn');
             if (searchBtn) searchBtn.disabled = true;
             searchInput.disabled = true;
@@ -1056,36 +1222,24 @@
             showSearchLoading('搜尋中...');
 
             try {
-                console.log(`📡 呼叫 API: ${API_URL}/search，查詢: ${query}`);
                 const response = await fetch(`${API_URL}/search`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ query, limit: 10 })
                 });
 
-                console.log('✓ API 回應:', response.status);
                 const data = await response.json();
 
                 if (data.success && data.results && data.results.length > 0) {
-                    console.log('✓ 搜尋成功:', data.results.length, '項');
                     displaySearchResults(data.results);
                 } else {
-                    console.warn('⚠ 未找到相符結果');
-                    const searchResults = document.getElementById('searchResults');
-                    if (searchResults) {
-                        searchResults.innerHTML = '<div class="alert warning">未找到相符的藥物</div>';
-                    }
+                    document.getElementById('searchResults').innerHTML =
+                        '<div class="alert-card warning"><div class="alert-title">未找到結果</div><p>未找到相符的藥物，請嘗試其他關鍵字</p></div>';
                 }
             } catch (error) {
-                console.error('❌ 搜尋失敗:', error);
-                const searchResults = document.getElementById('searchResults');
-                if (searchResults) {
-                    searchResults.innerHTML = '<div class="alert error">搜尋失敗，請重試</div>';
-                }
+                document.getElementById('searchResults').innerHTML =
+                    '<div class="alert-card error"><div class="alert-title">搜尋失敗</div><p>網路連線異常，請稍後重試</p></div>';
             } finally {
-                // 重新啟用按鈕和輸入框
                 if (searchBtn) searchBtn.disabled = false;
                 searchInput.disabled = false;
             }
@@ -1095,55 +1249,50 @@
         // 顯示結果
         // ============================================
         function displayResults(items) {
-            let html = '<div class="results-container">';
+            let html = '<div class="results-list">';
 
             if (items.length === 0) {
-                html += '<div class="alert warning">未找到相符結果</div>';
+                html += '<div class="alert-card warning"><div class="alert-title">未找到結果</div><p>未找到相符的藥物</p></div>';
             } else {
-                items.forEach((item, index) => {
+                items.forEach((item) => {
                     const confidence = (item.confidence * 100).toFixed(0);
-                    
-                    // 取得第一張圖片
+
                     let imageHtml = '';
                     if (item.images && item.images.length > 0) {
-                        const firstImage = item.images[0];
-                        const imagePath = firstImage.path.replace(/\\/g, '/');
-                        imageHtml = `<img src="/api/images/${imagePath}" alt="${item.name}" class="drug-image" style="max-width: 150px; max-height: 150px; margin: 10px 0; border-radius: 8px;">`;
+                        const imagePath = item.images[0].path.replace(/\\/g, '/');
+                        imageHtml = `<img src="${API_URL.replace('/api','')}/api/images/${imagePath}" alt="${item.name}" class="drug-thumb">`;
                     }
-                    
+
                     html += `
-                        <div class="result-item" onclick="loadAndShowDrugDetail(${item.id || item.drug_id || 'null'}, ${JSON.stringify(item).replace(/"/g, '&quot;')})">
-                            ${imageHtml}
-                            <div class="result-title">${item.name}</div>
-                            <div class="result-info">
-                                <div>匹配度：${confidence}%</div>
-                                ${item.details?.chinese_name ? `<div>中文名稱：${item.details.chinese_name}</div>` : ''}
-                                ${item.details?.shape ? `<div>形狀：${item.details.shape}</div>` : ''}
-                                ${item.details?.color ? `<div>顏色：${item.details.color}</div>` : ''}
+                        <div class="result-card" onclick='loadAndShowDrugDetail(${item.id || item.drug_id || 'null'}, ${JSON.stringify(item).replace(/'/g, "&#39;")})'>
+                            <div class="result-header">
+                                <div class="result-name">${item.name}</div>
+                                <div class="result-badge">${confidence}%</div>
                             </div>
-                            <div class="confidence-bar">
-                                <div class="confidence-fill" style="width: ${confidence}%"></div>
+                            <div class="result-meta">
+                                ${item.details?.chinese_name ? item.details.chinese_name + ' · ' : ''}
+                                ${item.details?.shape ? item.details.shape : ''}
+                                ${item.details?.color ? ' · ' + item.details.color : ''}
+                            </div>
+                            ${imageHtml}
+                            <div class="confidence-track">
+                                <div class="confidence-bar" style="width: ${confidence}%"></div>
                             </div>
                         </div>
                     `;
                 });
             }
 
-            html += `
-                <div style="margin-top: 30px;">
-                    <button class="big-button" style="background: #6c757d; margin-bottom: 15px;" onclick="resetAndRephoto()">
-                        📸 重新拍照
-                    </button>
-                    <button class="big-button secondary" onclick="goToPage('homePage')">
-                        ← 返回首頁
-                    </button>
-                </div>
-            </div>`;
+            html += `</div>
+                <div class="btn-group" style="margin-top:28px;">
+                    <button class="btn-secondary" onclick="resetAndRephoto()">重新拍照</button>
+                    <button class="btn-gray" onclick="goToPage('homePage')">返回首頁</button>
+                </div>`;
+
             document.getElementById('resultContent').innerHTML = html;
         }
 
         function resetAndRephoto() {
-            console.log('🔄 重新拍照');
             selectedFile = null;
             document.getElementById('imageInput').value = '';
             const imagePreview = document.getElementById('imagePreview');
@@ -1154,27 +1303,25 @@
         }
 
         function displaySearchResults(results) {
-            let html = '<div class="results-container">';
+            let html = '<div class="results-list">';
 
             results.forEach(drug => {
-                // 顯示圖片
                 let imageHtml = '';
                 if (drug.images && drug.images.length > 0) {
-                    const firstImage = drug.images[0];
-                    const imagePath = firstImage.path.replace(/\\/g, '/');
-                    imageHtml = `<img src="/api/images/${imagePath}" alt="${drug.name}" class="drug-image" style="max-width: 150px; max-height: 150px; margin: 10px 0; border-radius: 8px;">`;
+                    const imagePath = drug.images[0].path.replace(/\\/g, '/');
+                    imageHtml = `<img src="${API_URL.replace('/api','')}/api/images/${imagePath}" alt="${drug.chinese_name || drug.name}" class="drug-thumb">`;
                 }
-                
+
                 html += `
-                    <div class="result-item" onclick="loadAndShowDrugDetail(${drug.id || drug.drug_id || 'null'}, ${JSON.stringify(drug).replace(/"/g, '&quot;')})">
-                        ${imageHtml}
-                        <div class="result-title">${drug.chinese_name || drug.name || '未知'}</div>
-                        <div class="result-info">
-                            ${drug.english_name ? `<div>English: ${drug.english_name}</div>` : ''}
-                            ${drug.license_number ? `<div>許可證: ${drug.license_number}</div>` : ''}
-                            ${drug.shape ? `<div>形狀：${drug.shape}</div>` : ''}
-                            ${drug.color ? `<div>顏色：${drug.color}</div>` : ''}
+                    <div class="result-card" onclick='loadAndShowDrugDetail(${drug.id || drug.drug_id || 'null'}, ${JSON.stringify(drug).replace(/'/g, "&#39;")})'>
+                        <div class="result-name">${drug.chinese_name || drug.name || '未知'}</div>
+                        <div class="result-meta">
+                            ${drug.english_name ? drug.english_name : ''}
+                            ${drug.license_number ? ' · ' + drug.license_number : ''}
+                            ${drug.shape ? ' · ' + drug.shape : ''}
+                            ${drug.color ? ' · ' + drug.color : ''}
                         </div>
+                        ${imageHtml}
                     </div>
                 `;
             });
@@ -1186,14 +1333,13 @@
         async function loadAndShowDrugDetail(drugId, fallbackDrug) {
             goToPage('detailPage');
             document.getElementById('detailContent').innerHTML = `
-                <div class="loading" style="text-align: center; padding: 40px 20px;">
-                    <div class="spinner" style="display: inline-block; width: 50px; height: 50px; border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-                    <div class="loading-text" style="color: #667eea; font-weight: bold; margin-top: 20px;">
-                        正在擷取最新藥物資訊<br><small style="font-size:14px; color:#999;">(包含健保署/食藥署資料)</small>
-                    </div>
+                <div class="loading-view">
+                    <div class="apple-spinner"></div>
+                    <div class="loading-label">正在擷取藥物資訊...</div>
+                    <div class="progress-track"><div class="progress-thumb"></div></div>
                 </div>
             `;
-            
+
             try {
                 if (drugId) {
                     const response = await fetch(`${API_URL}/drug/${drugId}`);
@@ -1210,98 +1356,72 @@
         }
 
         function showDrugDetail(drug) {
-            let html = '<div>';
-            
             const details = drug.details || drug;
             const nhiDetails = drug.nhi_details || {};
-            
             const displayName = nhiDetails['中文品名'] || details.chinese_name || details.name || drug.name || '藥物詳情';
-            
-            html += `<h2 style="font-size: 24px; margin-bottom: 20px; color: #333;">${displayName}</h2>`;
 
+            let html = '<div class="detail-hero">';
+            html += `<h2>${displayName}</h2>`;
             if (Object.keys(nhiDetails).length > 0) {
-                html += `
-                <div style="margin-bottom: 15px; padding: 12px; background: #e3f2fd; border-left: 4px solid #1976d2; border-radius: 4px;">
-                    <strong style="color: #1565c0; display: block; margin-bottom: 4px;">ℹ️ 最新資訊來源</strong>
-                    <span style="font-size: 14px; color: #333;">部分資料同步自 <a href="${nhiDetails.source_url || '#'}" target="_blank" style="color:#1976d2;">食藥署/健保署資料庫</a></span>
-                </div>`;
+                html += '<span class="detail-source-tag">食藥署 / 健保署資料庫</span>';
             }
+            html += '</div>';
 
-            // 顯示圖片
+            // Images
             let allImages = [];
             if (drug.images && drug.images.length > 0) {
-                allImages = allImages.concat(drug.images.map(img => `/api/images/${img.path.replace(/\\/g, '/')}`));
+                allImages = allImages.concat(drug.images.map(img => `${API_URL.replace('/api','')}/api/images/${img.path.replace(/\\/g, '/')}`));
             }
             if (nhiDetails.images && nhiDetails.images.length > 0) {
                 allImages = allImages.concat(nhiDetails.images);
             }
 
             if (allImages.length > 0) {
-                html += '<div style="margin-bottom: 20px; text-align: center;">';
+                html += '<div class="detail-images">';
                 allImages.forEach(imgSrc => {
-                    html += `<img src="${imgSrc}" alt="${displayName}" style="max-width: 200px; max-height: 200px; margin: 10px; border-radius: 8px; border: 1px solid #ddd; padding: 5px;">`;
+                    html += `<img src="${imgSrc}" alt="${displayName}">`;
                 });
                 html += '</div>';
             }
 
-            html += `
-                <div class="detail-info">
-                    <div class="detail-label">中文名稱</div>
-                    <div class="detail-value">${nhiDetails['中文品名'] || details.chinese_name || '-'}</div>
-                </div>
+            // Basic info card
+            html += '<div class="detail-card">';
+            html += `<div class="detail-row"><span class="detail-key">中文名稱</span><span class="detail-val">${nhiDetails['中文品名'] || details.chinese_name || '-'}</span></div>`;
+            html += `<div class="detail-row"><span class="detail-key">英文名稱</span><span class="detail-val">${nhiDetails['英文品名'] || details.english_name || '-'}</span></div>`;
+            html += `<div class="detail-row"><span class="detail-key">許可證字號</span><span class="detail-val">${details.license_number || '-'}</span></div>`;
+            html += `<div class="detail-row"><span class="detail-key">形狀</span><span class="detail-val">${details.shape || '-'}</span></div>`;
+            html += `<div class="detail-row"><span class="detail-key">顏色</span><span class="detail-val">${details.color || '-'}</span></div>`;
+            html += `<div class="detail-row"><span class="detail-key">劑型</span><span class="detail-val">${nhiDetails['藥品類別'] || details.formulation || details.dosage_form || '-'}</span></div>`;
+            html += '</div>';
 
-                <div class="detail-info">
-                    <div class="detail-label">英文名稱</div>
-                    <div class="detail-value">${nhiDetails['英文品名'] || details.english_name || '-'}</div>
-                </div>
-            `;
-            
-            if (nhiDetails['適應症']) {
-                html += `
-                <div class="detail-info">
-                    <div class="detail-label">適應症</div>
-                    <div class="detail-value">${nhiDetails['適應症']}</div>
-                </div>`;
-            } else {
-                html += `
-                <div class="detail-info">
-                    <div class="detail-label">用途</div>
-                    <div class="detail-value">${details.usage || details.indication || '-'}</div>
-                </div>`;
+            // Indications
+            const indication = nhiDetails['適應症'] || details.usage || details.indication;
+            if (indication) {
+                html += '<div class="detail-card">';
+                html += `<div class="detail-block"><div class="detail-block-label">適應症</div><div class="detail-block-value">${indication}</div></div>`;
+                html += '</div>';
             }
 
+            // Ingredients
             if (nhiDetails['主成分略述']) {
-                html += `
-                <div class="detail-info">
-                    <div class="detail-label">主成分</div>
-                    <div class="detail-value">${nhiDetails['主成分略述']}</div>
+                html += '<div class="detail-card">';
+                html += `<div class="detail-block"><div class="detail-block-label">主成分</div><div class="detail-block-value">${nhiDetails['主成分略述']}</div></div>`;
+                html += '</div>';
+            }
+
+            // Source link
+            if (nhiDetails.source_url) {
+                html += `<div style="text-align:center; margin: 12px 0;">
+                    <a href="${nhiDetails.source_url}" target="_blank" style="color:var(--accent); font-size:14px; text-decoration:none; font-weight:500;">查看食藥署完整資料 →</a>
                 </div>`;
             }
 
-            html += `
-                <div class="detail-info">
-                    <div class="detail-label">許可證字號</div>
-                    <div class="detail-value">${details.license_number || '-'}</div>
-                </div>
-
-                <div class="detail-info">
-                    <div class="detail-label">形狀</div>
-                    <div class="detail-value">${details.shape || '-'}</div>
-                </div>
-
-                <div class="detail-info">
-                    <div class="detail-label">顏色</div>
-                    <div class="detail-value">${details.color || '-'}</div>
-                </div>
-
-                <div class="detail-info">
-                    <div class="detail-label">劑型</div>
-                    <div class="detail-value">${nhiDetails['藥品類別'] || details.formulation || details.dosage_form || '-'}</div>
-                </div>
-
-                <div class="alert warning" style="margin-top: 20px;">
-                    <strong>⚠️ 重要提醒</strong><br>
-                    此資訊僅供參考。購買、服用或停用任何藥物前，請務必<strong>諮詢您的醫生或藥師</strong>。
+            // Warning
+            html += `<div class="warning-banner" style="margin-top:16px;">
+                <div class="warning-icon-box">!</div>
+                <div class="warning-text">
+                    <strong>重要提醒</strong>
+                    此資訊僅供參考。服用或停用任何藥物前，請務必諮詢您的醫生或藥師。
                 </div>
             </div>`;
 
@@ -1313,110 +1433,57 @@
         // ============================================
         function showLoading(message) {
             const resultContent = document.getElementById('resultContent');
-            if (!resultContent) {
-                console.error('❌ resultContent 未找到');
-                return;
-            }
-            
-            const messageHtml = message.split('\n').map(line => {
-                return `<div>${line}</div>`;
-            }).join('');
-            
+            if (!resultContent) return;
+
             resultContent.innerHTML = `
-                <div class="loading" style="text-align: center; padding: 40px 20px;">
-                    <div class="spinner" style="display: inline-block; width: 60px; height: 60px; border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-                    <div class="progress-container">
-                        <div class="progress-bar">
-                            <div class="progress-fill"></div>
-                        </div>
-                        <div class="progress-text">處理中...</div>
-                    </div>
-                    <div class="loading-text" style="margin-top: 20px; font-size: 18px; color: #333;">
-                        ${messageHtml}
-                    </div>
+                <div class="loading-view">
+                    <div class="apple-spinner"></div>
+                    <div class="loading-label">${message}</div>
+                    <div class="progress-track"><div class="progress-thumb"></div></div>
                 </div>
             `;
         }
 
         function showSearchLoading(message) {
             const searchResults = document.getElementById('searchResults');
-            if (!searchResults) {
-                console.error('❌ searchResults 未找到');
-                return;
-            }
-            
+            if (!searchResults) return;
+
             searchResults.innerHTML = `
-                <div class="loading" style="text-align: center; padding: 40px 20px;">
-                    <div class="spinner" style="display: inline-block; width: 50px; height: 50px; border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-                    <div class="progress-container">
-                        <div class="progress-bar">
-                            <div class="progress-fill"></div>
-                        </div>
-                        <div class="progress-text">搜尋中...</div>
-                    </div>
-                    <div class="loading-text" style="margin-top: 20px; font-size: 16px; color: #333;">
-                        ${message}
-                    </div>
+                <div class="loading-view" style="padding:40px 20px;">
+                    <div class="apple-spinner"></div>
+                    <div class="loading-label">${message}</div>
+                    <div class="progress-track"><div class="progress-thumb"></div></div>
                 </div>
             `;
         }
 
         function showError(message) {
             const resultContent = document.getElementById('resultContent');
-            if (!resultContent) {
-                console.error('❌ resultContent 未找到');
-                return;
-            }
-            
-            const messageHtml = message.split('\n').map(line => {
-                return `<div>${line}</div>`;
-            }).join('<br>');
-            
+            if (!resultContent) return;
+
+            const messageHtml = message.split('\n').map(line => `<div>${line}</div>`).join('');
+
             resultContent.innerHTML = `
-                <div class="alert error" style="font-size: 18px; padding: 30px 20px; margin-bottom: 20px;">
-                    ${messageHtml}
+                <div class="alert-card error" style="padding:28px 20px; text-align:center;">
+                    <div style="font-size:16px; line-height:1.8;">${messageHtml}</div>
                 </div>
-                <button class="big-button" style="margin-top: 20px;" onclick="goToPage('capturePage')">
-                    ↺ 重新拍照
-                </button>
+                <div class="btn-group">
+                    <button class="btn-primary" onclick="goToPage('capturePage')">重新拍照</button>
+                </div>
             `;
         }
 
-        // ============================================
-        // 初始化
-        // ============================================
-        function initApp() {
-            console.log('🚀 應用初始化中...');
-            console.log(`📡 API URL: ${API_URL}`);
-            
-            // 初始化上傳區
-            initUploadArea();
-            initPrescriptionUploadArea();
-            
-            // 設置搜尋框的 Enter 鍵事件
-            const searchInput = document.getElementById('searchInput');
-            if (searchInput) {
-                searchInput.addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') {
-                        searchDrug();
-                    }
-                });
-            }
-            
-            console.log('✓ 應用已載入，可以開始使用');
-        }
-        
         // ============================================
         // 設定功能
         // ============================================
         function toggleSettings() {
             document.getElementById('settingsPanel').classList.toggle('show');
         }
-        // 點擊外部關閉設定
+
         document.addEventListener('click', function(e) {
             const panel = document.getElementById('settingsPanel');
             const toggle = document.querySelector('.settings-toggle');
-            if (panel && !panel.contains(e.target) && e.target !== toggle) {
+            if (panel && !panel.contains(e.target) && !toggle.contains(e.target)) {
                 panel.classList.remove('show');
             }
         });
@@ -1425,17 +1492,17 @@
             document.body.classList.remove('font-medium', 'font-large');
             if (size === 'medium') document.body.classList.add('font-medium');
             if (size === 'large') document.body.classList.add('font-large');
-            document.querySelectorAll('.opt-btn[data-font]').forEach(b => b.classList.remove('active'));
-            document.querySelector('.opt-btn[data-font="' + size + '"]').classList.add('active');
+            document.querySelectorAll('.seg-btn[data-font]').forEach(b => b.classList.remove('active'));
+            document.querySelector('.seg-btn[data-font="' + size + '"]').classList.add('active');
             localStorage.setItem('mus2_font', size);
         }
 
         function setTheme(theme) {
-            document.body.classList.remove('theme-warm-mode', 'theme-dark-mode');
-            if (theme === 'warm') document.body.classList.add('theme-warm-mode');
-            if (theme === 'dark') document.body.classList.add('theme-dark-mode');
-            document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
-            document.querySelector('.theme-btn[data-theme="' + theme + '"]').classList.add('active');
+            document.body.classList.remove('theme-blue', 'theme-green');
+            if (theme === 'blue') document.body.classList.add('theme-blue');
+            if (theme === 'green') document.body.classList.add('theme-green');
+            document.querySelectorAll('.theme-dot').forEach(d => d.classList.remove('active'));
+            document.querySelector('.theme-dot[data-theme="' + theme + '"]').classList.add('active');
             localStorage.setItem('mus2_theme', theme);
         }
 
@@ -1475,8 +1542,26 @@
                 document.getElementById('loginPass').focus();
             }
         }
-        
-        // 在 DOM 加載完成後初始化
+
+        // ============================================
+        // 初始化
+        // ============================================
+        function initApp() {
+            console.log('應用初始化中...');
+            console.log('API URL:', API_URL);
+            initUploadArea();
+            initPrescriptionUploadArea();
+
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) {
+                searchInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') searchDrug();
+                });
+            }
+
+            console.log('應用已載入');
+        }
+
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', initApp);
         } else {
@@ -1484,14 +1569,12 @@
         }
     </script>
     <!-- Capacitor -->
-    <script src="https://unpkg.com/@pwabuilder/pwaupdate"></script>
     <script type="module">
         import { Capacitor } from '@capacitor/core';
         if (Capacitor.isNativePlatform()) {
-            // iOS App 環境：隱藏管理員入口
-            const adminBtn = document.querySelector('.admin-entry-btn');
-            if (adminBtn) adminBtn.style.display = 'none';
-            console.log('📱 Running as native iOS app');
+            const adminSection = document.getElementById('adminSection');
+            if (adminSection) adminSection.style.display = 'none';
+            console.log('Running as native iOS app');
         }
     </script>
 </body>
