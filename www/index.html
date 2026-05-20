@@ -43,6 +43,7 @@
             color: var(--text-primary);
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
+            transition: background-color 0.6s ease, color 0.4s ease;
         }
 
         .container {
@@ -649,30 +650,131 @@
             font-weight: 600;
         }
 
-        /* Theme color dots */
-        .theme-dots { display: flex; gap: 12px; justify-content: center; }
-
-        .theme-dot {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            cursor: pointer;
-            border: 2.5px solid transparent;
-            transition: all 0.2s ease;
-            position: relative;
+        /* Night mode toggle */
+        .night-toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
 
-        .theme-dot:hover { transform: scale(1.1); }
-        .theme-dot.active { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(0,113,227,0.2); }
+        .night-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
 
-        .theme-dot.dot-white { background: #F5F5F7; border-color: #D1D1D6; }
-        .theme-dot.dot-white.active { border-color: #0071E3; }
+        .night-label svg { width: 16px; height: 16px; }
 
-        .theme-dot.dot-blue { background: linear-gradient(135deg, #007AFF, #5856D6); }
-        .theme-dot.dot-blue.active { border-color: #5856D6; }
+        .toggle-switch {
+            position: relative;
+            width: 51px;
+            height: 31px;
+            flex-shrink: 0;
+        }
 
-        .theme-dot.dot-green { background: linear-gradient(135deg, #34C759, #30D158); }
-        .theme-dot.dot-green.active { border-color: #34C759; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+
+        .toggle-slider {
+            position: absolute;
+            inset: 0;
+            background: rgba(118,118,128,0.24);
+            border-radius: 16px;
+            cursor: pointer;
+            transition: background 0.35s ease;
+        }
+
+        .toggle-slider::before {
+            content: '';
+            position: absolute;
+            width: 27px;
+            height: 27px;
+            left: 2px;
+            top: 2px;
+            background: #FFFFFF;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background: #5E5CE6;
+        }
+
+        .toggle-switch input:checked + .toggle-slider::before {
+            transform: translateX(20px);
+        }
+
+        /* Ambient night orbs */
+        .night-orbs {
+            display: none;
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        body.night-mode .night-orbs { display: block; }
+
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0;
+            transition: opacity 1.2s ease;
+        }
+
+        body.night-mode .orb { opacity: 1; }
+
+        .orb-1 {
+            width: 280px;
+            height: 280px;
+            background: radial-gradient(circle, rgba(110,70,210,0.18) 0%, transparent 70%);
+            top: -60px;
+            left: -80px;
+            filter: blur(80px);
+            animation: drift1 12s ease-in-out infinite;
+        }
+
+        .orb-2 {
+            width: 220px;
+            height: 220px;
+            background: radial-gradient(circle, rgba(50,150,220,0.14) 0%, transparent 70%);
+            bottom: 20%;
+            right: -60px;
+            filter: blur(60px);
+            animation: drift2 16s ease-in-out infinite;
+        }
+
+        .orb-3 {
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(210,70,130,0.10) 0%, transparent 70%);
+            top: 45%;
+            left: 10%;
+            filter: blur(70px);
+            animation: drift3 14s ease-in-out infinite;
+        }
+
+        @keyframes drift1 {
+            0%, 100% { transform: translate(0, 0); }
+            33% { transform: translate(30px, 45px); }
+            66% { transform: translate(-20px, 20px); }
+        }
+
+        @keyframes drift2 {
+            0%, 100% { transform: translate(0, 0); }
+            33% { transform: translate(-25px, -30px); }
+            66% { transform: translate(15px, -15px); }
+        }
+
+        @keyframes drift3 {
+            0%, 100% { transform: translate(0, 0); }
+            33% { transform: translate(20px, -25px); }
+            66% { transform: translate(-30px, 10px); }
+        }
 
         .admin-link {
             width: 100%;
@@ -795,33 +897,164 @@
         body.font-large .result-name { font-size: 20px; }
         body.font-large .nav-back { font-size: 19px; }
 
-        /* ===== Theme: Blue ===== */
-        body.theme-blue { --bg: #EEF2FF; }
-        body.theme-blue .header {
-            background: linear-gradient(180deg, rgba(0,122,255,0.06) 0%, transparent 100%);
+        /* ===== Night Mode ===== */
+        body.night-mode {
+            --bg: #0C0C14;
+            --surface: rgba(255,255,255,0.06);
+            --text-primary: rgba(255,255,255,0.92);
+            --text-secondary: rgba(255,255,255,0.55);
+            --text-tertiary: rgba(255,255,255,0.3);
+            --accent: #5E9EFF;
+            --accent-hover: #7BB0FF;
+            --accent-light: rgba(94,158,255,0.12);
+            --accent-grad-start: #5E9EFF;
+            --accent-grad-end: #9B8CFF;
+            --separator: rgba(255,255,255,0.06);
+            --card-shadow: 0 2px 20px rgba(0,0,0,0.4);
+            --card-shadow-hover: 0 4px 30px rgba(0,0,0,0.5), 0 0 20px rgba(94,158,255,0.06);
+            --glass-bg: rgba(25,25,40,0.82);
+            --glass-border: rgba(255,255,255,0.08);
+            --green: #30D158;
+            --orange: #FFD60A;
+            --red: #FF6B6B;
         }
-        body.theme-blue .action-card { border: 0.5px solid rgba(0,122,255,0.08); }
 
-        /* ===== Theme: Green ===== */
-        body.theme-green {
-            --bg: #EEFBF3;
-            --accent: #34C759;
-            --accent-hover: #30B350;
-            --accent-light: rgba(52,199,89,0.08);
-            --accent-grad-start: #34C759;
-            --accent-grad-end: #30D158;
+        body.night-mode .content { position: relative; z-index: 1; }
+
+        body.night-mode .action-card {
+            background: rgba(255,255,255,0.05);
+            border: 0.5px solid rgba(255,255,255,0.08);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
         }
-        body.theme-green .header {
-            background: linear-gradient(180deg, rgba(52,199,89,0.06) 0%, transparent 100%);
+
+        body.night-mode .action-card::before {
+            background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, transparent 100%);
         }
-        body.theme-green .action-card { border: 0.5px solid rgba(52,199,89,0.08); }
-        body.theme-green .seg-btn.active { background: var(--surface); }
-        body.theme-green .theme-dot.dot-green.active { border-color: #34C759; box-shadow: 0 0 0 2px rgba(52,199,89,0.25); }
-        body.theme-green .nav-back { color: #34C759; }
-        body.theme-green .admin-link { color: #34C759; }
-        body.theme-green .login-ok-btn { background: #34C759; }
-        body.theme-green .result-badge { background: rgba(52,199,89,0.1); color: #34C759; }
-        body.theme-green .detail-source-tag { background: rgba(52,199,89,0.08); color: #34C759; }
+
+        body.night-mode .action-card:hover {
+            border-color: rgba(255,255,255,0.15);
+            box-shadow: var(--card-shadow-hover);
+        }
+
+        body.night-mode .upload-area {
+            background: rgba(255,255,255,0.04);
+            border-color: rgba(255,255,255,0.1);
+        }
+
+        body.night-mode .upload-area:hover,
+        body.night-mode .upload-area.dragover {
+            background: rgba(94,158,255,0.06);
+            border-color: var(--accent);
+        }
+
+        body.night-mode .search-field {
+            background: rgba(255,255,255,0.08);
+            color: var(--text-primary);
+        }
+
+        body.night-mode .search-field:focus { background: rgba(255,255,255,0.12); }
+
+        body.night-mode .result-card {
+            background: rgba(255,255,255,0.05);
+            border: 0.5px solid rgba(255,255,255,0.08);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+
+        body.night-mode .result-card:hover { border-color: rgba(255,255,255,0.15); }
+
+        body.night-mode .detail-card {
+            background: rgba(255,255,255,0.05);
+            border: 0.5px solid rgba(255,255,255,0.08);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+
+        body.night-mode .detail-row + .detail-row,
+        body.night-mode .detail-block + .detail-block,
+        body.night-mode .detail-row + .detail-block { border-top-color: rgba(255,255,255,0.06); }
+
+        body.night-mode .warning-banner { background: rgba(255,149,0,0.1); }
+        body.night-mode .warning-text { color: #FFBF47; }
+        body.night-mode .warning-text strong { color: #FFD080; }
+
+        body.night-mode .alert-card {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+
+        body.night-mode .alert-card.warning .alert-title { color: #FFBF47; }
+        body.night-mode .alert-card.warning p { color: #FFD080; }
+        body.night-mode .alert-card.error .alert-title { color: #FF6B6B; }
+        body.night-mode .alert-card.error p { color: #FF8A8A; }
+
+        body.night-mode .apple-spinner {
+            border-color: rgba(255,255,255,0.08);
+            border-top-color: rgba(255,255,255,0.5);
+        }
+
+        body.night-mode .progress-track { background: rgba(255,255,255,0.06); }
+
+        body.night-mode .btn-gray {
+            background: rgba(255,255,255,0.08);
+            color: var(--text-primary);
+        }
+
+        body.night-mode .btn-secondary {
+            background: var(--accent-light);
+            color: var(--accent);
+        }
+
+        body.night-mode .settings-toggle {
+            background: rgba(255,255,255,0.08);
+            color: rgba(255,255,255,0.5);
+        }
+
+        body.night-mode .settings-panel {
+            background: rgba(20,20,35,0.88);
+            border-color: rgba(255,255,255,0.1);
+            box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+        }
+
+        body.night-mode .seg-control { background: rgba(255,255,255,0.06); }
+        body.night-mode .seg-btn { color: var(--text-primary); }
+        body.night-mode .seg-btn.active {
+            background: rgba(255,255,255,0.1);
+            box-shadow: none;
+        }
+
+        body.night-mode .toggle-slider { background: rgba(255,255,255,0.16); }
+
+        body.night-mode .footer-hint { color: rgba(255,255,255,0.2); }
+
+        body.night-mode .login-backdrop { background: rgba(0,0,0,0.65); }
+
+        body.night-mode .login-modal {
+            background: rgba(20,20,35,0.92);
+            border-color: rgba(255,255,255,0.1);
+        }
+
+        body.night-mode .login-field {
+            background: rgba(255,255,255,0.08);
+            color: var(--text-primary);
+        }
+
+        body.night-mode .login-field:focus { background: rgba(255,255,255,0.12); }
+
+        body.night-mode .login-cancel-btn {
+            background: rgba(255,255,255,0.08);
+            color: var(--text-primary);
+        }
+
+        body.night-mode .drug-thumb { border-color: rgba(255,255,255,0.1); }
+        body.night-mode .detail-images img { border-color: rgba(255,255,255,0.08); }
+
+        body.night-mode .confidence-track { background: rgba(255,255,255,0.06); }
+        body.night-mode .confidence-bar {
+            background: linear-gradient(90deg, #5E9EFF, #9B8CFF);
+        }
 
         /* ===== Responsive ===== */
         @media (max-width: 480px) {
@@ -834,6 +1067,12 @@
 
 <body>
     <div class="container">
+        <!-- Ambient Night Orbs -->
+        <div class="night-orbs" id="nightOrbs">
+            <div class="orb orb-1"></div>
+            <div class="orb orb-2"></div>
+            <div class="orb orb-3"></div>
+        </div>
         <!-- Header -->
         <div class="header">
             <h1>藥知道</h1>
@@ -851,11 +1090,16 @@
                     </div>
                 </div>
                 <div class="settings-section">
-                    <div class="settings-label">顏色主題</div>
-                    <div class="theme-dots">
-                        <div class="theme-dot dot-white active" data-theme="default" onclick="setTheme('default')" title="預設白"></div>
-                        <div class="theme-dot dot-blue" data-theme="blue" onclick="setTheme('blue')" title="藍色"></div>
-                        <div class="theme-dot dot-green" data-theme="green" onclick="setTheme('green')" title="綠色"></div>
+                    <div class="settings-label">顯示模式</div>
+                    <div class="night-toggle-row">
+                        <span class="night-label">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                            夜間模式
+                        </span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="nightToggle" onchange="toggleNightMode()">
+                            <span class="toggle-slider"></span>
+                        </label>
                     </div>
                 </div>
                 <div class="settings-section" id="adminSection">
@@ -1497,21 +1741,23 @@
             localStorage.setItem('mus2_font', size);
         }
 
-        function setTheme(theme) {
-            document.body.classList.remove('theme-blue', 'theme-green');
-            if (theme === 'blue') document.body.classList.add('theme-blue');
-            if (theme === 'green') document.body.classList.add('theme-green');
-            document.querySelectorAll('.theme-dot').forEach(d => d.classList.remove('active'));
-            document.querySelector('.theme-dot[data-theme="' + theme + '"]').classList.add('active');
-            localStorage.setItem('mus2_theme', theme);
+        function toggleNightMode() {
+            const toggle = document.getElementById('nightToggle');
+            const isNight = toggle.checked;
+            document.body.classList.toggle('night-mode', isNight);
+            localStorage.setItem('mus2_nightmode', isNight ? 'on' : 'off');
         }
 
         // 載入儲存的設定
         (function loadSavedSettings() {
             const font = localStorage.getItem('mus2_font');
             if (font && font !== 'normal') setFontSize(font);
-            const theme = localStorage.getItem('mus2_theme');
-            if (theme && theme !== 'default') setTheme(theme);
+            const nightMode = localStorage.getItem('mus2_nightmode');
+            if (nightMode === 'on') {
+                document.body.classList.add('night-mode');
+                var toggle = document.getElementById('nightToggle');
+                if (toggle) toggle.checked = true;
+            }
         })();
 
         // ============================================
