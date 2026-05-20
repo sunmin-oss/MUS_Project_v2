@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
     <title>藥知道</title>
     <meta name="description" content="藥知道 - 為年長者設計的簡潔藥物辨識系統">
+<<<<<<< HEAD
     
     <!-- 用於年長者友好的 CSS -->
     <style>
@@ -22,11 +23,52 @@
             padding: 10px;
             padding-top: calc(10px + env(safe-area-inset-top));
             padding-bottom: calc(10px + env(safe-area-inset-bottom));
+=======
+    <style>
+        /* ===== Reset & Base ===== */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg: #F5F5F7;
+            --surface: #FFFFFF;
+            --text-primary: #1D1D1F;
+            --text-secondary: #86868B;
+            --text-tertiary: #AEAEB2;
+            --accent: #0071E3;
+            --accent-hover: #0077ED;
+            --accent-light: rgba(0, 113, 227, 0.08);
+            --accent-grad-start: #007AFF;
+            --accent-grad-end: #5856D6;
+            --green: #34C759;
+            --green-dark: #30B350;
+            --orange: #FF9500;
+            --red: #FF3B30;
+            --separator: rgba(60, 60, 67, 0.08);
+            --card-shadow: 0 2px 12px rgba(0,0,0,0.06), 0 0.5px 1px rgba(0,0,0,0.04);
+            --card-shadow-hover: 0 4px 24px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.06);
+            --glass-bg: rgba(255,255,255,0.72);
+            --glass-border: rgba(255,255,255,0.6);
+            --radius-sm: 10px;
+            --radius-md: 14px;
+            --radius-lg: 20px;
+            --radius-xl: 24px;
+        }
+
+        body {
+            font-family: -apple-system, 'SF Pro Display', 'SF Pro Text', 'PingFang TC', 'Helvetica Neue', sans-serif;
+            background: var(--bg);
+            min-height: 100vh;
+            color: var(--text-primary);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            transition: background-color 0.6s ease, color 0.4s ease;
+>>>>>>> develop
         }
 
         .container {
             max-width: 500px;
             margin: 0 auto;
+<<<<<<< HEAD
             background: white;
             border-radius: 20px;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
@@ -97,11 +139,155 @@
             display: block;
             text-align: center;
             min-height: 80px;
+=======
+            min-height: 100vh;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* ===== Header ===== */
+        .header {
+            padding: 48px 24px 24px;
+            padding-top: calc(48px + env(safe-area-inset-top));
+            position: relative;
+            z-index: 10;
+        }
+
+        .header h1 {
+            font-size: 34px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            color: var(--text-primary);
+            line-height: 1.15;
+        }
+
+        .header p {
+            font-size: 17px;
+            color: var(--text-secondary);
+            margin-top: 6px;
+            font-weight: 400;
+            letter-spacing: -0.2px;
+        }
+
+        /* ===== Content ===== */
+        .content {
+            padding: 8px 20px 40px;
+            padding-bottom: calc(40px + env(safe-area-inset-bottom));
+            min-height: 400px;
+        }
+
+        /* ===== Pages ===== */
+        .page { display: none; }
+        .page.active {
+            display: block;
+            animation: pageIn 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        @keyframes pageIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ===== Home Cards ===== */
+        .home-cards { display: flex; flex-direction: column; gap: 14px; }
+
+        .action-card {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: 22px 20px;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            box-shadow: var(--card-shadow);
+            border: 0.5px solid rgba(0,0,0,0.04);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            -webkit-tap-highlight-color: transparent;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .action-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.5) 100%);
+            pointer-events: none;
+        }
+
+        .action-card:hover { box-shadow: var(--card-shadow-hover); transform: scale(1.01); }
+        .action-card:active { transform: scale(0.98); }
+
+        .card-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .card-icon.accent-bg { background: linear-gradient(135deg, var(--accent-grad-start), var(--accent-grad-end)); }
+        .card-icon.green-bg { background: linear-gradient(135deg, #34C759, #30D158); }
+        .card-icon.orange-bg { background: linear-gradient(135deg, #FF9500, #FF6B00); }
+
+        .card-icon svg { width: 26px; height: 26px; stroke: #FFFFFF; fill: none; stroke-width: 1.8; }
+
+        .card-body { flex: 1; }
+
+        .card-title {
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: -0.2px;
+        }
+
+        .card-desc {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 3px;
+            letter-spacing: -0.1px;
+        }
+
+        .card-chevron { color: var(--text-tertiary); flex-shrink: 0; }
+        .card-chevron svg { width: 16px; height: 16px; }
+
+        /* ===== Upload Area ===== */
+        .upload-area {
+            background: var(--surface);
+            border: 2px dashed rgba(0,0,0,0.1);
+            border-radius: var(--radius-lg);
+            padding: 56px 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+
+        .upload-area:hover {
+            border-color: var(--accent);
+            background: var(--accent-light);
+        }
+
+        .upload-area.dragover {
+            border-color: var(--accent);
+            background: var(--accent-light);
+            transform: scale(1.01);
+        }
+
+        .upload-icon-wrap {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 16px;
+            background: linear-gradient(135deg, var(--accent-grad-start), var(--accent-grad-end));
+            border-radius: 16px;
+>>>>>>> develop
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
+<<<<<<< HEAD
         .big-button:hover {
             transform: translateY(-3px);
             box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
@@ -580,10 +766,618 @@
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.5);
+=======
+        .upload-icon-wrap svg { width: 30px; height: 30px; stroke: #FFFFFF; fill: none; stroke-width: 1.8; }
+
+        .upload-icon-wrap.green-bg { background: linear-gradient(135deg, #34C759, #30D158); }
+
+        .upload-area .upload-title { font-size: 17px; font-weight: 600; color: var(--text-primary); }
+        .upload-area .upload-sub { font-size: 13px; color: var(--text-secondary); margin-top: 6px; }
+
+        #imageInput, #prescriptionImageInput { display: none; }
+
+        .image-preview { margin-top: 20px; text-align: center; }
+        .image-preview img { max-width: 100%; max-height: 300px; border-radius: var(--radius-md); }
+
+        /* ===== Buttons ===== */
+        .btn-primary {
+            width: 100%;
+            padding: 16px;
+            background: var(--accent);
+            color: #FFFFFF;
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 17px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+            letter-spacing: -0.2px;
+        }
+
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-primary:active { transform: scale(0.98); }
+        .btn-primary.green { background: var(--green); }
+        .btn-primary.green:hover { background: var(--green-dark); }
+
+        .btn-secondary {
+            width: 100%;
+            padding: 16px;
+            background: var(--accent-light);
+            color: var(--accent);
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 17px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+            letter-spacing: -0.2px;
+        }
+
+        .btn-secondary:hover { background: rgba(0,113,227,0.12); }
+        .btn-secondary:active { transform: scale(0.98); }
+
+        .btn-gray {
+            width: 100%;
+            padding: 16px;
+            background: rgba(60,60,67,0.06);
+            color: var(--text-primary);
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 17px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+
+        .btn-gray:hover { background: rgba(60,60,67,0.1); }
+
+        .btn-group { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+
+        button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* ===== Nav Back ===== */
+        .nav-back {
+            background: none;
+            border: none;
+            color: var(--accent);
+            font-size: 17px;
+            font-weight: 400;
+            cursor: pointer;
+            padding: 8px 0;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-family: inherit;
+            transition: opacity 0.15s;
+            letter-spacing: -0.2px;
+        }
+
+        .nav-back:hover { opacity: 0.7; }
+        .nav-back svg { width: 20px; height: 20px; }
+
+        /* ===== Search ===== */
+        .search-wrap { position: relative; margin-bottom: 12px; }
+
+        .search-field {
+            width: 100%;
+            padding: 12px 16px 12px 40px;
+            font-size: 17px;
+            background: rgba(118,118,128,0.12);
+            border: none;
+            border-radius: var(--radius-sm);
+            outline: none;
+            font-family: inherit;
+            color: var(--text-primary);
+            transition: all 0.2s ease;
+            letter-spacing: -0.2px;
+        }
+
+        .search-field::placeholder { color: var(--text-tertiary); }
+        .search-field:focus { background: rgba(118,118,128,0.16); }
+
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-tertiary);
+        }
+
+        .search-icon svg { width: 18px; height: 18px; }
+
+        .search-action { margin-top: 12px; }
+
+        /* ===== Results ===== */
+        .results-list { margin-top: 8px; }
+
+        .result-card {
+            background: var(--surface);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            box-shadow: var(--card-shadow);
+            border: 0.5px solid rgba(0,0,0,0.04);
+        }
+
+        .result-card:hover { box-shadow: var(--card-shadow-hover); }
+        .result-card:active { transform: scale(0.98); }
+
+        .result-header { display: flex; justify-content: space-between; align-items: flex-start; }
+
+        .result-name {
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: -0.2px;
+        }
+
+        .result-badge {
+            background: var(--accent-light);
+            color: var(--accent);
+            font-size: 12px;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 6px;
+            flex-shrink: 0;
+        }
+
+        .result-meta {
+            margin-top: 8px;
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+
+        .confidence-track {
+            margin-top: 10px;
+            height: 4px;
+            background: rgba(0,0,0,0.05);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .confidence-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-grad-start), var(--accent-grad-end));
+            border-radius: 2px;
+        }
+
+        .drug-thumb {
+            width: 56px;
+            height: 56px;
+            object-fit: cover;
+            border-radius: var(--radius-sm);
+            border: 0.5px solid rgba(0,0,0,0.06);
+            margin: 6px 0;
+        }
+
+        /* ===== Detail Page ===== */
+        .detail-hero { text-align: center; padding: 20px 0 28px; }
+
+        .detail-hero h2 {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            color: var(--text-primary);
+            line-height: 1.2;
+        }
+
+        .detail-source-tag {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 5px 12px;
+            background: var(--accent-light);
+            color: var(--accent);
+            font-size: 12px;
+            font-weight: 500;
+            border-radius: 20px;
+        }
+
+        .detail-card {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--card-shadow);
+            border: 0.5px solid rgba(0,0,0,0.04);
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+
+        .detail-row {
+            padding: 14px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+        }
+
+        .detail-row + .detail-row { border-top: 0.5px solid var(--separator); }
+
+        .detail-key {
+            font-size: 15px;
+            color: var(--text-primary);
+            font-weight: 400;
+            flex-shrink: 0;
+            min-width: 72px;
+        }
+
+        .detail-val {
+            font-size: 15px;
+            color: var(--text-secondary);
+            text-align: right;
+            word-break: break-all;
+            flex: 1;
+        }
+
+        .detail-block { padding: 14px 20px; }
+        .detail-block + .detail-block,
+        .detail-row + .detail-block { border-top: 0.5px solid var(--separator); }
+
+        .detail-block-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            margin-bottom: 6px;
+        }
+
+        .detail-block-value {
+            font-size: 15px;
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .detail-images {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 8px;
+        }
+
+        .detail-images img {
+            max-width: 160px;
+            max-height: 160px;
+            border-radius: var(--radius-md);
+            border: 0.5px solid rgba(0,0,0,0.06);
+        }
+
+        /* ===== Warning Banner ===== */
+        .warning-banner {
+            background: rgba(255,149,0,0.08);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+
+        .warning-icon-box {
+            width: 28px;
+            height: 28px;
+            background: var(--orange);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            color: #FFFFFF;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .warning-text { font-size: 13px; color: #7A5600; line-height: 1.5; }
+        .warning-text strong { display: block; font-size: 14px; color: #5C4100; margin-bottom: 2px; }
+
+        /* ===== Alerts ===== */
+        .alert-card {
+            background: var(--surface);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 16px;
+        }
+
+        .alert-card.warning { border-left: 3px solid var(--orange); }
+        .alert-card.error { border-left: 3px solid var(--red); }
+        .alert-card.success { border-left: 3px solid var(--green); }
+
+        .alert-card .alert-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .alert-card.warning .alert-title { color: #92400E; }
+        .alert-card.error .alert-title { color: #991B1B; }
+
+        .alert-card.warning p { color: #7A5600; font-size: 14px; }
+        .alert-card.error p { color: #991B1B; font-size: 14px; }
+
+        /* ===== Loading ===== */
+        .loading-view { text-align: center; padding: 60px 20px; }
+
+        .apple-spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid rgba(0,0,0,0.08);
+            border-top-color: var(--text-secondary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .loading-label { font-size: 15px; color: var(--text-secondary); }
+
+        .progress-track {
+            width: 180px;
+            height: 3px;
+            background: rgba(0,0,0,0.06);
+            border-radius: 2px;
+            margin: 20px auto 8px;
+            overflow: hidden;
+        }
+
+        .progress-thumb {
+            height: 100%;
+            background: var(--accent);
+            border-radius: 2px;
+            animation: slide 1.8s ease-in-out infinite;
+        }
+
+        @keyframes slide {
+            0% { width: 5%; margin-left: 0; }
+            50% { width: 40%; margin-left: 30%; }
+            100% { width: 5%; margin-left: 95%; }
+        }
+
+        /* ===== Settings Toggle ===== */
+        .settings-toggle {
+            position: absolute;
+            top: 44px;
+            top: calc(44px + env(safe-area-inset-top));
+            right: 20px;
+            background: rgba(118,118,128,0.12);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+            color: var(--text-secondary);
+        }
+
+        .settings-toggle:hover { background: rgba(118,118,128,0.2); }
+        .settings-toggle svg { width: 20px; height: 20px; }
+
+        /* ===== Settings Panel (Glassmorphism) ===== */
+        .settings-panel {
+            display: none;
+            position: absolute;
+            top: 88px;
+            top: calc(88px + env(safe-area-inset-top));
+            right: 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(40px) saturate(180%);
+            -webkit-backdrop-filter: blur(40px) saturate(180%);
+            border: 0.5px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            width: 250px;
+            z-index: 50;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.12), 0 1px 3px rgba(0,0,0,0.06);
+        }
+
+        .settings-panel.show { display: block; animation: panelIn 0.25s ease; }
+
+        @keyframes panelIn {
+            from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .settings-section { margin-bottom: 18px; }
+        .settings-section:last-child { margin-bottom: 0; }
+
+        .settings-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .seg-control {
+            display: flex;
+            background: rgba(118,118,128,0.12);
+            border-radius: 9px;
+            padding: 2px;
+        }
+
+        .seg-btn {
+            flex: 1;
+            padding: 7px 4px;
+            border: none;
+            background: transparent;
+            border-radius: 7px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            font-family: inherit;
+            color: var(--text-primary);
+            transition: all 0.2s ease;
+        }
+
+        .seg-btn.active {
+            background: var(--surface);
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08), 0 0.5px 1px rgba(0,0,0,0.04);
+            font-weight: 600;
+        }
+
+        /* Night mode toggle */
+        .night-toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .night-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .night-label svg { width: 16px; height: 16px; }
+
+        .toggle-switch {
+            position: relative;
+            width: 51px;
+            height: 31px;
+            flex-shrink: 0;
+        }
+
+        .toggle-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+
+        .toggle-slider {
+            position: absolute;
+            inset: 0;
+            background: rgba(118,118,128,0.24);
+            border-radius: 16px;
+            cursor: pointer;
+            transition: background 0.35s ease;
+        }
+
+        .toggle-slider::before {
+            content: '';
+            position: absolute;
+            width: 27px;
+            height: 27px;
+            left: 2px;
+            top: 2px;
+            background: #FFFFFF;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background: #5E5CE6;
+        }
+
+        .toggle-switch input:checked + .toggle-slider::before {
+            transform: translateX(20px);
+        }
+
+        /* Ambient night orbs */
+        .night-orbs {
+            display: none;
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        body.night-mode .night-orbs { display: block; }
+
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0;
+            transition: opacity 1.2s ease;
+        }
+
+        body.night-mode .orb { opacity: 1; }
+
+        .orb-1 {
+            width: 280px;
+            height: 280px;
+            background: radial-gradient(circle, rgba(110,70,210,0.18) 0%, transparent 70%);
+            top: -60px;
+            left: -80px;
+            filter: blur(80px);
+            animation: drift1 12s ease-in-out infinite;
+        }
+
+        .orb-2 {
+            width: 220px;
+            height: 220px;
+            background: radial-gradient(circle, rgba(50,150,220,0.14) 0%, transparent 70%);
+            bottom: 20%;
+            right: -60px;
+            filter: blur(60px);
+            animation: drift2 16s ease-in-out infinite;
+        }
+
+        .orb-3 {
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(210,70,130,0.10) 0%, transparent 70%);
+            top: 45%;
+            left: 10%;
+            filter: blur(70px);
+            animation: drift3 14s ease-in-out infinite;
+        }
+
+        @keyframes drift1 {
+            0%, 100% { transform: translate(0, 0); }
+            33% { transform: translate(30px, 45px); }
+            66% { transform: translate(-20px, 20px); }
+        }
+
+        @keyframes drift2 {
+            0%, 100% { transform: translate(0, 0); }
+            33% { transform: translate(-25px, -30px); }
+            66% { transform: translate(15px, -15px); }
+        }
+
+        @keyframes drift3 {
+            0%, 100% { transform: translate(0, 0); }
+            33% { transform: translate(20px, -25px); }
+            66% { transform: translate(-30px, 10px); }
+        }
+
+        .admin-link {
+            width: 100%;
+            padding: 10px;
+            background: transparent;
+            border: none;
+            font-size: 14px;
+            cursor: pointer;
+            font-family: inherit;
+            color: var(--accent);
+            font-weight: 500;
+            transition: opacity 0.15s;
+            text-align: center;
+        }
+
+        .admin-link:hover { opacity: 0.7; }
+
+        /* ===== Login Modal ===== */
+        .login-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+>>>>>>> develop
             z-index: 200;
             justify-content: center;
             align-items: center;
         }
+<<<<<<< HEAD
         .login-backdrop.show { display: flex; }
         .login-modal {
             background: #fff;
@@ -661,11 +1455,272 @@
         body.theme-dark-mode .opt-btn { background: #444; color: #ddd; border-color: #555; }
         body.theme-dark-mode .opt-btn.active { border-color: #88a0ff; background: #3a3a5a; color: #88a0ff; }
         body.theme-dark-mode .admin-entry-btn { background: #444; color: #ccc; border-color: #555; }
+=======
+
+        .login-backdrop.show { display: flex; }
+
+        .login-modal {
+            background: var(--glass-bg);
+            backdrop-filter: blur(40px) saturate(180%);
+            -webkit-backdrop-filter: blur(40px) saturate(180%);
+            border: 0.5px solid var(--glass-border);
+            border-radius: var(--radius-xl);
+            padding: 32px 28px;
+            width: 320px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+            animation: modalIn 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        @keyframes modalIn {
+            from { opacity: 0; transform: scale(0.95) translateY(10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .login-modal h3 {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-primary);
+            text-align: center;
+            margin-bottom: 24px;
+            letter-spacing: -0.3px;
+        }
+
+        .login-field {
+            width: 100%;
+            padding: 12px 14px;
+            background: rgba(118,118,128,0.12);
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 16px;
+            font-family: inherit;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+            outline: none;
+            transition: background 0.2s;
+        }
+
+        .login-field:focus { background: rgba(118,118,128,0.18); }
+        .login-field::placeholder { color: var(--text-tertiary); }
+
+        .login-error { color: var(--red); font-size: 13px; text-align: center; margin-bottom: 10px; display: none; }
+
+        .login-btns { display: flex; gap: 10px; margin-top: 6px; }
+        .login-btns button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.15s;
+        }
+
+        .login-cancel-btn { background: rgba(118,118,128,0.12); color: var(--text-primary); }
+        .login-ok-btn { background: var(--accent); color: #FFFFFF; }
+
+        /* ===== Footer ===== */
+        .footer-hint {
+            margin-top: 36px;
+            text-align: center;
+            font-size: 13px;
+            color: var(--text-tertiary);
+            line-height: 1.5;
+        }
+
+        /* ===== Font Sizes ===== */
+        body.font-medium { font-size: 18px; }
+        body.font-medium .header h1 { font-size: 38px; }
+        body.font-medium .card-title { font-size: 19px; }
+        body.font-medium .upload-title { font-size: 19px; }
+        body.font-medium .search-field { font-size: 19px; }
+        body.font-medium .btn-primary,
+        body.font-medium .btn-secondary { font-size: 19px; }
+
+        body.font-large { font-size: 22px; }
+        body.font-large .header h1 { font-size: 42px; }
+        body.font-large .card-title { font-size: 22px; }
+        body.font-large .card-desc { font-size: 15px; }
+        body.font-large .upload-title { font-size: 22px; }
+        body.font-large .search-field { font-size: 22px; padding: 16px 16px 16px 44px; }
+        body.font-large .btn-primary,
+        body.font-large .btn-secondary { font-size: 22px; padding: 18px; }
+        body.font-large .result-name { font-size: 20px; }
+        body.font-large .nav-back { font-size: 19px; }
+
+        /* ===== Night Mode ===== */
+        body.night-mode {
+            --bg: #0C0C14;
+            --surface: rgba(255,255,255,0.06);
+            --text-primary: rgba(255,255,255,0.92);
+            --text-secondary: rgba(255,255,255,0.55);
+            --text-tertiary: rgba(255,255,255,0.3);
+            --accent: #5E9EFF;
+            --accent-hover: #7BB0FF;
+            --accent-light: rgba(94,158,255,0.12);
+            --accent-grad-start: #5E9EFF;
+            --accent-grad-end: #9B8CFF;
+            --separator: rgba(255,255,255,0.06);
+            --card-shadow: 0 2px 20px rgba(0,0,0,0.4);
+            --card-shadow-hover: 0 4px 30px rgba(0,0,0,0.5), 0 0 20px rgba(94,158,255,0.06);
+            --glass-bg: rgba(25,25,40,0.82);
+            --glass-border: rgba(255,255,255,0.08);
+            --green: #30D158;
+            --orange: #FFD60A;
+            --red: #FF6B6B;
+        }
+
+        body.night-mode .content { position: relative; z-index: 1; }
+
+        body.night-mode .action-card {
+            background: rgba(255,255,255,0.05);
+            border: 0.5px solid rgba(255,255,255,0.08);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+
+        body.night-mode .action-card::before {
+            background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, transparent 100%);
+        }
+
+        body.night-mode .action-card:hover {
+            border-color: rgba(255,255,255,0.15);
+            box-shadow: var(--card-shadow-hover);
+        }
+
+        body.night-mode .upload-area {
+            background: rgba(255,255,255,0.04);
+            border-color: rgba(255,255,255,0.1);
+        }
+
+        body.night-mode .upload-area:hover,
+        body.night-mode .upload-area.dragover {
+            background: rgba(94,158,255,0.06);
+            border-color: var(--accent);
+        }
+
+        body.night-mode .search-field {
+            background: rgba(255,255,255,0.08);
+            color: var(--text-primary);
+        }
+
+        body.night-mode .search-field:focus { background: rgba(255,255,255,0.12); }
+
+        body.night-mode .result-card {
+            background: rgba(255,255,255,0.05);
+            border: 0.5px solid rgba(255,255,255,0.08);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+
+        body.night-mode .result-card:hover { border-color: rgba(255,255,255,0.15); }
+
+        body.night-mode .detail-card {
+            background: rgba(255,255,255,0.05);
+            border: 0.5px solid rgba(255,255,255,0.08);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+
+        body.night-mode .detail-row + .detail-row,
+        body.night-mode .detail-block + .detail-block,
+        body.night-mode .detail-row + .detail-block { border-top-color: rgba(255,255,255,0.06); }
+
+        body.night-mode .warning-banner { background: rgba(255,149,0,0.1); }
+        body.night-mode .warning-text { color: #FFBF47; }
+        body.night-mode .warning-text strong { color: #FFD080; }
+
+        body.night-mode .alert-card {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+
+        body.night-mode .alert-card.warning .alert-title { color: #FFBF47; }
+        body.night-mode .alert-card.warning p { color: #FFD080; }
+        body.night-mode .alert-card.error .alert-title { color: #FF6B6B; }
+        body.night-mode .alert-card.error p { color: #FF8A8A; }
+
+        body.night-mode .apple-spinner {
+            border-color: rgba(255,255,255,0.08);
+            border-top-color: rgba(255,255,255,0.5);
+        }
+
+        body.night-mode .progress-track { background: rgba(255,255,255,0.06); }
+
+        body.night-mode .btn-gray {
+            background: rgba(255,255,255,0.08);
+            color: var(--text-primary);
+        }
+
+        body.night-mode .btn-secondary {
+            background: var(--accent-light);
+            color: var(--accent);
+        }
+
+        body.night-mode .settings-toggle {
+            background: rgba(255,255,255,0.08);
+            color: rgba(255,255,255,0.5);
+        }
+
+        body.night-mode .settings-panel {
+            background: rgba(20,20,35,0.88);
+            border-color: rgba(255,255,255,0.1);
+            box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+        }
+
+        body.night-mode .seg-control { background: rgba(255,255,255,0.06); }
+        body.night-mode .seg-btn { color: var(--text-primary); }
+        body.night-mode .seg-btn.active {
+            background: rgba(255,255,255,0.1);
+            box-shadow: none;
+        }
+
+        body.night-mode .toggle-slider { background: rgba(255,255,255,0.16); }
+
+        body.night-mode .footer-hint { color: rgba(255,255,255,0.2); }
+
+        body.night-mode .login-backdrop { background: rgba(0,0,0,0.65); }
+
+        body.night-mode .login-modal {
+            background: rgba(20,20,35,0.92);
+            border-color: rgba(255,255,255,0.1);
+        }
+
+        body.night-mode .login-field {
+            background: rgba(255,255,255,0.08);
+            color: var(--text-primary);
+        }
+
+        body.night-mode .login-field:focus { background: rgba(255,255,255,0.12); }
+
+        body.night-mode .login-cancel-btn {
+            background: rgba(255,255,255,0.08);
+            color: var(--text-primary);
+        }
+
+        body.night-mode .drug-thumb { border-color: rgba(255,255,255,0.1); }
+        body.night-mode .detail-images img { border-color: rgba(255,255,255,0.08); }
+
+        body.night-mode .confidence-track { background: rgba(255,255,255,0.06); }
+        body.night-mode .confidence-bar {
+            background: linear-gradient(90deg, #5E9EFF, #9B8CFF);
+        }
+
+        /* ===== Responsive ===== */
+        @media (max-width: 480px) {
+            .header { padding-top: calc(40px + env(safe-area-inset-top)); }
+            .header h1 { font-size: 30px; }
+            .content { padding: 8px 16px 32px; }
+        }
+>>>>>>> develop
     </style>
 </head>
 
 <body>
     <div class="container">
+<<<<<<< HEAD
         <!-- 頁首 -->
         <div class="header" style="position:relative;">
             <h1>💊 藥知道</h1>
@@ -690,10 +1745,50 @@
                 </div>
                 <div class="settings-section">
                     <button class="admin-entry-btn" onclick="showLoginModal()">🔒 進入後台管理</button>
+=======
+        <!-- Ambient Night Orbs -->
+        <div class="night-orbs" id="nightOrbs">
+            <div class="orb orb-1"></div>
+            <div class="orb orb-2"></div>
+            <div class="orb orb-3"></div>
+        </div>
+        <!-- Header -->
+        <div class="header">
+            <h1>藥知道</h1>
+            <p>簡單・快速・安全的藥物辨識</p>
+            <button class="settings-toggle" onclick="toggleSettings()" title="設定">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </button>
+            <div class="settings-panel" id="settingsPanel">
+                <div class="settings-section">
+                    <div class="settings-label">字體大小</div>
+                    <div class="seg-control">
+                        <button class="seg-btn active" data-font="normal" onclick="setFontSize('normal')">標準</button>
+                        <button class="seg-btn" data-font="medium" onclick="setFontSize('medium')">中</button>
+                        <button class="seg-btn" data-font="large" onclick="setFontSize('large')">大</button>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <div class="settings-label">顯示模式</div>
+                    <div class="night-toggle-row">
+                        <span class="night-label" id="nightLabel">
+                            <svg id="modeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                            <span id="modeLabelText">日間模式</span>
+                        </span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="nightToggle" onchange="toggleNightMode()">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+                <div class="settings-section" id="adminSection">
+                    <button class="admin-link" onclick="showLoginModal()">進入後台管理</button>
+>>>>>>> develop
                 </div>
             </div>
         </div>
 
+<<<<<<< HEAD
         <!-- 主頁 -->
         <div class="content page active" id="homePage">
             <div class="home-buttons">
@@ -709,27 +1804,88 @@
             </div>
             <div class="footer-hint">
                 <p>💡 提示：請在光線充足的地方，對準藥物清晰拍照</p>
+=======
+        <!-- 首頁 -->
+        <div class="content page active" id="homePage">
+            <div class="home-cards">
+                <div class="action-card" onclick="goToPage('capturePage')">
+                    <div class="card-icon accent-bg">
+                        <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                    </div>
+                    <div class="card-body">
+                        <div class="card-title">拍照辨識藥物</div>
+                        <div class="card-desc">拍攝藥物照片進行 AI 辨識</div>
+                    </div>
+                    <div class="card-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+                </div>
+
+                <div class="action-card" onclick="goToPage('prescriptionCapturePage')">
+                    <div class="card-icon green-bg">
+                        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                    </div>
+                    <div class="card-body">
+                        <div class="card-title">拍攝藥單辨識</div>
+                        <div class="card-desc">上傳醫院藥單自動提取藥物</div>
+                    </div>
+                    <div class="card-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+                </div>
+
+                <div class="action-card" onclick="goToPage('searchPage')">
+                    <div class="card-icon orange-bg">
+                        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    </div>
+                    <div class="card-body">
+                        <div class="card-title">搜尋藥物名稱</div>
+                        <div class="card-desc">依名稱查詢藥物資訊</div>
+                    </div>
+                    <div class="card-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+                </div>
+            </div>
+            <div class="footer-hint">
+                在光線充足的地方對準藥物清晰拍照<br>可獲得最佳辨識效果
+>>>>>>> develop
             </div>
         </div>
 
         <!-- 拍照上傳頁 -->
         <div class="content page" id="capturePage">
+<<<<<<< HEAD
             <button class="back-button" onclick="goToPage('homePage')">← 返回首頁</button>
 
             <div class="upload-area" id="uploadArea">
                 <div class="upload-icon">📸</div>
                 <p>點擊選擇圖片或拖放</p>
                 <small>支援 JPG, PNG, GIF 等格式</small>
+=======
+            <button class="nav-back" onclick="goToPage('homePage')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+                返回
+            </button>
+
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon-wrap">
+                    <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                </div>
+                <p class="upload-title">點擊選擇或拖放圖片</p>
+                <p class="upload-sub">支援 JPG、PNG、GIF 格式</p>
+>>>>>>> develop
             </div>
 
             <div id="imagePreview" class="image-preview" style="display: none;">
                 <img id="previewImage" alt="preview">
+<<<<<<< HEAD
                 <button id="uploadBtn" class="big-button" style="margin-top: 20px; background: #28a745;" onclick="uploadImage()">
                     ✓ 開始辨識
                 </button>
                 <button class="big-button secondary" style="margin-top: 12px;" onclick="resetAndRephoto()">
                     ↺ 重新拍照
                 </button>
+=======
+                <div class="btn-group">
+                    <button id="uploadBtn" class="btn-primary green" onclick="uploadImage()">開始辨識</button>
+                    <button class="btn-secondary" onclick="resetAndRephoto()">重新選擇</button>
+                </div>
+>>>>>>> develop
             </div>
 
             <input type="file" id="imageInput" accept="image/*">
@@ -737,22 +1893,43 @@
 
         <!-- 藥單拍照上傳頁 -->
         <div class="content page" id="prescriptionCapturePage">
+<<<<<<< HEAD
             <button class="back-button" onclick="goToPage('homePage')">← 返回首頁</button>
 
             <div class="upload-area" id="prescriptionUploadArea">
                 <div class="upload-icon">📄</div>
                 <p>點擊上傳藥單照片</p>
                 <small>支援整張醫院藥單/處方箋</small>
+=======
+            <button class="nav-back" onclick="goToPage('homePage')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+                返回
+            </button>
+
+            <div class="upload-area" id="prescriptionUploadArea">
+                <div class="upload-icon-wrap green-bg">
+                    <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                </div>
+                <p class="upload-title">點擊上傳藥單照片</p>
+                <p class="upload-sub">支援整張醫院藥單 / 處方箋</p>
+>>>>>>> develop
             </div>
 
             <div id="prescriptionImagePreview" class="image-preview" style="display: none;">
                 <img id="prescriptionPreviewImg" alt="preview">
+<<<<<<< HEAD
                 <button id="prescriptionUploadBtn" class="big-button" style="margin-top: 20px; background: #28a745;" onclick="uploadPrescriptionImage()">
                     ✓ 開始提取藥物
                 </button>
                 <button class="big-button secondary" style="margin-top: 12px;" onclick="resetPrescriptionPhoto()">
                     ↺ 重新拍照
                 </button>
+=======
+                <div class="btn-group">
+                    <button id="prescriptionUploadBtn" class="btn-primary green" onclick="uploadPrescriptionImage()">開始提取藥物</button>
+                    <button class="btn-secondary" onclick="resetPrescriptionPhoto()">重新選擇</button>
+                </div>
+>>>>>>> develop
             </div>
 
             <input type="file" id="prescriptionImageInput" accept="image/*">
@@ -760,13 +1937,21 @@
 
         <!-- 辨識結果頁 -->
         <div class="content page" id="resultPage">
+<<<<<<< HEAD
             <button class="back-button" onclick="goToPage('homePage')">← 返回首頁</button>
 
+=======
+            <button class="nav-back" onclick="goToPage('homePage')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+                返回首頁
+            </button>
+>>>>>>> develop
             <div id="resultContent"></div>
         </div>
 
         <!-- 搜尋頁 -->
         <div class="content page" id="searchPage">
+<<<<<<< HEAD
             <button class="back-button" onclick="goToPage('homePage')">← 返回首頁</button>
 
             <div class="search-box">
@@ -776,12 +1961,38 @@
             </div>
 
             <div id="searchResults"></div>
+=======
+            <button class="nav-back" onclick="goToPage('homePage')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+                返回
+            </button>
+
+            <div class="search-wrap">
+                <span class="search-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                </span>
+                <input type="text" id="searchInput" class="search-field" placeholder="搜尋藥物名稱..."
+                    onkeypress="if(event.key==='Enter') searchDrug()">
+            </div>
+            <div class="search-action">
+                <button id="searchBtn" class="btn-primary" onclick="searchDrug()">搜尋</button>
+            </div>
+
+            <div id="searchResults" style="margin-top: 20px;"></div>
+>>>>>>> develop
         </div>
 
         <!-- 藥物詳細頁 -->
         <div class="content page" id="detailPage">
+<<<<<<< HEAD
             <button class="back-button" onclick="goToPreviousPage()">← 返回</button>
 
+=======
+            <button class="nav-back" onclick="goToPreviousPage()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+                返回
+            </button>
+>>>>>>> develop
             <div id="detailContent"></div>
         </div>
     </div>
@@ -789,6 +2000,7 @@
     <!-- 管理員登入對話框 -->
     <div class="login-backdrop" id="loginBackdrop" onclick="if(event.target===this)closeLoginModal()">
         <div class="login-modal">
+<<<<<<< HEAD
             <h3>🔒 管理員登入</h3>
             <input type="text" class="login-input" id="loginUser" placeholder="帳號" autocomplete="username">
             <input type="password" class="login-input" id="loginPass" placeholder="密碼" autocomplete="current-password"
@@ -797,13 +2009,27 @@
             <div class="login-actions">
                 <button class="login-cancel" onclick="closeLoginModal()">取消</button>
                 <button class="login-submit" onclick="doLogin()">登入</button>
+=======
+            <h3>管理員登入</h3>
+            <input type="text" class="login-field" id="loginUser" placeholder="帳號" autocomplete="username">
+            <input type="password" class="login-field" id="loginPass" placeholder="密碼" autocomplete="current-password"
+                onkeydown="if(event.key==='Enter')doLogin()">
+            <div class="login-error" id="loginError">帳號或密碼錯誤</div>
+            <div class="login-btns">
+                <button class="login-cancel-btn" onclick="closeLoginModal()">取消</button>
+                <button class="login-ok-btn" onclick="doLogin()">登入</button>
+>>>>>>> develop
             </div>
         </div>
     </div>
 
     <script>
         // ============================================
+<<<<<<< HEAD
         // 全局狀態 (必須在最開始初始化)
+=======
+        // 全局狀態
+>>>>>>> develop
         // ============================================
         var API_URL = 'http://192.168.1.103:5000/api';
         var currentPage = 'homePage';
@@ -814,16 +2040,29 @@
         // 頁面導航
         // ============================================
         function goToPage(pageId) {
+<<<<<<< HEAD
             console.log('🔄 切換頁面:', pageId);
             previousPage = currentPage;
             currentPage = pageId;
             
+=======
+            console.log('切換頁面:', pageId);
+            previousPage = currentPage;
+            currentPage = pageId;
+
+>>>>>>> develop
             document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
             const targetPage = document.getElementById(pageId);
             if (targetPage) {
                 targetPage.classList.add('active');
+<<<<<<< HEAD
             } else {
                 console.error('❌ 頁面不存在:', pageId);
+=======
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } else {
+                console.error('頁面不存在:', pageId);
+>>>>>>> develop
             }
         }
 
@@ -839,11 +2078,18 @@
         function initPrescriptionUploadArea() {
             const uploadArea = document.getElementById('prescriptionUploadArea');
             const imageInput = document.getElementById('prescriptionImageInput');
+<<<<<<< HEAD
 
             if (!uploadArea || !imageInput) return;
 
             uploadArea.addEventListener('click', () => imageInput.click());
             
+=======
+            if (!uploadArea || !imageInput) return;
+
+            uploadArea.addEventListener('click', () => imageInput.click());
+
+>>>>>>> develop
             uploadArea.addEventListener('dragover', (e) => {
                 e.preventDefault();
                 uploadArea.classList.add('dragover');
@@ -861,10 +2107,14 @@
         }
 
         function handlePrescriptionFile(file) {
+<<<<<<< HEAD
             if (!file.type.startsWith('image/')) {
                 alert('請選擇圖片檔案');
                 return;
             }
+=======
+            if (!file.type.startsWith('image/')) { alert('請選擇圖片檔案'); return; }
+>>>>>>> develop
             prescriptionFile = file;
             const reader = new FileReader();
             reader.onload = (e) => {
@@ -884,15 +2134,23 @@
         }
 
         async function uploadPrescriptionImage() {
+<<<<<<< HEAD
             if (!prescriptionFile) {
                 alert('請先選擇圖片');
                 return;
             }
+=======
+            if (!prescriptionFile) { alert('請先選擇圖片'); return; }
+>>>>>>> develop
 
             const uploadBtn = document.getElementById('prescriptionUploadBtn');
             if (uploadBtn) uploadBtn.disabled = true;
 
+<<<<<<< HEAD
             showLoading('正在擷取藥單內容...\n請稍候片刻...');
+=======
+            showLoading('正在擷取藥單內容...');
+>>>>>>> develop
             goToPage('resultPage');
 
             try {
@@ -909,10 +2167,17 @@
                 if (data.success && data.recognized_items && data.recognized_items.length > 0) {
                     displayResults(data.recognized_items);
                 } else {
+<<<<<<< HEAD
                     showError(data.error || '未能從藥單中識別出任何藥物\n\n請拍清楚藥單上的藥物名稱');
                 }
             } catch (error) {
                 showError('網路連線失敗\n\n請檢查網路後重試');
+=======
+                    showError(data.error || '未能從藥單中識別出任何藥物\n請拍清楚藥單上的藥物名稱');
+                }
+            } catch (error) {
+                showError('網路連線失敗\n請檢查網路後重試');
+>>>>>>> develop
             } finally {
                 if (uploadBtn) uploadBtn.disabled = false;
             }
@@ -928,6 +2193,7 @@
             const previewImage = document.getElementById('previewImage');
 
             if (!uploadArea || !imageInput || !imagePreview || !previewImage) {
+<<<<<<< HEAD
                 console.error('❌ 上傳區元素未找到');
                 return;
             }
@@ -939,18 +2205,31 @@
             });
 
             // 拖放
+=======
+                console.error('上傳區元素未找到');
+                return;
+            }
+
+            uploadArea.addEventListener('click', () => imageInput.click());
+
+>>>>>>> develop
             uploadArea.addEventListener('dragover', (e) => {
                 e.preventDefault();
                 uploadArea.classList.add('dragover');
             });
 
+<<<<<<< HEAD
             uploadArea.addEventListener('dragleave', () => {
                 uploadArea.classList.remove('dragover');
             });
+=======
+            uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+>>>>>>> develop
 
             uploadArea.addEventListener('drop', (e) => {
                 e.preventDefault();
                 uploadArea.classList.remove('dragover');
+<<<<<<< HEAD
                 if (e.dataTransfer.files[0]) {
                     handleFileSelect(e.dataTransfer.files[0]);
                 }
@@ -961,10 +2240,18 @@
                 if (e.target.files[0]) {
                     handleFileSelect(e.target.files[0]);
                 }
+=======
+                if (e.dataTransfer.files[0]) handleFileSelect(e.dataTransfer.files[0]);
+            });
+
+            imageInput.addEventListener('change', (e) => {
+                if (e.target.files[0]) handleFileSelect(e.target.files[0]);
+>>>>>>> develop
             });
         }
 
         function handleFileSelect(file) {
+<<<<<<< HEAD
             if (!file.type.startsWith('image/')) {
                 alert('請選擇圖片檔案');
                 return;
@@ -973,6 +2260,11 @@
             selectedFile = file;
 
             // 顯示預覽
+=======
+            if (!file.type.startsWith('image/')) { alert('請選擇圖片檔案'); return; }
+            selectedFile = file;
+
+>>>>>>> develop
             const reader = new FileReader();
             reader.onload = (e) => {
                 previewImage.src = e.target.result;
@@ -986,6 +2278,7 @@
         // 上傳和辨識
         // ============================================
         async function uploadImage() {
+<<<<<<< HEAD
             console.log('📤 開始上傳圖片');
             
             if (!selectedFile) {
@@ -998,18 +2291,30 @@
             if (uploadBtn) uploadBtn.disabled = true;
 
             showLoading('正在辨識圖片中...\n請稍候...');
+=======
+            if (!selectedFile) { alert('請先選擇圖片'); return; }
+
+            const uploadBtn = document.getElementById('uploadBtn');
+            if (uploadBtn) uploadBtn.disabled = true;
+
+            showLoading('正在辨識圖片中...');
+>>>>>>> develop
             goToPage('resultPage');
 
             try {
                 const formData = new FormData();
                 formData.append('image', selectedFile);
 
+<<<<<<< HEAD
                 console.log(`📡 呼叫 API: ${API_URL}/recognize`);
+=======
+>>>>>>> develop
                 const response = await fetch(`${API_URL}/recognize`, {
                     method: 'POST',
                     body: formData
                 });
 
+<<<<<<< HEAD
                 console.log('✓ API 回應:', response.status);
                 const data = await response.json();
 
@@ -1025,6 +2330,18 @@
                 showError('網路連線失敗\n\n請檢查網路後重試');
             } finally {
                 // 重新啟用按鈕
+=======
+                const data = await response.json();
+
+                if (data.success && data.recognized_items && data.recognized_items.length > 0) {
+                    displayResults(data.recognized_items);
+                } else {
+                    showError('未能識別出藥物\n\n請嘗試：\n1. 更換光線條件\n2. 拍攝更清晰的照片\n3. 靠近藥物');
+                }
+            } catch (error) {
+                showError('網路連線失敗\n請檢查網路後重試');
+            } finally {
+>>>>>>> develop
                 if (uploadBtn) uploadBtn.disabled = false;
             }
         }
@@ -1033,6 +2350,7 @@
         // 搜尋
         // ============================================
         async function searchDrug() {
+<<<<<<< HEAD
             console.log('🔍 開始搜尋');
             
             const searchInput = document.getElementById('searchInput');
@@ -1049,6 +2367,14 @@
             }
 
             // 禁用按鈕和輸入框
+=======
+            const searchInput = document.getElementById('searchInput');
+            if (!searchInput) return;
+
+            const query = searchInput.value.trim();
+            if (!query || query.length < 2) { alert('請輸入至少 2 個字'); return; }
+
+>>>>>>> develop
             const searchBtn = document.getElementById('searchBtn');
             if (searchBtn) searchBtn.disabled = true;
             searchInput.disabled = true;
@@ -1056,6 +2382,7 @@
             showSearchLoading('搜尋中...');
 
             try {
+<<<<<<< HEAD
                 console.log(`📡 呼叫 API: ${API_URL}/search，查詢: ${query}`);
                 const response = await fetch(`${API_URL}/search`, {
                     method: 'POST',
@@ -1086,6 +2413,26 @@
                 }
             } finally {
                 // 重新啟用按鈕和輸入框
+=======
+                const response = await fetch(`${API_URL}/search`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query, limit: 10 })
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.results && data.results.length > 0) {
+                    displaySearchResults(data.results);
+                } else {
+                    document.getElementById('searchResults').innerHTML =
+                        '<div class="alert-card warning"><div class="alert-title">未找到結果</div><p>未找到相符的藥物，請嘗試其他關鍵字</p></div>';
+                }
+            } catch (error) {
+                document.getElementById('searchResults').innerHTML =
+                    '<div class="alert-card error"><div class="alert-title">搜尋失敗</div><p>網路連線異常，請稍後重試</p></div>';
+            } finally {
+>>>>>>> develop
                 if (searchBtn) searchBtn.disabled = false;
                 searchInput.disabled = false;
             }
@@ -1095,6 +2442,7 @@
         // 顯示結果
         // ============================================
         function displayResults(items) {
+<<<<<<< HEAD
             let html = '<div class="results-container">';
 
             if (items.length === 0) {
@@ -1123,12 +2471,43 @@
                             </div>
                             <div class="confidence-bar">
                                 <div class="confidence-fill" style="width: ${confidence}%"></div>
+=======
+            let html = '<div class="results-list">';
+
+            if (items.length === 0) {
+                html += '<div class="alert-card warning"><div class="alert-title">未找到結果</div><p>未找到相符的藥物</p></div>';
+            } else {
+                items.forEach((item) => {
+                    const confidence = (item.confidence * 100).toFixed(0);
+
+                    let imageHtml = '';
+                    if (item.images && item.images.length > 0) {
+                        const imagePath = item.images[0].path.replace(/\\/g, '/');
+                        imageHtml = `<img src="${API_URL.replace('/api','')}/api/images/${imagePath}" alt="${item.name}" class="drug-thumb">`;
+                    }
+
+                    html += `
+                        <div class="result-card" onclick='loadAndShowDrugDetail(${item.id || item.drug_id || 'null'}, ${JSON.stringify(item).replace(/'/g, "&#39;")})'>
+                            <div class="result-header">
+                                <div class="result-name">${item.name}</div>
+                                <div class="result-badge">${confidence}%</div>
+                            </div>
+                            <div class="result-meta">
+                                ${item.details?.chinese_name ? item.details.chinese_name + ' · ' : ''}
+                                ${item.details?.shape ? item.details.shape : ''}
+                                ${item.details?.color ? ' · ' + item.details.color : ''}
+                            </div>
+                            ${imageHtml}
+                            <div class="confidence-track">
+                                <div class="confidence-bar" style="width: ${confidence}%"></div>
+>>>>>>> develop
                             </div>
                         </div>
                     `;
                 });
             }
 
+<<<<<<< HEAD
             html += `
                 <div style="margin-top: 30px;">
                     <button class="big-button" style="background: #6c757d; margin-bottom: 15px;" onclick="resetAndRephoto()">
@@ -1139,11 +2518,22 @@
                     </button>
                 </div>
             </div>`;
+=======
+            html += `</div>
+                <div class="btn-group" style="margin-top:28px;">
+                    <button class="btn-secondary" onclick="resetAndRephoto()">重新拍照</button>
+                    <button class="btn-gray" onclick="goToPage('homePage')">返回首頁</button>
+                </div>`;
+
+>>>>>>> develop
             document.getElementById('resultContent').innerHTML = html;
         }
 
         function resetAndRephoto() {
+<<<<<<< HEAD
             console.log('🔄 重新拍照');
+=======
+>>>>>>> develop
             selectedFile = null;
             document.getElementById('imageInput').value = '';
             const imagePreview = document.getElementById('imagePreview');
@@ -1154,6 +2544,7 @@
         }
 
         function displaySearchResults(results) {
+<<<<<<< HEAD
             let html = '<div class="results-container">';
 
             results.forEach(drug => {
@@ -1175,6 +2566,27 @@
                             ${drug.shape ? `<div>形狀：${drug.shape}</div>` : ''}
                             ${drug.color ? `<div>顏色：${drug.color}</div>` : ''}
                         </div>
+=======
+            let html = '<div class="results-list">';
+
+            results.forEach(drug => {
+                let imageHtml = '';
+                if (drug.images && drug.images.length > 0) {
+                    const imagePath = drug.images[0].path.replace(/\\/g, '/');
+                    imageHtml = `<img src="${API_URL.replace('/api','')}/api/images/${imagePath}" alt="${drug.chinese_name || drug.name}" class="drug-thumb">`;
+                }
+
+                html += `
+                    <div class="result-card" onclick='loadAndShowDrugDetail(${drug.id || drug.drug_id || 'null'}, ${JSON.stringify(drug).replace(/'/g, "&#39;")})'>
+                        <div class="result-name">${drug.chinese_name || drug.name || '未知'}</div>
+                        <div class="result-meta">
+                            ${drug.english_name ? drug.english_name : ''}
+                            ${drug.license_number ? ' · ' + drug.license_number : ''}
+                            ${drug.shape ? ' · ' + drug.shape : ''}
+                            ${drug.color ? ' · ' + drug.color : ''}
+                        </div>
+                        ${imageHtml}
+>>>>>>> develop
                     </div>
                 `;
             });
@@ -1186,6 +2598,7 @@
         async function loadAndShowDrugDetail(drugId, fallbackDrug) {
             goToPage('detailPage');
             document.getElementById('detailContent').innerHTML = `
+<<<<<<< HEAD
                 <div class="loading" style="text-align: center; padding: 40px 20px;">
                     <div class="spinner" style="display: inline-block; width: 50px; height: 50px; border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; animation: spin 1s linear infinite;"></div>
                     <div class="loading-text" style="color: #667eea; font-weight: bold; margin-top: 20px;">
@@ -1194,6 +2607,15 @@
                 </div>
             `;
             
+=======
+                <div class="loading-view">
+                    <div class="apple-spinner"></div>
+                    <div class="loading-label">正在擷取藥物資訊...</div>
+                    <div class="progress-track"><div class="progress-thumb"></div></div>
+                </div>
+            `;
+
+>>>>>>> develop
             try {
                 if (drugId) {
                     const response = await fetch(`${API_URL}/drug/${drugId}`);
@@ -1210,6 +2632,7 @@
         }
 
         function showDrugDetail(drug) {
+<<<<<<< HEAD
             let html = '<div>';
             
             const details = drug.details || drug;
@@ -1231,19 +2654,43 @@
             let allImages = [];
             if (drug.images && drug.images.length > 0) {
                 allImages = allImages.concat(drug.images.map(img => `/api/images/${img.path.replace(/\\/g, '/')}`));
+=======
+            const details = drug.details || drug;
+            const nhiDetails = drug.nhi_details || {};
+            const displayName = nhiDetails['中文品名'] || details.chinese_name || details.name || drug.name || '藥物詳情';
+
+            let html = '<div class="detail-hero">';
+            html += `<h2>${displayName}</h2>`;
+            if (Object.keys(nhiDetails).length > 0) {
+                html += '<span class="detail-source-tag">食藥署 / 健保署資料庫</span>';
+            }
+            html += '</div>';
+
+            // Images
+            let allImages = [];
+            if (drug.images && drug.images.length > 0) {
+                allImages = allImages.concat(drug.images.map(img => `${API_URL.replace('/api','')}/api/images/${img.path.replace(/\\/g, '/')}`));
+>>>>>>> develop
             }
             if (nhiDetails.images && nhiDetails.images.length > 0) {
                 allImages = allImages.concat(nhiDetails.images);
             }
 
             if (allImages.length > 0) {
+<<<<<<< HEAD
                 html += '<div style="margin-bottom: 20px; text-align: center;">';
                 allImages.forEach(imgSrc => {
                     html += `<img src="${imgSrc}" alt="${displayName}" style="max-width: 200px; max-height: 200px; margin: 10px; border-radius: 8px; border: 1px solid #ddd; padding: 5px;">`;
+=======
+                html += '<div class="detail-images">';
+                allImages.forEach(imgSrc => {
+                    html += `<img src="${imgSrc}" alt="${displayName}">`;
+>>>>>>> develop
                 });
                 html += '</div>';
             }
 
+<<<<<<< HEAD
             html += `
                 <div class="detail-info">
                     <div class="detail-label">中文名稱</div>
@@ -1302,6 +2749,46 @@
                 <div class="alert warning" style="margin-top: 20px;">
                     <strong>⚠️ 重要提醒</strong><br>
                     此資訊僅供參考。購買、服用或停用任何藥物前，請務必<strong>諮詢您的醫生或藥師</strong>。
+=======
+            // Basic info card
+            html += '<div class="detail-card">';
+            html += `<div class="detail-row"><span class="detail-key">中文名稱</span><span class="detail-val">${nhiDetails['中文品名'] || details.chinese_name || '-'}</span></div>`;
+            html += `<div class="detail-row"><span class="detail-key">英文名稱</span><span class="detail-val">${nhiDetails['英文品名'] || details.english_name || '-'}</span></div>`;
+            html += `<div class="detail-row"><span class="detail-key">許可證字號</span><span class="detail-val">${details.license_number || '-'}</span></div>`;
+            html += `<div class="detail-row"><span class="detail-key">形狀</span><span class="detail-val">${details.shape || '-'}</span></div>`;
+            html += `<div class="detail-row"><span class="detail-key">顏色</span><span class="detail-val">${details.color || '-'}</span></div>`;
+            html += `<div class="detail-row"><span class="detail-key">劑型</span><span class="detail-val">${nhiDetails['藥品類別'] || details.formulation || details.dosage_form || '-'}</span></div>`;
+            html += '</div>';
+
+            // Indications
+            const indication = nhiDetails['適應症'] || details.usage || details.indication;
+            if (indication) {
+                html += '<div class="detail-card">';
+                html += `<div class="detail-block"><div class="detail-block-label">適應症</div><div class="detail-block-value">${indication}</div></div>`;
+                html += '</div>';
+            }
+
+            // Ingredients
+            if (nhiDetails['主成分略述']) {
+                html += '<div class="detail-card">';
+                html += `<div class="detail-block"><div class="detail-block-label">主成分</div><div class="detail-block-value">${nhiDetails['主成分略述']}</div></div>`;
+                html += '</div>';
+            }
+
+            // Source link
+            if (nhiDetails.source_url) {
+                html += `<div style="text-align:center; margin: 12px 0;">
+                    <a href="${nhiDetails.source_url}" target="_blank" style="color:var(--accent); font-size:14px; text-decoration:none; font-weight:500;">查看食藥署完整資料 →</a>
+                </div>`;
+            }
+
+            // Warning
+            html += `<div class="warning-banner" style="margin-top:16px;">
+                <div class="warning-icon-box">!</div>
+                <div class="warning-text">
+                    <strong>重要提醒</strong>
+                    此資訊僅供參考。服用或停用任何藥物前，請務必諮詢您的醫生或藥師。
+>>>>>>> develop
                 </div>
             </div>`;
 
@@ -1313,6 +2800,7 @@
         // ============================================
         function showLoading(message) {
             const resultContent = document.getElementById('resultContent');
+<<<<<<< HEAD
             if (!resultContent) {
                 console.error('❌ resultContent 未找到');
                 return;
@@ -1334,12 +2822,22 @@
                     <div class="loading-text" style="margin-top: 20px; font-size: 18px; color: #333;">
                         ${messageHtml}
                     </div>
+=======
+            if (!resultContent) return;
+
+            resultContent.innerHTML = `
+                <div class="loading-view">
+                    <div class="apple-spinner"></div>
+                    <div class="loading-label">${message}</div>
+                    <div class="progress-track"><div class="progress-thumb"></div></div>
+>>>>>>> develop
                 </div>
             `;
         }
 
         function showSearchLoading(message) {
             const searchResults = document.getElementById('searchResults');
+<<<<<<< HEAD
             if (!searchResults) {
                 console.error('❌ searchResults 未找到');
                 return;
@@ -1357,12 +2855,22 @@
                     <div class="loading-text" style="margin-top: 20px; font-size: 16px; color: #333;">
                         ${message}
                     </div>
+=======
+            if (!searchResults) return;
+
+            searchResults.innerHTML = `
+                <div class="loading-view" style="padding:40px 20px;">
+                    <div class="apple-spinner"></div>
+                    <div class="loading-label">${message}</div>
+                    <div class="progress-track"><div class="progress-thumb"></div></div>
+>>>>>>> develop
                 </div>
             `;
         }
 
         function showError(message) {
             const resultContent = document.getElementById('resultContent');
+<<<<<<< HEAD
             if (!resultContent) {
                 console.error('❌ resultContent 未找到');
                 return;
@@ -1379,10 +2887,24 @@
                 <button class="big-button" style="margin-top: 20px;" onclick="goToPage('capturePage')">
                     ↺ 重新拍照
                 </button>
+=======
+            if (!resultContent) return;
+
+            const messageHtml = message.split('\n').map(line => `<div>${line}</div>`).join('');
+
+            resultContent.innerHTML = `
+                <div class="alert-card error" style="padding:28px 20px; text-align:center;">
+                    <div style="font-size:16px; line-height:1.8;">${messageHtml}</div>
+                </div>
+                <div class="btn-group">
+                    <button class="btn-primary" onclick="goToPage('capturePage')">重新拍照</button>
+                </div>
+>>>>>>> develop
             `;
         }
 
         // ============================================
+<<<<<<< HEAD
         // 初始化
         // ============================================
         function initApp() {
@@ -1407,16 +2929,26 @@
         }
         
         // ============================================
+=======
+>>>>>>> develop
         // 設定功能
         // ============================================
         function toggleSettings() {
             document.getElementById('settingsPanel').classList.toggle('show');
         }
+<<<<<<< HEAD
         // 點擊外部關閉設定
         document.addEventListener('click', function(e) {
             const panel = document.getElementById('settingsPanel');
             const toggle = document.querySelector('.settings-toggle');
             if (panel && !panel.contains(e.target) && e.target !== toggle) {
+=======
+
+        document.addEventListener('click', function(e) {
+            const panel = document.getElementById('settingsPanel');
+            const toggle = document.querySelector('.settings-toggle');
+            if (panel && !panel.contains(e.target) && !toggle.contains(e.target)) {
+>>>>>>> develop
                 panel.classList.remove('show');
             }
         });
@@ -1425,6 +2957,7 @@
             document.body.classList.remove('font-medium', 'font-large');
             if (size === 'medium') document.body.classList.add('font-medium');
             if (size === 'large') document.body.classList.add('font-large');
+<<<<<<< HEAD
             document.querySelectorAll('.opt-btn[data-font]').forEach(b => b.classList.remove('active'));
             document.querySelector('.opt-btn[data-font="' + size + '"]').classList.add('active');
             localStorage.setItem('mus2_font', size);
@@ -1437,14 +2970,50 @@
             document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
             document.querySelector('.theme-btn[data-theme="' + theme + '"]').classList.add('active');
             localStorage.setItem('mus2_theme', theme);
+=======
+            document.querySelectorAll('.seg-btn[data-font]').forEach(b => b.classList.remove('active'));
+            document.querySelector('.seg-btn[data-font="' + size + '"]').classList.add('active');
+            localStorage.setItem('mus2_font', size);
+        }
+
+        function toggleNightMode() {
+            const toggle = document.getElementById('nightToggle');
+            const isNight = toggle.checked;
+            document.body.classList.toggle('night-mode', isNight);
+            updateModeIcon(isNight);
+            localStorage.setItem('mus2_nightmode', isNight ? 'on' : 'off');
+        }
+
+        function updateModeIcon(isNight) {
+            const icon = document.getElementById('modeIcon');
+            const txt = document.getElementById('modeLabelText');
+            if (!icon) return;
+            if (isNight) {
+                icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+                if (txt) txt.textContent = '夜間模式';
+            } else {
+                icon.innerHTML = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+                if (txt) txt.textContent = '日間模式';
+            }
+>>>>>>> develop
         }
 
         // 載入儲存的設定
         (function loadSavedSettings() {
             const font = localStorage.getItem('mus2_font');
             if (font && font !== 'normal') setFontSize(font);
+<<<<<<< HEAD
             const theme = localStorage.getItem('mus2_theme');
             if (theme && theme !== 'default') setTheme(theme);
+=======
+            const nightMode = localStorage.getItem('mus2_nightmode');
+            if (nightMode === 'on') {
+                document.body.classList.add('night-mode');
+                var toggle = document.getElementById('nightToggle');
+                if (toggle) toggle.checked = true;
+                updateModeIcon(true);
+            }
+>>>>>>> develop
         })();
 
         // ============================================
@@ -1475,8 +3044,31 @@
                 document.getElementById('loginPass').focus();
             }
         }
+<<<<<<< HEAD
         
         // 在 DOM 加載完成後初始化
+=======
+
+        // ============================================
+        // 初始化
+        // ============================================
+        function initApp() {
+            console.log('應用初始化中...');
+            console.log('API URL:', API_URL);
+            initUploadArea();
+            initPrescriptionUploadArea();
+
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) {
+                searchInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') searchDrug();
+                });
+            }
+
+            console.log('應用已載入');
+        }
+
+>>>>>>> develop
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', initApp);
         } else {
@@ -1484,6 +3076,7 @@
         }
     </script>
     <!-- Capacitor -->
+<<<<<<< HEAD
     <script src="https://unpkg.com/@pwabuilder/pwaupdate"></script>
     <script type="module">
         import { Capacitor } from '@capacitor/core';
@@ -1492,8 +3085,20 @@
             const adminBtn = document.querySelector('.admin-entry-btn');
             if (adminBtn) adminBtn.style.display = 'none';
             console.log('📱 Running as native iOS app');
+=======
+    <script type="module">
+        import { Capacitor } from '@capacitor/core';
+        if (Capacitor.isNativePlatform()) {
+            const adminSection = document.getElementById('adminSection');
+            if (adminSection) adminSection.style.display = 'none';
+            console.log('Running as native iOS app');
+>>>>>>> develop
         }
     </script>
 </body>
 
+<<<<<<< HEAD
 </html>
+=======
+</html>
+>>>>>>> develop

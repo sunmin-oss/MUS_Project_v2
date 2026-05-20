@@ -18,25 +18,49 @@
 
         body {
             font-family: 'Microsoft JhengHei', '微軟正黑體', 'Arial', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #F5F7F2;
             min-height: 100vh;
             padding: 10px;
+            color: #2C3E2D;
         }
 
         .container {
             max-width: 500px;
             margin: 0 auto;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            background: #FAFCF8;
+            border-radius: 24px;
+            box-shadow: 0 10px 40px rgba(91, 117, 83, 0.10);
             overflow: hidden;
+            position: relative;
+        }
+
+        /* 植物線稿裝飾 */
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0; right: 0;
+            width: 120px; height: 120px;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120' opacity='0.08'%3E%3Cpath d='M100 10c-20 30-50 40-80 35 10-20 35-40 60-38' fill='%235B7553'/%3E%3Cpath d='M90 30c-15 25-40 35-65 30 8-18 30-35 50-32' fill='%237CB342'/%3E%3Cpath d='M110 50c-25 20-45 25-70 20 12-15 40-28 55-22' fill='%235B7553'/%3E%3C/svg%3E") no-repeat;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .container::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0;
+            width: 100px; height: 100px;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' opacity='0.06'%3E%3Cpath d='M10 90c15-25 35-40 60-35-8 18-28 35-48 32' fill='%237CB342'/%3E%3Cpath d='M5 70c20-20 40-30 65-25-10 15-35 28-50 22' fill='%238D6E4C'/%3E%3C/svg%3E") no-repeat;
+            pointer-events: none;
+            z-index: 0;
         }
 
         .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #5B7553 0%, #7CB342 100%);
             color: white;
             padding: 30px 20px;
             text-align: center;
+            position: relative;
+            z-index: 10;
         }
 
         .header h1 {
@@ -53,6 +77,8 @@
         .content {
             padding: 30px 20px;
             min-height: 400px;
+            position: relative;
+            z-index: 1;
         }
 
         /* ===== 頁面樣式 ===== */
@@ -82,16 +108,16 @@
         }
 
         .big-button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #5B7553 0%, #7CB342 100%);
             color: white;
             border: none;
             padding: 25px 20px;
-            border-radius: 15px;
+            border-radius: 18px;
             font-size: 24px;
             font-weight: bold;
             cursor: pointer;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 4px 15px rgba(91, 117, 83, 0.35);
             text-decoration: none;
             display: block;
             text-align: center;
@@ -103,7 +129,7 @@
 
         .big-button:hover {
             transform: translateY(-3px);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+            box-shadow: 0 6px 20px rgba(91, 117, 83, 0.5);
         }
 
         .big-button:active {
@@ -122,23 +148,23 @@
 
         /* ===== 拍照上傳區 ===== */
         .upload-area {
-            border: 3px dashed #667eea;
-            border-radius: 15px;
+            border: 3px dashed #7CB342;
+            border-radius: 18px;
             padding: 40px 20px;
             text-align: center;
             cursor: pointer;
             transition: all 0.3s ease;
-            background: #f9f9f9;
+            background: #F0F5EC;
         }
 
         .upload-area:hover {
-            background: #f0f0ff;
-            border-color: #764ba2;
+            background: #E5EFE0;
+            border-color: #5B7553;
         }
 
         .upload-area.dragover {
-            background: #f0f0ff;
-            border-color: #764ba2;
+            background: #E5EFE0;
+            border-color: #5B7553;
             transform: scale(1.02);
         }
 
@@ -180,25 +206,25 @@
         }
 
         .result-item {
-            background: #f9f9f9;
-            border-left: 5px solid #667eea;
+            background: #F0F5EC;
+            border-left: 5px solid #7CB342;
             padding: 20px;
             margin-bottom: 15px;
-            border-radius: 10px;
+            border-radius: 12px;
             cursor: pointer;
             transition: all 0.3s ease;
         }
 
         .result-item:hover {
-            background: #f0f0ff;
+            background: #E5EFE0;
             transform: translateX(5px);
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
+            box-shadow: 0 4px 15px rgba(91, 117, 83, 0.15);
         }
 
         .result-title {
             font-size: 20px;
             font-weight: bold;
-            color: #333;
+            color: #2C3E2D;
             margin-bottom: 8px;
         }
 
@@ -218,7 +244,7 @@
 
         .confidence-fill {
             height: 100%;
-            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(90deg, #7CB342 0%, #5B7553 100%);
             border-radius: 4px;
         }
 
@@ -229,8 +255,8 @@
         }
 
         .spinner {
-            border: 5px solid #f3f3f3;
-            border-top: 5px solid #667eea;
+            border: 5px solid #E5EFE0;
+            border-top: 5px solid #5B7553;
             border-radius: 50%;
             width: 50px;
             height: 50px;
@@ -249,7 +275,7 @@
 
         .loading-text {
             font-size: 18px;
-            color: #667eea;
+            color: #5B7553;
             font-weight: bold;
         }
         /* ===== 進度條樣式 ===== */
@@ -269,7 +295,7 @@
 
         .progress-fill {
             height: 100%;
-            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(90deg, #7CB342 0%, #5B7553 100%);
             width: 0%;
             animation: progress 2s ease-in-out infinite;
         }
@@ -316,7 +342,7 @@
 
         .progress-fill {
             height: 100%;
-            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(90deg, #7CB342 0%, #5B7553 100%);
             width: 0%;
             animation: progress 2s ease-in-out infinite;
         }
@@ -355,22 +381,22 @@
 
         /* ===== 細節頁面 ===== */
         .detail-info {
-            background: #f9f9f9;
+            background: #F0F5EC;
             padding: 20px;
-            border-radius: 10px;
+            border-radius: 12px;
             margin-bottom: 15px;
         }
 
         .detail-label {
             font-size: 14px;
-            color: #999;
+            color: #8D6E4C;
             margin-bottom: 5px;
             font-weight: bold;
         }
 
         .detail-value {
             font-size: 18px;
-            color: #333;
+            color: #2C3E2D;
             margin-bottom: 15px;
             word-break: break-all;
         }
@@ -420,15 +446,15 @@
         }
 
         .search-input:focus {
-            border-color: #667eea;
+            border-color: #7CB342;
         }
 
         .search-button {
             padding: 15px 25px;
-            background: #667eea;
+            background: #5B7553;
             color: white;
             border: none;
-            border-radius: 10px;
+            border-radius: 12px;
             font-size: 18px;
             cursor: pointer;
             font-weight: bold;
@@ -436,17 +462,17 @@
         }
 
         .search-button:hover {
-            background: #764ba2;
+            background: #4A6344;
             transform: translateY(-2px);
         }
 
         /* ===== 返回按鈕 ===== */
         .back-button {
-            background: #6c757d;
+            background: #8D6E4C;
             color: white;
             padding: 15px;
             border: none;
-            border-radius: 10px;
+            border-radius: 12px;
             font-size: 16px;
             cursor: pointer;
             width: 100%;
@@ -456,7 +482,7 @@
         }
 
         .back-button:hover {
-            background: #5a6268;
+            background: #7A5F40;
             transform: translateY(-2px);
         }
 
@@ -517,7 +543,7 @@
             box-shadow: 0 8px 30px rgba(0,0,0,0.25);
             padding: 18px;
             width: 260px;
-            z-index: 20;
+            z-index: 100;
             animation: fadeIn 0.2s;
         }
         .settings-panel.show { display: block; }
@@ -542,7 +568,7 @@
             color: #333;
         }
         .opt-btn:hover { border-color: #aaa; }
-        .opt-btn.active { border-color: #667eea; background: #eef0ff; color: #667eea; font-weight: 700; }
+        .opt-btn.active { border-color: #5B7553; background: #E5EFE0; color: #5B7553; font-weight: 700; }
 
         .theme-btn {
             flex: 1;
@@ -553,10 +579,10 @@
             transition: all 0.2s;
         }
         .theme-btn:hover { transform: scale(1.05); }
-        .theme-btn.active { border-color: #667eea; box-shadow: 0 0 0 2px rgba(102,126,234,0.3); }
-        .theme-default { background: linear-gradient(135deg, #667eea, #764ba2); }
-        .theme-warm { background: linear-gradient(135deg, #f5af19, #f12711); }
-        .theme-dark { background: linear-gradient(135deg, #232526, #414345); }
+        .theme-btn.active { border-color: #5B7553; box-shadow: 0 0 0 2px rgba(91,117,83,0.3); }
+        .theme-default { background: linear-gradient(135deg, #5B7553, #7CB342); }
+        .theme-warm { background: #fff; border: 2px solid #bbb; }
+        .theme-dark { background: linear-gradient(135deg, #0F0C29, #302B63, #24243E); }
 
         .admin-entry-btn {
             width: 100%;
@@ -603,7 +629,7 @@
             font-family: inherit;
             transition: border-color 0.2s;
         }
-        .login-input:focus { outline: none; border-color: #667eea; }
+        .login-input:focus { outline: none; border-color: #7CB342; }
         .login-error { color: #ea4335; font-size: 13px; margin-bottom: 10px; display: none; }
         .login-actions { display: flex; gap: 10px; }
         .login-actions button {
@@ -617,7 +643,7 @@
             font-family: inherit;
         }
         .login-cancel { background: #f0f0f0; color: #555; }
-        .login-submit { background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; }
+        .login-submit { background: linear-gradient(135deg, #5B7553, #7CB342); color: #fff; }
 
         /* ===== 字體大小模式 ===== */
         body.font-medium { font-size: 18px; }
@@ -635,31 +661,166 @@
         body.font-large .search-input { font-size: 24px; }
         body.font-large .result-item { font-size: 20px; }
 
-        /* ===== 暖色對比主題 ===== */
-        body.theme-warm-mode { background: linear-gradient(135deg, #f5af19 0%, #f12711 100%); }
-        body.theme-warm-mode .header { background: linear-gradient(135deg, #f5af19 0%, #f12711 100%); }
-        body.theme-warm-mode .big-button { background: linear-gradient(135deg, #f5af19 0%, #f12711 100%); box-shadow: 0 4px 15px rgba(241,39,17,0.4); }
-        body.theme-warm-mode .upload-area { border-color: #f5af19; }
-        body.theme-warm-mode .upload-area:hover { border-color: #f12711; background: #fff8f0; }
+        /* ===== 白色清晰主題 ===== */
+        body.theme-warm-mode { background: #F0F0F0; }
+        body.theme-warm-mode .container { background: #FFFFFF; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+        body.theme-warm-mode .container::before,
+        body.theme-warm-mode .container::after { display: none; }
+        body.theme-warm-mode .header { background: #FFFFFF; color: #1A1A1A; border-bottom: 2px solid #D0D0D0; }
+        body.theme-warm-mode .header p { color: #555; }
+        body.theme-warm-mode .settings-toggle { color: #333; }
+        body.theme-warm-mode .settings-toggle:hover { background: rgba(0,0,0,0.06); }
+        body.theme-warm-mode .big-button { background: #FFFFFF !important; color: #1A1A1A !important; border: 2px solid #888; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
+        body.theme-warm-mode .big-button:hover { background: #F5F5F5 !important; border-color: #555; box-shadow: 0 2px 10px rgba(0,0,0,0.12); }
+        body.theme-warm-mode .big-button:focus-visible { outline: 3px solid #1A73E8; outline-offset: 2px; }
+        body.theme-warm-mode .big-button.secondary { background: #F5F5F5 !important; color: #1A1A1A !important; border: 2px solid #999; }
+        body.theme-warm-mode .big-button.tertiary { background: #F5F5F5 !important; color: #1A1A1A !important; border: 2px solid #AAA; }
+        body.theme-warm-mode .upload-area { background: #FAFAFA; border: 2px dashed #999; color: #333; }
+        body.theme-warm-mode .upload-area:hover { border-color: #555; background: #F5F5F5; }
+        body.theme-warm-mode .upload-area p { color: #444; }
+        body.theme-warm-mode .back-button { background: #F5F5F5; color: #1A1A1A; border: 2px solid #999; }
+        body.theme-warm-mode .back-button:hover { background: #E8E8E8; border-color: #666; }
+        body.theme-warm-mode .search-input { background: #FFF; color: #1A1A1A; border: 2px solid #999; }
+        body.theme-warm-mode .search-input:focus { border-color: #1A73E8; box-shadow: 0 0 0 2px rgba(26,115,232,0.25); }
+        body.theme-warm-mode .search-btn,
+        body.theme-warm-mode .search-button { background: #1A1A1A !important; color: #FFF !important; border: none; }
+        body.theme-warm-mode .search-btn:hover,
+        body.theme-warm-mode .search-button:hover { background: #333 !important; }
+        body.theme-warm-mode .result-item { background: #FAFAFA; border: 1px solid #DDD; }
+        body.theme-warm-mode .result-item:hover { background: #F0F0F0; border-color: #AAA; }
+        body.theme-warm-mode .footer-hint { color: #666; border-top-color: #DDD; }
+        body.theme-warm-mode .settings-panel { background: #FFF; color: #1A1A1A; border: 1px solid #CCC; }
+        body.theme-warm-mode .settings-label { color: #555; }
+        body.theme-warm-mode .opt-btn { background: #F5F5F5; color: #333; border: 2px solid #CCC; }
+        body.theme-warm-mode .opt-btn.active { border-color: #1A1A1A; background: #FFF; color: #1A1A1A; font-weight: 700; }
+        body.theme-warm-mode .admin-entry-btn { background: #F5F5F5; color: #333; border: 2px solid #CCC; }
+        body.theme-warm-mode .admin-entry-btn:hover { background: #E8E8E8; border-color: #999; }
 
-        /* ===== 深色高對比主題 ===== */
-        body.theme-dark-mode { background: #1a1a1a; }
-        body.theme-dark-mode .container { background: #2a2a2a; color: #f0f0f0; }
-        body.theme-dark-mode .header { background: linear-gradient(135deg, #232526 0%, #414345 100%); }
-        body.theme-dark-mode .big-button { background: linear-gradient(135deg, #434343 0%, #000000 100%); box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-        body.theme-dark-mode .big-button.secondary { background: #444; color: #fff; }
-        body.theme-dark-mode .upload-area { background: #333; border-color: #666; color: #ddd; }
-        body.theme-dark-mode .upload-area:hover { background: #3a3a3a; border-color: #888; }
-        body.theme-dark-mode .upload-area p { color: #ddd; }
-        body.theme-dark-mode .back-button { background: #555; }
-        body.theme-dark-mode .search-input { background: #333; color: #fff; border-color: #555; }
-        body.theme-dark-mode .footer-hint { color: #888; border-top-color: #444; }
-        body.theme-dark-mode .result-item { background: #333; }
-        body.theme-dark-mode .settings-panel { background: #333; color: #eee; }
-        body.theme-dark-mode .settings-label { color: #bbb; }
-        body.theme-dark-mode .opt-btn { background: #444; color: #ddd; border-color: #555; }
-        body.theme-dark-mode .opt-btn.active { border-color: #88a0ff; background: #3a3a5a; color: #88a0ff; }
-        body.theme-dark-mode .admin-entry-btn { background: #444; color: #ccc; border-color: #555; }
+        /* ===== 深色漸變主題 ===== */
+        body.theme-dark-mode {
+            background: linear-gradient(135deg, #0F0C29 0%, #302B63 40%, #24243E 70%, #0F2027 100%);
+            background-attachment: fixed;
+        }
+        body.theme-dark-mode .container {
+            background: rgba(20, 18, 45, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            color: #EAEAEA;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        body.theme-dark-mode .container::before,
+        body.theme-dark-mode .container::after { display: none; }
+        body.theme-dark-mode .header {
+            background: linear-gradient(135deg, #1A1640 0%, #302B63 50%, #1B4332 100%);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        body.theme-dark-mode .big-button {
+            background: rgba(255,255,255,0.06) !important;
+            color: #F0F0F0 !important;
+            border: 2px solid rgba(255,255,255,0.15);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05);
+            transition: all 0.25s ease;
+        }
+        body.theme-dark-mode .big-button:hover {
+            background: rgba(255,255,255,0.12) !important;
+            border-color: rgba(150,130,255,0.4);
+            box-shadow: 0 6px 25px rgba(48,43,99,0.5), inset 0 1px 0 rgba(255,255,255,0.08);
+            transform: translateY(-2px);
+        }
+        body.theme-dark-mode .big-button.secondary { background: rgba(255,255,255,0.04) !important; color: #ddd !important; border-color: rgba(255,255,255,0.12); }
+        body.theme-dark-mode .upload-area {
+            background: rgba(255,255,255,0.04);
+            border: 2px dashed rgba(255,255,255,0.2);
+            color: #ccc;
+        }
+        body.theme-dark-mode .upload-area:hover {
+            background: rgba(255,255,255,0.08);
+            border-color: rgba(150,130,255,0.4);
+        }
+        body.theme-dark-mode .upload-area p { color: #bbb; }
+        body.theme-dark-mode .back-button {
+            background: rgba(255,255,255,0.08);
+            color: #ddd;
+            border: 1px solid rgba(255,255,255,0.15);
+            transition: all 0.25s ease;
+        }
+        body.theme-dark-mode .back-button:hover {
+            background: rgba(255,255,255,0.14);
+            border-color: rgba(150,130,255,0.35);
+        }
+        body.theme-dark-mode .search-input {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border: 2px solid rgba(255,255,255,0.15);
+        }
+        body.theme-dark-mode .search-input:focus {
+            border-color: rgba(150,130,255,0.5);
+            box-shadow: 0 0 0 3px rgba(150,130,255,0.15);
+        }
+        body.theme-dark-mode .search-button {
+            background: linear-gradient(135deg, #302B63, #4A3F8F) !important;
+            color: #fff !important;
+            border: none;
+        }
+        body.theme-dark-mode .search-button:hover {
+            background: linear-gradient(135deg, #3D3680, #5A4FA0) !important;
+        }
+        body.theme-dark-mode .footer-hint { color: rgba(255,255,255,0.4); border-top-color: rgba(255,255,255,0.08); }
+        body.theme-dark-mode .result-item {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.25s ease;
+        }
+        body.theme-dark-mode .result-item:hover {
+            background: rgba(255,255,255,0.1);
+            border-color: rgba(150,130,255,0.3);
+        }
+        body.theme-dark-mode .settings-panel {
+            background: rgba(25, 22, 55, 0.95);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            color: #eee;
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        }
+        body.theme-dark-mode .settings-label { color: rgba(255,255,255,0.6); }
+        body.theme-dark-mode .opt-btn {
+            background: rgba(255,255,255,0.06);
+            color: #ddd;
+            border: 2px solid rgba(255,255,255,0.12);
+            transition: all 0.2s ease;
+        }
+        body.theme-dark-mode .opt-btn:hover { border-color: rgba(150,130,255,0.3); }
+        body.theme-dark-mode .opt-btn.active {
+            border-color: #9682FF;
+            background: rgba(150,130,255,0.12);
+            color: #C4B8FF;
+            font-weight: 700;
+        }
+        body.theme-dark-mode .admin-entry-btn {
+            background: rgba(255,255,255,0.06);
+            color: #bbb;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        body.theme-dark-mode .admin-entry-btn:hover {
+            background: rgba(255,255,255,0.1);
+            color: #ddd;
+            border-color: rgba(255,255,255,0.2);
+        }
+        body.theme-dark-mode .login-modal {
+            background: rgba(25, 22, 55, 0.95);
+            backdrop-filter: blur(16px);
+            color: #eee;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        body.theme-dark-mode .login-modal h3 { color: #eee; }
+        body.theme-dark-mode .login-input {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+            border-color: rgba(255,255,255,0.15);
+        }
+        body.theme-dark-mode .login-cancel { background: rgba(255,255,255,0.08); color: #ccc; }
+        body.theme-dark-mode .login-submit { background: linear-gradient(135deg, #302B63, #4A3F8F); }
     </style>
 </head>
 
@@ -683,7 +844,7 @@
                     <div class="settings-label">顏色主題</div>
                     <div class="opt-group">
                         <div class="theme-btn theme-default active" data-theme="default" onclick="setTheme('default')" title="預設"></div>
-                        <div class="theme-btn theme-warm" data-theme="warm" onclick="setTheme('warm')" title="暖色"></div>
+                        <div class="theme-btn theme-warm" data-theme="warm" onclick="setTheme('warm')" title="白色"></div>
                         <div class="theme-btn theme-dark" data-theme="dark" onclick="setTheme('dark')" title="深色高對比"></div>
                     </div>
                 </div>
@@ -699,10 +860,10 @@
                 <button class="big-button" onclick="goToPage('capturePage')">
                     📷 拍照辨識藥物
                 </button>
-                <button class="big-button" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);" onclick="goToPage('prescriptionCapturePage')">
+                <button class="big-button" style="background: linear-gradient(135deg, #8D6E4C 0%, #A0845C 100%);" onclick="goToPage('prescriptionCapturePage')">
                     📄 拍攝藥單辨識
                 </button>
-                <button class="big-button secondary" onclick="goToPage('searchPage')">
+                <button class="big-button" style="background: linear-gradient(135deg, #A8D5E2 0%, #7BBFCF 100%); color: #2C3E2D;" onclick="goToPage('searchPage')">
                     🔍 搜尋藥物名稱
                 </button>
             </div>
@@ -723,7 +884,7 @@
 
             <div id="imagePreview" class="image-preview" style="display: none;">
                 <img id="previewImage" alt="preview">
-                <button id="uploadBtn" class="big-button" style="margin-top: 20px; background: #28a745;" onclick="uploadImage()">
+                <button id="uploadBtn" class="big-button" style="margin-top: 20px; background: #7CB342;" onclick="uploadImage()">
                     ✓ 開始辨識
                 </button>
                 <button class="big-button secondary" style="margin-top: 12px;" onclick="resetAndRephoto()">
@@ -746,7 +907,7 @@
 
             <div id="prescriptionImagePreview" class="image-preview" style="display: none;">
                 <img id="prescriptionPreviewImg" alt="preview">
-                <button id="prescriptionUploadBtn" class="big-button" style="margin-top: 20px; background: #28a745;" onclick="uploadPrescriptionImage()">
+                <button id="prescriptionUploadBtn" class="big-button" style="margin-top: 20px; background: #7CB342;" onclick="uploadPrescriptionImage()">
                     ✓ 開始提取藥物
                 </button>
                 <button class="big-button secondary" style="margin-top: 12px;" onclick="resetPrescriptionPhoto()">
@@ -1161,7 +1322,7 @@
                 if (drug.images && drug.images.length > 0) {
                     const firstImage = drug.images[0];
                     const imagePath = firstImage.path.replace(/\\/g, '/');
-                    imageHtml = `<img src="/api/images/${imagePath}" alt="${drug.name}" class="drug-image" style="max-width: 150px; max-height: 150px; margin: 10px 0; border-radius: 8px;">`;
+                    imageHtml = `<img src="/api/images/${imagePath}" alt="${drug.chinese_name || drug.name || '藥物圖片'}" class="drug-image" style="max-width: 150px; max-height: 150px; margin: 10px 0; border-radius: 8px;">`;
                 }
                 
                 html += `
@@ -1186,9 +1347,9 @@
             goToPage('detailPage');
             document.getElementById('detailContent').innerHTML = `
                 <div class="loading" style="text-align: center; padding: 40px 20px;">
-                    <div class="spinner" style="display: inline-block; width: 50px; height: 50px; border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-                    <div class="loading-text" style="color: #667eea; font-weight: bold; margin-top: 20px;">
-                        正在擷取最新藥物資訊<br><small style="font-size:14px; color:#999;">(包含健保署/食藥署資料)</small>
+                    <div class="spinner" style="display: inline-block; width: 50px; height: 50px; border: 4px solid #E5EFE0; border-top: 4px solid #5B7553; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                    <div class="loading-text" style="color: #5B7553; font-weight: bold; margin-top: 20px;">
+                        正在擷取最新藥物資訊<br><small style="font-size:14px; color:#8D6E4C;">(包含健保署/食藥署資料)</small>
                     </div>
                 </div>
             `;
@@ -1323,7 +1484,7 @@
             
             resultContent.innerHTML = `
                 <div class="loading" style="text-align: center; padding: 40px 20px;">
-                    <div class="spinner" style="display: inline-block; width: 60px; height: 60px; border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                    <div class="spinner" style="display: inline-block; width: 60px; height: 60px; border: 4px solid #E5EFE0; border-top: 4px solid #5B7553; border-radius: 50%; animation: spin 1s linear infinite;"></div>
                     <div class="progress-container">
                         <div class="progress-bar">
                             <div class="progress-fill"></div>
@@ -1346,7 +1507,7 @@
             
             searchResults.innerHTML = `
                 <div class="loading" style="text-align: center; padding: 40px 20px;">
-                    <div class="spinner" style="display: inline-block; width: 50px; height: 50px; border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                    <div class="spinner" style="display: inline-block; width: 50px; height: 50px; border: 4px solid #E5EFE0; border-top: 4px solid #5B7553; border-radius: 50%; animation: spin 1s linear infinite;"></div>
                     <div class="progress-container">
                         <div class="progress-bar">
                             <div class="progress-fill"></div>

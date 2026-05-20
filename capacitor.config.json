@@ -1,5 +1,12 @@
 {
   "appId": "com.mus2.drugrecognition",
   "appName": "藥知道",
+<<<<<<< HEAD
   "webDir": "www"
+=======
+  "webDir": "www",
+  "server": {
+    "allowNavigation": ["192.168.1.103:5000", "*.192.168.1.103"]
+  }
+>>>>>>> develop
 }
