@@ -1426,6 +1426,11 @@
             const uploadBtn = document.getElementById('prescriptionUploadBtn');
             if (uploadBtn) uploadBtn.disabled = true;
 
+            cancelCurrentRequest();
+            currentAbortController = new AbortController();
+            const signal = currentAbortController.signal;
+            const timeoutId = setTimeout(() => currentAbortController.abort(), REQUEST_TIMEOUT_MS);
+
             showLoading('正在擷取藥單內容...');
             goToPage('resultPage');
 
@@ -1435,7 +1440,8 @@
 
                 const response = await fetch(`${API_URL}/recognize_prescription`, {
                     method: 'POST',
-                    body: formData
+                    body: formData,
+                    signal
                 });
 
                 const data = await response.json();
@@ -1446,8 +1452,14 @@
                     showError(data.error || '未能從藥單中識別出任何藥物\n請拍清楚藥單上的藥物名稱');
                 }
             } catch (error) {
-                showError('網路連線失敗\n請檢查網路後重試');
+                if (error.name === 'AbortError') {
+                    showError('擷取已取消\n您可以重新拍照再試一次');
+                } else {
+                    showError('網路連線失敗\n請檢查網路後重試');
+                }
             } finally {
+                clearTimeout(timeoutId);
+                currentAbortController = null;
                 if (uploadBtn) uploadBtn.disabled = false;
             }
         }
@@ -1508,6 +1520,11 @@
             const uploadBtn = document.getElementById('uploadBtn');
             if (uploadBtn) uploadBtn.disabled = true;
 
+            cancelCurrentRequest();
+            currentAbortController = new AbortController();
+            const signal = currentAbortController.signal;
+            const timeoutId = setTimeout(() => currentAbortController.abort(), REQUEST_TIMEOUT_MS);
+
             showLoading('正在辨識圖片中...');
             goToPage('resultPage');
 
@@ -1517,7 +1534,8 @@
 
                 const response = await fetch(`${API_URL}/recognize`, {
                     method: 'POST',
-                    body: formData
+                    body: formData,
+                    signal
                 });
 
                 const data = await response.json();
@@ -1528,8 +1546,14 @@
                     showError('未能識別出藥物\n\n請嘗試：\n1. 更換光線條件\n2. 拍攝更清晰的照片\n3. 靠近藥物');
                 }
             } catch (error) {
-                showError('網路連線失敗\n請檢查網路後重試');
+                if (error.name === 'AbortError') {
+                    showError('辨識已取消\n您可以重新拍照再試一次');
+                } else {
+                    showError('網路連線失敗\n請檢查網路後重試');
+                }
             } finally {
+                clearTimeout(timeoutId);
+                currentAbortController = null;
                 if (uploadBtn) uploadBtn.disabled = false;
             }
         }
@@ -1548,13 +1572,19 @@
             if (searchBtn) searchBtn.disabled = true;
             searchInput.disabled = true;
 
+            cancelCurrentRequest();
+            currentAbortController = new AbortController();
+            const signal = currentAbortController.signal;
+            const timeoutId = setTimeout(() => currentAbortController.abort(), REQUEST_TIMEOUT_MS);
+
             showSearchLoading('搜尋中...');
 
             try {
                 const response = await fetch(`${API_URL}/search`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ query, limit: 10 })
+                    body: JSON.stringify({ query, limit: 10 }),
+                    signal
                 });
 
                 const data = await response.json();
@@ -1566,9 +1596,16 @@
                         '<div class="alert-card warning"><div class="alert-title">未找到結果</div><p>未找到相符的藥物，請嘗試其他關鍵字</p></div>';
                 }
             } catch (error) {
-                document.getElementById('searchResults').innerHTML =
-                    '<div class="alert-card error"><div class="alert-title">搜尋失敗</div><p>網路連線異常，請稍後重試</p></div>';
+                if (error.name === 'AbortError') {
+                    document.getElementById('searchResults').innerHTML =
+                        '<div class="alert-card warning"><div class="alert-title">搜尋已取消</div><p>您可以重新輸入關鍵字搜尋</p></div>';
+                } else {
+                    document.getElementById('searchResults').innerHTML =
+                        '<div class="alert-card error"><div class="alert-title">搜尋失敗</div><p>網路連線異常，請稍後重試</p></div>';
+                }
             } finally {
+                clearTimeout(timeoutId);
+                currentAbortController = null;
                 if (searchBtn) searchBtn.disabled = false;
                 searchInput.disabled = false;
             }
@@ -1760,6 +1797,13 @@
         // ============================================
         // 輔助函式
         // ============================================
+        function cancelCurrentRequest() {
+            if (currentAbortController) {
+                currentAbortController.abort();
+                currentAbortController = null;
+            }
+        }
+
         function showLoading(message) {
             const resultContent = document.getElementById('resultContent');
             if (!resultContent) return;
@@ -1769,6 +1813,9 @@
                     <div class="apple-spinner"></div>
                     <div class="loading-label">${message}</div>
                     <div class="progress-track"><div class="progress-thumb"></div></div>
+                    <button class="btn-secondary" onclick="cancelCurrentRequest()" style="margin-top:20px;">
+                        取消辨識
+                    </button>
                 </div>
             `;
         }
@@ -1782,6 +1829,9 @@
                     <div class="apple-spinner"></div>
                     <div class="loading-label">${message}</div>
                     <div class="progress-track"><div class="progress-thumb"></div></div>
+                    <button class="btn-secondary" onclick="cancelCurrentRequest()" style="margin-top:16px; font-size:14px;">
+                        取消搜尋
+                    </button>
                 </div>
             `;
         }
