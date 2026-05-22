@@ -1056,6 +1056,82 @@
             background: linear-gradient(90deg, #5E9EFF, #9B8CFF);
         }
 
+        /* ===== Focus & Accessibility ===== */
+        *:focus-visible {
+            outline: 3px solid var(--accent);
+            outline-offset: 2px;
+            border-radius: 4px;
+        }
+
+        .action-card:focus-visible {
+            outline-offset: 4px;
+            border-radius: var(--radius-lg);
+        }
+
+        .btn-primary:focus-visible,
+        .btn-secondary:focus-visible,
+        .btn-gray:focus-visible {
+            outline-offset: 3px;
+            border-radius: var(--radius-md);
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0,0,0,0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        .skip-link {
+            position: absolute;
+            top: -100%;
+            left: 16px;
+            background: var(--accent);
+            color: #FFFFFF;
+            padding: 12px 20px;
+            border-radius: var(--radius-sm);
+            font-size: 16px;
+            font-weight: 600;
+            z-index: 999;
+            text-decoration: none;
+            transition: top 0.2s;
+        }
+
+        .skip-link:focus {
+            top: calc(8px + env(safe-area-inset-top));
+        }
+
+        /* High contrast enhancement for elderly */
+        .action-card:hover .card-title,
+        .action-card:focus-visible .card-title {
+            color: var(--accent);
+        }
+
+        @media (prefers-contrast: high) {
+            :root {
+                --card-shadow: 0 0 0 2px var(--text-primary);
+                --separator: rgba(0,0,0,0.3);
+            }
+            .action-card { border: 2px solid var(--text-primary); }
+            .result-card { border: 2px solid var(--text-primary); }
+            .detail-card { border: 2px solid var(--text-primary); }
+            .btn-primary { border: 2px solid var(--text-primary); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.01ms !important;
+            }
+            .page.active { animation: none; }
+            .orb { animation: none !important; }
+        }
+
         /* ===== Responsive ===== */
         @media (max-width: 480px) {
             .header { padding-top: calc(40px + env(safe-area-inset-top)); }
@@ -1066,21 +1142,22 @@
 </head>
 
 <body>
+    <a href="#homePage" class="skip-link">跳至主要內容</a>
     <div class="container">
         <!-- Ambient Night Orbs -->
-        <div class="night-orbs" id="nightOrbs">
+        <div class="night-orbs" id="nightOrbs" aria-hidden="true">
             <div class="orb orb-1"></div>
             <div class="orb orb-2"></div>
             <div class="orb orb-3"></div>
         </div>
         <!-- Header -->
-        <div class="header">
+        <header class="header" role="banner">
             <h1>藥知道</h1>
             <p>簡單・快速・安全的藥物辨識</p>
-            <button class="settings-toggle" onclick="toggleSettings()" title="設定">
+            <button class="settings-toggle" onclick="toggleSettings()" aria-label="開啟設定" aria-expanded="false" aria-controls="settingsPanel">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
             </button>
-            <div class="settings-panel" id="settingsPanel">
+            <div class="settings-panel" id="settingsPanel" role="dialog" aria-label="設定面板">
                 <div class="settings-section">
                     <div class="settings-label">字體大小</div>
                     <div class="seg-control">
@@ -1106,12 +1183,12 @@
                     <button class="admin-link" onclick="showLoginModal()">進入後台管理</button>
                 </div>
             </div>
-        </div>
+        </header>
 
         <!-- 首頁 -->
-        <div class="content page active" id="homePage">
-            <div class="home-cards">
-                <div class="action-card" onclick="goToPage('capturePage')">
+        <main class="content page active" id="homePage" role="main">
+            <nav class="home-cards" aria-label="主要功能">
+                <div class="action-card" onclick="goToPage('capturePage')" role="button" tabindex="0" aria-label="拍照辨識藥物 — 拍攝藥物照片進行 AI 辨識" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();goToPage('capturePage')}">
                     <div class="card-icon accent-bg">
                         <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
                     </div>
@@ -1122,7 +1199,7 @@
                     <div class="card-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
                 </div>
 
-                <div class="action-card" onclick="goToPage('prescriptionCapturePage')">
+                <div class="action-card" onclick="goToPage('prescriptionCapturePage')" role="button" tabindex="0" aria-label="拍攝藥單辨識 — 上傳醫院藥單自動提取藥物" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();goToPage('prescriptionCapturePage')}">
                     <div class="card-icon green-bg">
                         <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
                     </div>
@@ -1133,7 +1210,7 @@
                     <div class="card-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
                 </div>
 
-                <div class="action-card" onclick="goToPage('searchPage')">
+                <div class="action-card" onclick="goToPage('searchPage')" role="button" tabindex="0" aria-label="搜尋藥物名稱 — 依名稱查詢藥物資訊" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();goToPage('searchPage')}">
                     <div class="card-icon orange-bg">
                         <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                     </div>
@@ -1143,20 +1220,20 @@
                     </div>
                     <div class="card-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
                 </div>
-            </div>
-            <div class="footer-hint">
+            </nav>
+            <div class="footer-hint" aria-hidden="true">
                 在光線充足的地方對準藥物清晰拍照<br>可獲得最佳辨識效果
             </div>
-        </div>
+        </main>
 
         <!-- 拍照上傳頁 -->
-        <div class="content page" id="capturePage">
-            <button class="nav-back" onclick="goToPage('homePage')">
+        <section class="content page" id="capturePage" aria-label="拍照上傳">
+            <button class="nav-back" onclick="goToPage('homePage')" aria-label="返回首頁">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
                 返回
             </button>
 
-            <div class="upload-area" id="uploadArea">
+            <div class="upload-area" id="uploadArea" role="button" tabindex="0" aria-label="點擊選擇或拖放藥物圖片" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('imageInput').click()}">
                 <div class="upload-icon-wrap">
                     <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                 </div>
@@ -1165,24 +1242,24 @@
             </div>
 
             <div id="imagePreview" class="image-preview" style="display: none;">
-                <img id="previewImage" alt="preview">
+                <img id="previewImage" alt="已選擇的藥物圖片預覽">
                 <div class="btn-group">
                     <button id="uploadBtn" class="btn-primary green" onclick="uploadImage()">開始辨識</button>
                     <button class="btn-secondary" onclick="resetAndRephoto()">重新選擇</button>
                 </div>
             </div>
 
-            <input type="file" id="imageInput" accept="image/*">
-        </div>
+            <input type="file" id="imageInput" accept="image/*" aria-label="選擇藥物圖片">
+        </section>
 
         <!-- 藥單拍照上傳頁 -->
-        <div class="content page" id="prescriptionCapturePage">
-            <button class="nav-back" onclick="goToPage('homePage')">
+        <section class="content page" id="prescriptionCapturePage" aria-label="藥單上傳">
+            <button class="nav-back" onclick="goToPage('homePage')" aria-label="返回首頁">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
                 返回
             </button>
 
-            <div class="upload-area" id="prescriptionUploadArea">
+            <div class="upload-area" id="prescriptionUploadArea" role="button" tabindex="0" aria-label="點擊上傳藥單照片" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('prescriptionImageInput').click()}">
                 <div class="upload-icon-wrap green-bg">
                     <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 </div>
@@ -1191,64 +1268,67 @@
             </div>
 
             <div id="prescriptionImagePreview" class="image-preview" style="display: none;">
-                <img id="prescriptionPreviewImg" alt="preview">
+                <img id="prescriptionPreviewImg" alt="已選擇的藥單圖片預覽">
                 <div class="btn-group">
                     <button id="prescriptionUploadBtn" class="btn-primary green" onclick="uploadPrescriptionImage()">開始提取藥物</button>
                     <button class="btn-secondary" onclick="resetPrescriptionPhoto()">重新選擇</button>
                 </div>
             </div>
 
-            <input type="file" id="prescriptionImageInput" accept="image/*">
-        </div>
+            <input type="file" id="prescriptionImageInput" accept="image/*" aria-label="選擇藥單圖片">
+        </section>
 
         <!-- 辨識結果頁 -->
-        <div class="content page" id="resultPage">
-            <button class="nav-back" onclick="goToPage('homePage')">
+        <section class="content page" id="resultPage" aria-label="辨識結果">
+            <button class="nav-back" onclick="goToPage('homePage')" aria-label="返回首頁">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
                 返回首頁
             </button>
-            <div id="resultContent"></div>
-        </div>
+            <div id="resultContent" role="region" aria-live="polite" aria-label="辨識結果區域"></div>
+        </section>
 
         <!-- 搜尋頁 -->
-        <div class="content page" id="searchPage">
-            <button class="nav-back" onclick="goToPage('homePage')">
+        <section class="content page" id="searchPage" aria-label="搜尋藥物">
+            <button class="nav-back" onclick="goToPage('homePage')" aria-label="返回首頁">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
                 返回
             </button>
 
-            <div class="search-wrap">
-                <span class="search-icon">
+            <div class="search-wrap" role="search">
+                <span class="search-icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 </span>
                 <input type="text" id="searchInput" class="search-field" placeholder="搜尋藥物名稱..."
+                    aria-label="輸入藥物名稱進行搜尋"
                     onkeypress="if(event.key==='Enter') searchDrug()">
             </div>
             <div class="search-action">
                 <button id="searchBtn" class="btn-primary" onclick="searchDrug()">搜尋</button>
             </div>
 
-            <div id="searchResults" style="margin-top: 20px;"></div>
-        </div>
+            <div id="searchResults" style="margin-top: 20px;" role="region" aria-live="polite" aria-label="搜尋結果"></div>
+        </section>
 
         <!-- 藥物詳細頁 -->
-        <div class="content page" id="detailPage">
-            <button class="nav-back" onclick="goToPreviousPage()">
+        <section class="content page" id="detailPage" aria-label="藥物詳細資訊">
+            <button class="nav-back" onclick="goToPreviousPage()" aria-label="返回上一頁">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
                 返回
             </button>
-            <div id="detailContent"></div>
-        </div>
+            <div id="detailContent" role="article"></div>
+        </section>
     </div>
 
     <!-- 管理員登入對話框 -->
-    <div class="login-backdrop" id="loginBackdrop" onclick="if(event.target===this)closeLoginModal()">
+    <div class="login-backdrop" id="loginBackdrop" role="dialog" aria-modal="true" aria-label="管理員登入" onclick="if(event.target===this)closeLoginModal()">
         <div class="login-modal">
             <h3>管理員登入</h3>
+            <label for="loginUser" class="sr-only">帳號</label>
             <input type="text" class="login-field" id="loginUser" placeholder="帳號" autocomplete="username">
+            <label for="loginPass" class="sr-only">密碼</label>
             <input type="password" class="login-field" id="loginPass" placeholder="密碼" autocomplete="current-password"
                 onkeydown="if(event.key==='Enter')doLogin()">
-            <div class="login-error" id="loginError">帳號或密碼錯誤</div>
+            <div class="login-error" id="loginError" role="alert">帳號或密碼錯誤</div>
             <div class="login-btns">
                 <button class="login-cancel-btn" onclick="closeLoginModal()">取消</button>
                 <button class="login-ok-btn" onclick="doLogin()">登入</button>
@@ -1278,6 +1358,11 @@
             if (targetPage) {
                 targetPage.classList.add('active');
                 window.scrollTo({ top: 0, behavior: 'smooth' });
+                // 無障礙：將焦點移至新頁面的第一個可互動元素
+                setTimeout(function() {
+                    var focusTarget = targetPage.querySelector('button, [tabindex="0"], input, a');
+                    if (focusTarget) focusTarget.focus({ preventScroll: true });
+                }, 400);
             } else {
                 console.error('頁面不存在:', pageId);
             }
@@ -1721,7 +1806,15 @@
         // 設定功能
         // ============================================
         function toggleSettings() {
-            document.getElementById('settingsPanel').classList.toggle('show');
+            var panel = document.getElementById('settingsPanel');
+            var toggle = document.querySelector('.settings-toggle');
+            panel.classList.toggle('show');
+            var isOpen = panel.classList.contains('show');
+            toggle.setAttribute('aria-expanded', isOpen);
+            toggle.setAttribute('aria-label', isOpen ? '關閉設定' : '開啟設定');
+            if (isOpen) {
+                panel.querySelector('button, input, [tabindex]').focus();
+            }
         }
 
         document.addEventListener('click', function(e) {
@@ -1729,6 +1822,28 @@
             const toggle = document.querySelector('.settings-toggle');
             if (panel && !panel.contains(e.target) && !toggle.contains(e.target)) {
                 panel.classList.remove('show');
+                toggle.setAttribute('aria-expanded', 'false');
+                toggle.setAttribute('aria-label', '開啟設定');
+            }
+        });
+
+        // 鍵盤快捷鍵：Escape 關閉面板與彈窗
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                var panel = document.getElementById('settingsPanel');
+                if (panel.classList.contains('show')) {
+                    panel.classList.remove('show');
+                    var toggle = document.querySelector('.settings-toggle');
+                    toggle.setAttribute('aria-expanded', 'false');
+                    toggle.setAttribute('aria-label', '開啟設定');
+                    toggle.focus();
+                    return;
+                }
+                var login = document.getElementById('loginBackdrop');
+                if (login.classList.contains('show')) {
+                    closeLoginModal();
+                    return;
+                }
             }
         });
 
