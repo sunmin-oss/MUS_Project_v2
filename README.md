@@ -7,10 +7,13 @@
 ### 🎯 核心特性
 
 - ✅ **多 API 支援** - 預設使用 Gemini API（推薦），亦支援 Google Vision 與 Claude Vision
-- ✅ **年長者友好** - 大字體、高對比度、簡單按鈕、少於 4 個選項
+- ✅ **年長者友好** - Apple HIG 風格 UI、大字體、高對比度、簡潔操作流程
+- ✅ **iOS App 支援** - 使用 Capacitor 封裝為原生 iOS App，支援相機拍照與相簿選取
+- ✅ **日間/夜間模式** - 支援明亮與深色漸變主題切換
 - ✅ **快速部署** - 輕量級設計，支援 Docker 一鍵部署
-- ✅ **多種識別方式** - 支援圖片拍照、上傳辨識和名稱搜尋
+- ✅ **多種識別方式** - 支援圖片拍照、上傳辨識、藥單辨識和名稱搜尋
 - ✅ **完整藥物資訊** - 自動查詢中英文名稱、許可證、成分、用途等
+- ✅ **後台管理** - 藥物資料庫 CRUD、批次更新、統計儀表板
 
 ---
 
@@ -236,20 +239,22 @@ GET /api/drug/{drug_id}
 
 ## 🎨 前端設計特點
 
-### 為年長者優化的設計
+### Apple HIG 風格 UI
 
-1. **大字體** (18px+) - 易於閱讀
-2. **高對比度** - 深紫色背景配白色文字
-3. **簡單按鈕** - 每個頁面最多 2-3 個選項
-4. **清晰流程** - 主頁 → 拍照 / 搜尋 → 結果 → 詳情
-5. **觸摸友好** - 大號按鈕，易於點擊
-6. **直觀圖標** - 使用 emoji 提示功能
+前端採用 Apple Human Interface Guidelines 設計理念，針對年長者優化：
+
+1. **大字體** (18px+) - 支援正常/中/大三種字體大小切換
+2. **日間/夜間模式** - 日間模式綠植色盤，夜間模式深紫藍漸變 + 毛玻璃卡片
+3. **簡潔操作** - 每頁最多 3 個主要按鈕，清晰的返回導航
+4. **觸摸友好** - 大圖標按鈕、充足間距、柔和動畫過渡
+5. **高對比度** - 文字對比度超過 4.5:1，emoji 圖標提示功能
 
 ### 用戶流程
 
 ```
-[首頁] 
+[首頁]
   ├─ [拍照辨識] → 選擇/拍照 → 上傳 → [辨識結果] → [藥物詳情]
+  ├─ [藥單辨識] → 拍攝藥單 → 上傳 → [批次辨識結果]
   └─ [搜尋藥物] → 輸入名稱 → [搜尋結果] → [藥物詳情]
 ```
 
@@ -282,6 +287,12 @@ GET /api/drug/{drug_id}
 2. 點擊「拍照辨識藥物」
 3. 上傳或拍照
 4. 查看識別結果
+
+### 使用 iOS App
+1. 用 Xcode 開啟 `ios/App/App.xcodeproj`
+2. 確保 Flask 後端已啟動（`python main.py`）
+3. 在模擬器或實機上執行
+4. App 會自動連線後端 API
 
 ### 使用 cURL 測試
 
@@ -382,10 +393,56 @@ conn.close()
 
 ---
 
+## � iOS App 開發
+
+### 技術架構
+
+iOS App 使用 [Capacitor](https://capacitorjs.com/) 封裝 Web 前端為原生 App：
+
+| 元件 | 技術 |
+|------|------|
+| App 容器 | Capacitor 8.x |
+| 前端 | index.html（與 Web 版相同） |
+| 相機 | @capacitor/camera |
+| 觸覆回饋 | @capacitor/haptics |
+| 狀態列 | @capacitor/status-bar |
+| 啟動畫面 | @capacitor/splash-screen |
+
+### 前置要求
+
+- macOS + Xcode 15+
+- Node.js 18+
+- CocoaPods（或 Swift Package Manager）
+
+### 建置步驟
+
+```bash
+# 安裝 Node 依賴
+npm install
+
+# 同步 Web 前端到 www/
+npx cap sync ios
+
+# 開啟 Xcode
+npx cap open ios
+```
+
+### iOS 權限說明
+
+App 需要以下權限（已在 Info.plist 配置）：
+- `NSCameraUsageDescription` - 拍攝藥物照片
+- `NSPhotoLibraryUsageDescription` - 從相簿選取藥物照片
+- `NSPhotoLibraryAddUsageDescription` - 儲存辨識結果圖片
+- `NSAppTransportSecurity` - 允許連線本地開發伺服器
+
+---
+
 ## 📚 相關資源
 
+- [Google Gemini API 文件](https://ai.google.dev/docs)
 - [Google Vision API 文件](https://cloud.google.com/vision/docs)
 - [Claude API 文件](https://docs.anthropic.com/)
+- [Capacitor 文件](https://capacitorjs.com/docs)
 - [Flask 官方文件](https://flask.palletsprojects.com/)
 - [Docker 文件](https://docs.docker.com/)
 

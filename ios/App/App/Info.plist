@@ -47,8 +47,6 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
-<<<<<<< HEAD
-=======
 	<key>NSCameraUsageDescription</key>
 	<string>藥知道需要使用相機來拍攝藥物照片進行辨識</string>
 	<key>NSPhotoLibraryUsageDescription</key>
@@ -60,6 +58,5 @@
 		<key>NSAllowsArbitraryLoads</key>
 		<true/>
 	</dict>
->>>>>>> develop
 </dict>
 </plist>
