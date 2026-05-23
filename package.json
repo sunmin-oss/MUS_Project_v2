@@ -1,6 +1,6 @@
 {
   "name": "mus_project_v2",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "**MUS2** 是一個全新設計的**簡化版藥物辨識系統**，針對年長者使用習慣進行優化。本系統改用 **Google Vision API** 或 **Claude Vision API** 進行藥物識別，提供簡潔友好的使用介面。",
   "main": "index.js",
   "directories": {
