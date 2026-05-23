@@ -1344,6 +1344,8 @@
         var currentPage = 'homePage';
         var previousPage = 'homePage';
         var selectedFile = null;
+        var currentAbortController = null;
+        var REQUEST_TIMEOUT_MS = 60000; // 60 秒逾時
 
         // ============================================
         // 頁面導航
