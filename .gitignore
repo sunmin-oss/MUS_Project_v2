@@ -6,6 +6,7 @@ env/
 # IDE
 .vscode/
 .idea/
+.copilot/
 *.swp
 *.swo
 *~
@@ -73,3 +74,4 @@ first_row_debug.txt
 nhi_detail_page_debug.txt
 tfda_detail_page_debug.txt
 Gemini_Generated_Image_*.png
+
