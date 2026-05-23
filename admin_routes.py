@@ -703,7 +703,7 @@ def batch_update_start():
     """啟動批次更新"""
     try:
         from config import config
-        from batch_update import batch_job
+        from scripts.batch_update import batch_job
 
         data = request.get_json() if request.is_json else {}
         delay = float(data.get("delay", 3.0))
@@ -724,7 +724,7 @@ def batch_update_start():
 @admin_bp.route("/api/batch-update/stop", methods=["POST"])
 def batch_update_stop():
     """停止批次更新"""
-    from batch_update import batch_job
+    from scripts.batch_update import batch_job
 
     ok, msg = batch_job.stop()
     return jsonify({"success": ok, "message": msg})
@@ -733,7 +733,7 @@ def batch_update_stop():
 @admin_bp.route("/api/batch-update/pause", methods=["POST"])
 def batch_update_pause():
     """暫停批次更新"""
-    from batch_update import batch_job
+    from scripts.batch_update import batch_job
 
     ok, msg = batch_job.pause()
     return jsonify({"success": ok, "message": msg})
@@ -742,7 +742,7 @@ def batch_update_pause():
 @admin_bp.route("/api/batch-update/resume", methods=["POST"])
 def batch_update_resume():
     """繼續批次更新"""
-    from batch_update import batch_job
+    from scripts.batch_update import batch_job
 
     ok, msg = batch_job.resume()
     return jsonify({"success": ok, "message": msg})
@@ -751,6 +751,6 @@ def batch_update_resume():
 @admin_bp.route("/api/batch-update/status", methods=["GET"])
 def batch_update_status():
     """取得批次更新狀態"""
-    from batch_update import batch_job
+    from scripts.batch_update import batch_job
 
     return jsonify({"success": True, **batch_job.get_status()})

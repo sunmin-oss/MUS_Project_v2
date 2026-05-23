@@ -179,7 +179,7 @@ class BatchUpdateJob:
 
     def _run(self, db_path):
         """背景執行批次更新的主函式"""
-        from nhi_crawler import scrape_nhi_drug_info
+        from scripts.nhi_crawler import scrape_nhi_drug_info
 
         try:
             conn = sqlite3.connect(db_path)
