@@ -84,7 +84,7 @@ def dashboard():
             cursor.execute("SELECT COUNT(*) FROM api_logs")
             total_requests = cursor.fetchone()[0]
             cursor.execute(
-                "SELECT COUNT(*) FROM api_logs WHERE created_at >= datetime('now', '-1 day')"
+                "SELECT COUNT(*) FROM api_logs WHERE date(created_at) = date('now', 'localtime')"
             )
             today_requests = cursor.fetchone()[0]
             cursor.execute(
