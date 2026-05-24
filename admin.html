@@ -380,6 +380,60 @@
         }
 
         /* ===== 對話框 ===== */
+        /* ===== 圖片預覽 ===== */
+        .upload-thumb {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 1px solid #e0e0e0;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+
+        .upload-thumb:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .upload-file-cell {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .upload-file-name {
+            font-size: 13px;
+            color: #555;
+            word-break: break-all;
+        }
+
+        .lightbox-backdrop {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 300;
+            justify-content: center;
+            align-items: center;
+            cursor: zoom-out;
+        }
+
+        .lightbox-backdrop.show {
+            display: flex;
+        }
+
+        .lightbox-img {
+            max-width: 90vw;
+            max-height: 90vh;
+            border-radius: 10px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            animation: modalIn 0.2s;
+        }
+
         .modal-backdrop {
             display: none;
             position: fixed;
@@ -749,7 +803,7 @@
                     <table>
                         <thead>
                             <tr>
-                                <th>檔案名稱</th>
+                                <th>預覽</th>
                                 <th>大小</th>
                                 <th>修改時間</th>
                                 <th>存在時長</th>
@@ -761,6 +815,11 @@
                 </div>
                 <div id="uploadsEmpty" class="loading" style="display:none;">目前沒有上傳檔案</div>
             </div>
+        </div>
+
+        <!-- 圖片預覽 Lightbox -->
+        <div class="lightbox-backdrop" id="imageLightbox" onclick="closeLightbox()">
+            <img class="lightbox-img" id="lightboxImg" src="" alt="預覽" onclick="event.stopPropagation()">
         </div>
 
         <!-- ========== 5. 系統設定 ========== -->
@@ -1276,18 +1335,33 @@
 
             const tbody = document.getElementById('uploadTableBody');
             const empty = document.getElementById('uploadsEmpty');
+            const imgExts = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'];
             if (data.files.length === 0) {
                 tbody.innerHTML = '';
                 empty.style.display = 'block';
             } else {
                 empty.style.display = 'none';
-                tbody.innerHTML = data.files.map(f => `<tr>
-                    <td title="${f.name}">${f.name.length > 40 ? f.name.substring(0, 37) + '...' : f.name}</td>
-                    <td>${f.size_kb} KB</td>
-                    <td>${new Date(f.modified).toLocaleString('zh-TW')}</td>
-                    <td>${f.age_hours < 1 ? '< 1 小時' : Math.round(f.age_hours) + ' 小時'}</td>
-                    <td><button class="btn btn-sm btn-danger" onclick="deleteUpload('${f.name}')">刪除</button></td>
-                </tr>`).join('');
+                tbody.innerHTML = data.files.map(f => {
+                    const ext = f.name.substring(f.name.lastIndexOf('.')).toLowerCase();
+                    const isImage = imgExts.includes(ext);
+                    const imgUrl = `/api/images/${encodeURIComponent(f.name)}`;
+                    const preview = isImage
+                        ? `<div class="upload-file-cell">
+                             <img class="upload-thumb" src="${imgUrl}" alt="${f.name}" onclick="openLightbox('${imgUrl}')" loading="lazy">
+                             <span class="upload-file-name" title="${f.name}">${f.name.length > 30 ? f.name.substring(0, 27) + '...' : f.name}</span>
+                           </div>`
+                        : `<div class="upload-file-cell">
+                             <span style="font-size:32px">📄</span>
+                             <span class="upload-file-name" title="${f.name}">${f.name.length > 30 ? f.name.substring(0, 27) + '...' : f.name}</span>
+                           </div>`;
+                    return `<tr>
+                        <td>${preview}</td>
+                        <td>${f.size_kb} KB</td>
+                        <td>${new Date(f.modified).toLocaleString('zh-TW')}</td>
+                        <td>${f.age_hours < 1 ? '< 1 小時' : Math.round(f.age_hours) + ' 小時'}</td>
+                        <td><button class="btn btn-sm btn-danger" onclick="deleteUpload('${f.name}')">刪除</button></td>
+                    </tr>`;
+                }).join('');
             }
         }
 
@@ -1303,6 +1377,16 @@
             const res = await api('/uploads/cleanup', { method: 'POST', body: JSON.stringify({ hours: 24 }) });
             showToast(res.success ? res.message : '失敗: ' + res.error, res.success ? 'success' : 'error');
             if (res.success) loadUploads();
+        }
+
+        function openLightbox(url) {
+            document.getElementById('lightboxImg').src = url;
+            document.getElementById('imageLightbox').classList.add('show');
+        }
+
+        function closeLightbox() {
+            document.getElementById('imageLightbox').classList.remove('show');
+            document.getElementById('lightboxImg').src = '';
         }
 
         // ============================================
