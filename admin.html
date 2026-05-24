@@ -380,6 +380,78 @@
         }
 
         /* ===== 對話框 ===== */
+        /* ===== 圖片預覽 ===== */
+        .upload-thumb {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 1px solid #e0e0e0;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+
+        .upload-thumb:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .upload-file-cell {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .upload-file-name {
+            font-size: 13px;
+            color: #555;
+            word-break: break-all;
+        }
+
+        .lightbox-backdrop {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 300;
+            justify-content: center;
+            align-items: center;
+            cursor: zoom-out;
+        }
+
+        .lightbox-backdrop.show {
+            display: flex;
+        }
+
+        .lightbox-img {
+            max-width: 90vw;
+            max-height: 80vh;
+            border-radius: 10px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            animation: modalIn 0.2s;
+        }
+
+        .lightbox-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .lightbox-filename {
+            color: #fff;
+            font-size: 13px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 6px 16px;
+            border-radius: 8px;
+            max-width: 90vw;
+            word-break: break-all;
+            text-align: center;
+        }
+
         .modal-backdrop {
             display: none;
             position: fixed;
@@ -497,6 +569,11 @@
         .badge-success {
             background: #e6f4ea;
             color: #1b7340;
+        }
+
+        .badge-primary {
+            background: #e8f0fe;
+            color: #1a73e8;
         }
 
         .badge-warning {
@@ -636,7 +713,10 @@
                     <h1>儀表板</h1>
                     <div class="subtitle">系統狀態總覽</div>
                 </div>
-                <button class="btn btn-outline" onclick="loadDashboard()">🔄 重新整理</button>
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <div id="dashboardClock" style="font-size:14px;color:#666;text-align:right;line-height:1.5;"></div>
+                    <button class="btn btn-outline" onclick="loadDashboard()">🔄 重新整理</button>
+                </div>
             </div>
             <div class="stat-grid" id="dashboardStats"></div>
             <div class="card">
@@ -749,7 +829,8 @@
                     <table>
                         <thead>
                             <tr>
-                                <th>檔案名稱</th>
+                                <th>預覽</th>
+                                <th>模式</th>
                                 <th>大小</th>
                                 <th>修改時間</th>
                                 <th>存在時長</th>
@@ -760,6 +841,14 @@
                     </table>
                 </div>
                 <div id="uploadsEmpty" class="loading" style="display:none;">目前沒有上傳檔案</div>
+            </div>
+        </div>
+
+        <!-- 圖片預覽 Lightbox -->
+        <div class="lightbox-backdrop" id="imageLightbox" onclick="closeLightbox()">
+            <div class="lightbox-content" onclick="event.stopPropagation()">
+                <img class="lightbox-img" id="lightboxImg" src="" alt="預覽">
+                <div class="lightbox-filename" id="lightboxFilename"></div>
             </div>
         </div>
 
@@ -1276,18 +1365,34 @@
 
             const tbody = document.getElementById('uploadTableBody');
             const empty = document.getElementById('uploadsEmpty');
+            const imgExts = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'];
+            const modeLabels = {
+                drug: { text: '💊 藥物辨識', cls: 'badge-primary' },
+                prescription: { text: '📄 藥單辨識', cls: 'badge-success' },
+                unknown: { text: '❓ 未知', cls: 'badge-warning' }
+            };
             if (data.files.length === 0) {
                 tbody.innerHTML = '';
                 empty.style.display = 'block';
             } else {
                 empty.style.display = 'none';
-                tbody.innerHTML = data.files.map(f => `<tr>
-                    <td title="${f.name}">${f.name.length > 40 ? f.name.substring(0, 37) + '...' : f.name}</td>
-                    <td>${f.size_kb} KB</td>
-                    <td>${new Date(f.modified).toLocaleString('zh-TW')}</td>
-                    <td>${f.age_hours < 1 ? '< 1 小時' : Math.round(f.age_hours) + ' 小時'}</td>
-                    <td><button class="btn btn-sm btn-danger" onclick="deleteUpload('${f.name}')">刪除</button></td>
-                </tr>`).join('');
+                tbody.innerHTML = data.files.map(f => {
+                    const ext = f.name.substring(f.name.lastIndexOf('.')).toLowerCase();
+                    const isImage = imgExts.includes(ext);
+                    const imgUrl = `/api/images/${encodeURIComponent(f.name)}`;
+                    const mode = modeLabels[f.mode] || modeLabels.unknown;
+                    const preview = isImage
+                        ? `<img class="upload-thumb" src="${imgUrl}" alt="預覽" onclick="openLightbox('${imgUrl}', '${f.name.replace(/'/g, "\\'")}')" loading="lazy">`
+                        : `<span style="font-size:32px">📄</span>`;
+                    return `<tr>
+                        <td>${preview}</td>
+                        <td><span class="badge ${mode.cls}">${mode.text}</span></td>
+                        <td>${f.size_kb} KB</td>
+                        <td>${new Date(f.modified).toLocaleString('zh-TW')}</td>
+                        <td>${f.age_hours < 1 ? '< 1 小時' : Math.round(f.age_hours) + ' 小時'}</td>
+                        <td><button class="btn btn-sm btn-danger" onclick="deleteUpload('${f.name}')">刪除</button></td>
+                    </tr>`;
+                }).join('');
             }
         }
 
@@ -1303,6 +1408,17 @@
             const res = await api('/uploads/cleanup', { method: 'POST', body: JSON.stringify({ hours: 24 }) });
             showToast(res.success ? res.message : '失敗: ' + res.error, res.success ? 'success' : 'error');
             if (res.success) loadUploads();
+        }
+
+        function openLightbox(url, filename) {
+            document.getElementById('lightboxImg').src = url;
+            document.getElementById('lightboxFilename').textContent = filename || '';
+            document.getElementById('imageLightbox').classList.add('show');
+        }
+
+        function closeLightbox() {
+            document.getElementById('imageLightbox').classList.remove('show');
+            document.getElementById('lightboxImg').src = '';
         }
 
         // ============================================
@@ -1529,6 +1645,18 @@
         // ============================================
         // 初始載入
         // ============================================
+        // 儀表板時鐘
+        function updateDashboardClock() {
+            const el = document.getElementById('dashboardClock');
+            if (!el) return;
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short' });
+            const timeStr = now.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            el.innerHTML = `📅 ${dateStr}<br>⏰ ${timeStr}`;
+        }
+        updateDashboardClock();
+        setInterval(updateDashboardClock, 1000);
+
         loadDashboard();
     </script>
 </body>
