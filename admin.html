@@ -428,10 +428,28 @@
 
         .lightbox-img {
             max-width: 90vw;
-            max-height: 90vh;
+            max-height: 80vh;
             border-radius: 10px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
             animation: modalIn 0.2s;
+        }
+
+        .lightbox-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .lightbox-filename {
+            color: #fff;
+            font-size: 13px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 6px 16px;
+            border-radius: 8px;
+            max-width: 90vw;
+            word-break: break-all;
+            text-align: center;
         }
 
         .modal-backdrop {
@@ -551,6 +569,11 @@
         .badge-success {
             background: #e6f4ea;
             color: #1b7340;
+        }
+
+        .badge-primary {
+            background: #e8f0fe;
+            color: #1a73e8;
         }
 
         .badge-warning {
@@ -804,6 +827,7 @@
                         <thead>
                             <tr>
                                 <th>預覽</th>
+                                <th>模式</th>
                                 <th>大小</th>
                                 <th>修改時間</th>
                                 <th>存在時長</th>
@@ -819,7 +843,10 @@
 
         <!-- 圖片預覽 Lightbox -->
         <div class="lightbox-backdrop" id="imageLightbox" onclick="closeLightbox()">
-            <img class="lightbox-img" id="lightboxImg" src="" alt="預覽" onclick="event.stopPropagation()">
+            <div class="lightbox-content" onclick="event.stopPropagation()">
+                <img class="lightbox-img" id="lightboxImg" src="" alt="預覽">
+                <div class="lightbox-filename" id="lightboxFilename"></div>
+            </div>
         </div>
 
         <!-- ========== 5. 系統設定 ========== -->
@@ -1336,6 +1363,11 @@
             const tbody = document.getElementById('uploadTableBody');
             const empty = document.getElementById('uploadsEmpty');
             const imgExts = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'];
+            const modeLabels = {
+                drug: { text: '💊 藥物辨識', cls: 'badge-primary' },
+                prescription: { text: '📄 藥單辨識', cls: 'badge-success' },
+                unknown: { text: '❓ 未知', cls: 'badge-warning' }
+            };
             if (data.files.length === 0) {
                 tbody.innerHTML = '';
                 empty.style.display = 'block';
@@ -1345,17 +1377,13 @@
                     const ext = f.name.substring(f.name.lastIndexOf('.')).toLowerCase();
                     const isImage = imgExts.includes(ext);
                     const imgUrl = `/api/images/${encodeURIComponent(f.name)}`;
+                    const mode = modeLabels[f.mode] || modeLabels.unknown;
                     const preview = isImage
-                        ? `<div class="upload-file-cell">
-                             <img class="upload-thumb" src="${imgUrl}" alt="${f.name}" onclick="openLightbox('${imgUrl}')" loading="lazy">
-                             <span class="upload-file-name" title="${f.name}">${f.name.length > 30 ? f.name.substring(0, 27) + '...' : f.name}</span>
-                           </div>`
-                        : `<div class="upload-file-cell">
-                             <span style="font-size:32px">📄</span>
-                             <span class="upload-file-name" title="${f.name}">${f.name.length > 30 ? f.name.substring(0, 27) + '...' : f.name}</span>
-                           </div>`;
+                        ? `<img class="upload-thumb" src="${imgUrl}" alt="預覽" onclick="openLightbox('${imgUrl}', '${f.name.replace(/'/g, "\\'")}')" loading="lazy">`
+                        : `<span style="font-size:32px">📄</span>`;
                     return `<tr>
                         <td>${preview}</td>
+                        <td><span class="badge ${mode.cls}">${mode.text}</span></td>
                         <td>${f.size_kb} KB</td>
                         <td>${new Date(f.modified).toLocaleString('zh-TW')}</td>
                         <td>${f.age_hours < 1 ? '< 1 小時' : Math.round(f.age_hours) + ' 小時'}</td>
@@ -1379,8 +1407,9 @@
             if (res.success) loadUploads();
         }
 
-        function openLightbox(url) {
+        function openLightbox(url, filename) {
             document.getElementById('lightboxImg').src = url;
+            document.getElementById('lightboxFilename').textContent = filename || '';
             document.getElementById('imageLightbox').classList.add('show');
         }
 

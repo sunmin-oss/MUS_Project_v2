@@ -504,9 +504,17 @@ def list_uploads():
             ):
                 if f.is_file():
                     stat = f.stat()
+                    # 從檔名前綴判斷辨識模式
+                    if f.name.startswith("drug_"):
+                        mode = "drug"
+                    elif f.name.startswith("prescription_"):
+                        mode = "prescription"
+                    else:
+                        mode = "unknown"
                     files.append(
                         {
                             "name": f.name,
+                            "mode": mode,
                             "size_kb": round(stat.st_size / 1024, 1),
                             "modified": datetime.fromtimestamp(
                                 stat.st_mtime
