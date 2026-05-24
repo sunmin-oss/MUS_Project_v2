@@ -713,7 +713,10 @@
                     <h1>儀表板</h1>
                     <div class="subtitle">系統狀態總覽</div>
                 </div>
-                <button class="btn btn-outline" onclick="loadDashboard()">🔄 重新整理</button>
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <div id="dashboardClock" style="font-size:14px;color:#666;text-align:right;line-height:1.5;"></div>
+                    <button class="btn btn-outline" onclick="loadDashboard()">🔄 重新整理</button>
+                </div>
             </div>
             <div class="stat-grid" id="dashboardStats"></div>
             <div class="card">
@@ -1642,6 +1645,18 @@
         // ============================================
         // 初始載入
         // ============================================
+        // 儀表板時鐘
+        function updateDashboardClock() {
+            const el = document.getElementById('dashboardClock');
+            if (!el) return;
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short' });
+            const timeStr = now.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            el.innerHTML = `📅 ${dateStr}<br>⏰ ${timeStr}`;
+        }
+        updateDashboardClock();
+        setInterval(updateDashboardClock, 1000);
+
         loadDashboard();
     </script>
 </body>
