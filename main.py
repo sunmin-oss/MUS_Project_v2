@@ -317,8 +317,8 @@ def recognize_drug():
                 413,
             )
 
-        # 儲存上傳的檔案
-        filename = str(uuid.uuid4()) + "_" + secure_filename(file.filename)
+        # 儲存上傳的檔案（加入模式前綴以區分辨識類型）
+        filename = "drug_" + str(uuid.uuid4()) + "_" + secure_filename(file.filename)
         filepath = os.path.join(config.UPLOAD_FOLDER, filename)
         file.save(filepath)
         logger.info(f"✓ 檔案已儲存: {filepath}")
@@ -487,8 +487,8 @@ def recognize_prescription():
         if file_size_mb > (config.MAX_FILE_SIZE / (1024 * 1024)):
             return jsonify({"success": False, "error": "檔案太大"}), 413
 
-        # 儲存上傳的檔案
-        filename = str(uuid.uuid4()) + "_" + secure_filename(file.filename)
+        # 儲存上傳的檔案（加入模式前綴以區分辨識類型）
+        filename = "prescription_" + str(uuid.uuid4()) + "_" + secure_filename(file.filename)
         filepath = os.path.join(config.UPLOAD_FOLDER, filename)
         file.save(filepath)
         logger.info(f"✓ 藥單圖片已儲存: {filepath}")
