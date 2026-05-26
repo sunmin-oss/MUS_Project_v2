@@ -673,6 +673,14 @@ def get_drug_detail(drug_id):
         if not drug:
             return jsonify({"success": False, "error": "藥物不存在"}), 404
 
+        # 取得藥物圖片
+        try:
+            images = db.get_drug_images(int(drug_id), limit=5)
+            drug["images"] = images
+        except Exception as e:
+            logger.warning(f"⚠ 取得藥物圖片失敗: {e}")
+            drug["images"] = []
+
         # 整合 NHI 爬蟲取得最新副作用與適應症資訊（含快取機制）
         try:
             # 決定搜尋關鍵字 (優先使用中文品名，較精確；備選使用完整英文名)

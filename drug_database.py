@@ -234,7 +234,7 @@ class DrugDatabase:
             cursor.execute(
                 """
                 SELECT id, license_number, chinese_name, english_name, 
-                       shape, color, special_dosage_form
+                       shape, color, special_dosage_form, label_front, label_back
                 FROM drugs
                 WHERE chinese_name IS NOT NULL AND length(chinese_name) > 0
                 LIMIT ?
@@ -249,23 +249,38 @@ class DrugDatabase:
                 logger.warning("⚠ 無法取得藥物特徵列表")
                 return ""
 
-            # 組織成 AI 易於理解的格式
+            # 組織成精簡格式（減少 token 數量，提升 API 回應速度）
+            # 格式: ID|標記正面/背面|中文名|形狀|顏色
             drug_list = []
             for drug in drugs:
-                drug_id, license, cn_name, en_name, shape, color, form = drug
+                (
+                    drug_id,
+                    license,
+                    cn_name,
+                    en_name,
+                    shape,
+                    color,
+                    form,
+                    label_front,
+                    label_back,
+                ) = drug
 
-                # 組建信息字符串
-                info = f"ID:{drug_id} | 許可證:{license} | 名稱:{cn_name}"
-                if en_name:
-                    info += f" ({en_name})"
+                # 精簡格式：只保留辨識關鍵欄位
+                marks = ""
+                if label_front and label_back:
+                    marks = f"{label_front}/{label_back}"
+                elif label_front:
+                    marks = label_front
+                elif label_back:
+                    marks = label_back
+
+                parts = [str(drug_id), marks, cn_name or ""]
                 if shape:
-                    info += f" | 形狀:{shape}"
+                    parts.append(shape)
                 if color:
-                    info += f" | 顏色:{color}"
-                if form:
-                    info += f" | 劑型:{form}"
+                    parts.append(color)
 
-                drug_list.append(info)
+                drug_list.append("|".join(parts))
 
             logger.info(f"✓ RAG 藥物清單包含 {len(drug_list)} 個藥物")
             return "\n".join(drug_list)
