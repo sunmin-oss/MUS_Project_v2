@@ -416,7 +416,7 @@ class GeminiVisionRecognizer:
                 return self.recognize(image_path)
 
             # 取得資料庫中的藥物特徵列表
-            drug_features = drug_database.get_drug_features_for_rag(sample_size=300)
+            drug_features = drug_database.get_drug_features_for_rag(sample_size=500)
 
             if not drug_features:
                 logger.warning("⚠️ 無法取得藥物特徵清單，回退到普通模式")
@@ -442,40 +442,32 @@ class GeminiVisionRecognizer:
             image_b64 = base64.standard_b64encode(image_data).decode("utf-8")
 
             # 準備改進的提示詞 - 讓 AI 從資料庫中選擇
-            prompt = f"""你是一個藥物識別專家。請分析這張藥物照片，並從以下資料庫中選擇最匹配的藥物。
+            prompt = f"""你是藥物識別專家。分析照片中的藥物，從下方藥物庫選擇最匹配的藥物。
 
-【重要說明】
-- 你MUST從下列藥物庫中選擇，不能自己創造藥物名稱
-- 根據藥物的形狀、顏色、刻印標記進行匹配
-- 如果有多個相似的藥物，都列出來，並按匹配度排序
+【規則】
+- 必須從藥物庫中選擇，不能自創藥物名稱
+- 優先比對刻印標記（最重要）、再比對顏色和形狀
+- 如果照片中能看到刻印文字（如 CCP、265 等），優先匹配標記完全一致的藥物
 
-【資料庫藥物列表】
+【藥物庫格式】每行: ID|刻印標記(正面/背面)|中文名|形狀|顏色
 {drug_features}
 
 【任務】
-1. 分析照片中藥物的視覺特徵：
-   - 形狀（圓形、橢圓形、長方形、菱形等）
-   - 顏色（具體描述，如白色、紅色、黃色等）
-   - 刻印文字或標記
-   - 大小相對比例
-
-2. 從上述資料庫中找出3-5個最匹配的藥物，按匹配度排序
-
-3. 回傳 JSON 格式結果：
+1. 描述照片中藥物的刻印文字、顏色、形狀
+2. 從藥物庫找出 3-5 個最匹配的藥物
+3. 回傳 JSON：
 {{
     "has_medicine": true/false,
     "medicines": [
         {{
             "id": "藥物ID",
-            "license_number": "許可證號",
-            "name": "藥物名稱",
+            "name": "中文名稱",
             "confidence": 0.95,
-            "reason": "匹配理由，說明該藥物為什麼符合照片特徵"
+            "reason": "匹配理由"
         }}
     ]
 }}
-
-只回傳 JSON，不需要其他文字。"""
+只回傳 JSON。"""
 
             # 調用 Gemini API
             logger.info(f"📤 使用 RAG 模式發送圖片到 Gemini API: {image_path}")
@@ -501,7 +493,7 @@ class GeminiVisionRecognizer:
             }
 
             headers = {"Content-Type": "application/json"}
-            response = requests.post(api_url, json=payload, headers=headers, timeout=30)
+            response = requests.post(api_url, json=payload, headers=headers, timeout=60)
 
             logger.info(f"📥 Gemini API 回應狀態碼: {response.status_code}")
 
@@ -616,45 +608,53 @@ class GeminiVisionRecognizer:
 ["普拿疼", "Amoxicillin", "Cetirizine"]
 如果沒看到任何藥物，請回傳 []。"""
 
-            api_url = f"{self.base_url}/{self.model_name}:generateContent?key={self.api_key}"
+            api_url = (
+                f"{self.base_url}/{self.model_name}:generateContent?key={self.api_key}"
+            )
             payload = {
                 "contents": [
                     {
                         "parts": [
                             {"text": prompt},
-                            {"inline_data": {"mime_type": mime_type, "data": image_b64}}
+                            {
+                                "inline_data": {
+                                    "mime_type": mime_type,
+                                    "data": image_b64,
+                                }
+                            },
                         ]
                     }
                 ]
             }
             headers = {"Content-Type": "application/json"}
             response = requests.post(api_url, json=payload, headers=headers, timeout=30)
-            
+
             if response.status_code != 200:
                 logger.error(f"✗ Gemini OCR API 錯誤: {response.text}")
                 return []
-                
+
             response_data = response.json()
             if "candidates" not in response_data or not response_data["candidates"]:
                 return []
-                
+
             candidate = response_data["candidates"][0]
             if "content" not in candidate or "parts" not in candidate["content"]:
                 return []
-                
+
             result_text = ""
             for part in candidate["content"]["parts"]:
                 if "text" in part:
                     result_text = part["text"]
                     break
-                    
+
             # 嘗試解析 JSON
             import re
-            json_match = re.search(r'\[.*\]', result_text, re.DOTALL)
+
+            json_match = re.search(r"\[.*\]", result_text, re.DOTALL)
             if json_match:
                 return json.loads(json_match.group())
             return []
-            
+
         except Exception as e:
             logger.error(f"✗ 藥單 OCR 失敗: {e}")
             return []
