@@ -20,7 +20,11 @@ class TestProfileCRUD:
     def test_list_profiles(self, client, auth_tokens):
         hdr = auth_header(auth_tokens["access"])
         client.post("/api/auth/profiles", headers=hdr, json={"name": "本人"})
-        client.post("/api/auth/profiles", headers=hdr, json={"name": "爸爸", "relationship": "父親"})
+        client.post(
+            "/api/auth/profiles",
+            headers=hdr,
+            json={"name": "爸爸", "relationship": "父親"},
+        )
 
         resp = client.get("/api/auth/profiles", headers=hdr)
         assert resp.status_code == 200
@@ -29,7 +33,9 @@ class TestProfileCRUD:
 
     def test_update_profile(self, client, auth_tokens):
         hdr = auth_header(auth_tokens["access"])
-        create_resp = client.post("/api/auth/profiles", headers=hdr, json={"name": "本人"})
+        create_resp = client.post(
+            "/api/auth/profiles", headers=hdr, json={"name": "本人"}
+        )
         pid = create_resp.get_json()["profile"]["id"]
 
         resp = client.put(
@@ -43,7 +49,9 @@ class TestProfileCRUD:
 
     def test_delete_profile(self, client, auth_tokens):
         hdr = auth_header(auth_tokens["access"])
-        create_resp = client.post("/api/auth/profiles", headers=hdr, json={"name": "臨時"})
+        create_resp = client.post(
+            "/api/auth/profiles", headers=hdr, json={"name": "臨時"}
+        )
         pid = create_resp.get_json()["profile"]["id"]
 
         resp = client.delete(f"/api/auth/profiles/{pid}", headers=hdr)

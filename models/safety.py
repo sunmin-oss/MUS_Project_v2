@@ -22,7 +22,7 @@ class Ingredient(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128), nullable=False, unique=True, index=True)
     name_en = db.Column(db.String(128), index=True)
-    category = db.Column(db.String(64))     # 例: 解熱鎮痛 / 抗組織胺 …
+    category = db.Column(db.String(64))  # 例: 解熱鎮痛 / 抗組織胺 …
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def to_dict(self) -> dict:
@@ -38,7 +38,9 @@ class Ingredient(db.Model):
 drug_ingredients = db.Table(
     "drug_ingredients",
     db.Column("drug_id", db.Integer, db.ForeignKey("drugs.id"), primary_key=True),
-    db.Column("ingredient_id", db.Integer, db.ForeignKey("ingredients.id"), primary_key=True),
+    db.Column(
+        "ingredient_id", db.Integer, db.ForeignKey("ingredients.id"), primary_key=True
+    ),
 )
 
 
@@ -49,8 +51,12 @@ class UserAllergy(db.Model):
     __tablename__ = "user_allergies"
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
-    ingredient_id = db.Column(db.Integer, db.ForeignKey("ingredients.id"), nullable=False)
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=False, index=True
+    )
+    ingredient_id = db.Column(
+        db.Integer, db.ForeignKey("ingredients.id"), nullable=False
+    )
     severity = db.Column(db.String(16), default="moderate")  # mild / moderate / severe
     note = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -83,8 +89,10 @@ class SafetyCheckLog(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), index=True)
     profile_id = db.Column(db.Integer, db.ForeignKey("profiles.id"))
     drug_id = db.Column(db.Integer, db.ForeignKey("drugs.id"))
-    check_type = db.Column(db.String(32), nullable=False)  # allergy / interaction / duplicate
-    result = db.Column(db.String(16), nullable=False)       # safe / warning / danger
+    check_type = db.Column(
+        db.String(32), nullable=False
+    )  # allergy / interaction / duplicate
+    result = db.Column(db.String(16), nullable=False)  # safe / warning / danger
     detail = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 

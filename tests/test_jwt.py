@@ -16,7 +16,9 @@ class TestLogin:
     def test_login_success(self, client):
         u = _unique_user()
         client.post("/api/auth/register", json={"username": u, "password": "Pass1234!"})
-        resp = client.post("/api/auth/login", json={"username": u, "password": "Pass1234!"})
+        resp = client.post(
+            "/api/auth/login", json={"username": u, "password": "Pass1234!"}
+        )
         assert resp.status_code == 200
         data = resp.get_json()
         assert data["success"] is True
@@ -27,11 +29,15 @@ class TestLogin:
     def test_login_wrong_password(self, client):
         u = _unique_user()
         client.post("/api/auth/register", json={"username": u, "password": "Pass1234!"})
-        resp = client.post("/api/auth/login", json={"username": u, "password": "WrongPass"})
+        resp = client.post(
+            "/api/auth/login", json={"username": u, "password": "WrongPass"}
+        )
         assert resp.status_code == 401
 
     def test_login_nonexistent_user(self, client):
-        resp = client.post("/api/auth/login", json={"username": "nouser999", "password": "Pass1234!"})
+        resp = client.post(
+            "/api/auth/login", json={"username": "nouser999", "password": "Pass1234!"}
+        )
         assert resp.status_code == 401
 
     def test_login_missing_body(self, client):

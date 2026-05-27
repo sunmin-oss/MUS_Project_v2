@@ -39,15 +39,21 @@ def auth_tokens(client, app):
     import uuid
 
     username = f"test_{uuid.uuid4().hex[:8]}"
-    client.post("/api/auth/register", json={
-        "username": username,
-        "password": "Test1234!",
-        "display_name": "測試使用者",
-    })
-    resp = client.post("/api/auth/login", json={
-        "username": username,
-        "password": "Test1234!",
-    })
+    client.post(
+        "/api/auth/register",
+        json={
+            "username": username,
+            "password": "Test1234!",
+            "display_name": "測試使用者",
+        },
+    )
+    resp = client.post(
+        "/api/auth/login",
+        json={
+            "username": username,
+            "password": "Test1234!",
+        },
+    )
     data = resp.get_json()
     return {
         "access": data["access_token"],
