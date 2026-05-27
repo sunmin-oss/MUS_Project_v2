@@ -62,6 +62,11 @@ app.config.from_object(config)
 # 初始化上傳資料夾
 config.init_upload_folder()
 
+# 初始化 SQLAlchemy ORM（P0-1）
+from models import db
+
+db.init_app(app)
+
 # 配置 CORS
 CORS(
     app,
