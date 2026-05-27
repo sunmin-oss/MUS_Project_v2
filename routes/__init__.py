@@ -5,5 +5,7 @@ Routes 套件
 """
 
 from routes.auth import auth_bp
+from routes.medications import medications_bp
+from routes.safety import safety_bp
 
-__all__ = ["auth_bp"]
+__all__ = ["auth_bp", "medications_bp", "safety_bp"]

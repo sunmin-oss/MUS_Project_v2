@@ -107,10 +107,12 @@ CORS(
 
 # 註冊 Blueprints（P0-3）
 from admin_routes import admin_bp
-from routes import auth_bp
+from routes import auth_bp, medications_bp, safety_bp
 
 app.register_blueprint(admin_bp)
 app.register_blueprint(auth_bp)
+app.register_blueprint(medications_bp)
+app.register_blueprint(safety_bp)
 
 # 建立新增資料表（users 等，不影響既有表）
 with app.app_context():

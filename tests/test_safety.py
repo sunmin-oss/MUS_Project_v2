@@ -6,15 +6,17 @@ import pytest
 class TestSafetyModels:
     def test_ingredient_create(self, app, db_session):
         from models.safety import Ingredient
+        import uuid
 
-        ing = Ingredient(name="乙醯胺酚", name_en="Acetaminophen", category="解熱鎮痛")
+        uname = f"測試成分_{uuid.uuid4().hex[:6]}"
+        ing = Ingredient(name=uname, name_en="TestIngredient", category="測試類別")
         db_session.add(ing)
         db_session.commit()
 
-        fetched = Ingredient.query.filter_by(name_en="Acetaminophen").first()
+        fetched = Ingredient.query.filter_by(name=uname).first()
         assert fetched is not None
-        assert fetched.name == "乙醯胺酚"
-        assert fetched.to_dict()["category"] == "解熱鎮痛"
+        assert fetched.name_en == "TestIngredient"
+        assert fetched.to_dict()["category"] == "測試類別"
 
     def test_user_allergy_create(self, app, db_session):
         from models.user import User
