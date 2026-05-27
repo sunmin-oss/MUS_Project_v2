@@ -64,8 +64,8 @@ class BatchUpdateJob:
         self._stop_event = threading.Event()
         self._pause_event = threading.Event()
         self._pause_event.set()  # 預設不暫停
-        # 設定選項
-        self.delay = 3.0  # 每次請求間隔（秒）
+        # A3-4: 預設 delay 降至 0.5s（原 3.0s）
+        self.delay = 0.5
         self.skip_cached = True  # 跳過已有快取的
         self.only_empty = True  # 只更新空欄位的藥物
 
@@ -138,7 +138,7 @@ class BatchUpdateJob:
 
         self.reset()
         self.status = "running"
-        self.delay = max(delay, 1.0)  # 最少 1 秒
+        self.delay = max(delay, 0.3)  # A3-4: 最少 0.3 秒（原 1.0）
         self.skip_cached = skip_cached
         self.only_empty = only_empty
         self.start_time = time.time()
@@ -180,9 +180,13 @@ class BatchUpdateJob:
     def _run(self, db_path):
         """背景執行批次更新的主函式"""
         from scripts.nhi_crawler import scrape_nhi_drug_info
+        from playwright.async_api import async_playwright
 
         try:
+            # A3-5: 共用 DB 連線 + 啟用 WAL
             conn = sqlite3.connect(db_path)
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("PRAGMA synchronous=NORMAL")
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
 
@@ -230,6 +234,18 @@ class BatchUpdateJob:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
 
+            # A3-1: 共用瀏覽器實例（避免每次 launch）
+            pw = loop.run_until_complete(async_playwright().start())
+            browser = loop.run_until_complete(pw.chromium.launch(headless=True))
+
+            # A3-5: 共用寫入連線
+            write_conn = sqlite3.connect(db_path)
+            write_conn.execute("PRAGMA journal_mode=WAL")
+            write_conn.execute("PRAGMA synchronous=NORMAL")
+
+            # A3-4: 指數退避追蹤
+            consecutive_failures = 0
+
             for drug in drugs:
                 # 檢查停止
                 if self._stop_event.is_set():
@@ -250,17 +266,18 @@ class BatchUpdateJob:
                     continue
 
                 try:
-                    # 爬取 NHI 資訊
-                    result = loop.run_until_complete(scrape_nhi_drug_info(name))
+                    # A3-1: 傳入共用 browser
+                    result = loop.run_until_complete(
+                        scrape_nhi_drug_info(name, browser=browser)
+                    )
 
                     if result and result.get("status") == "success":
                         details = result.get("details", {})
 
                         if details and len(details) > 2:
-                            # 更新 drugs 表
-                            self._update_drug_fields(db_path, drug_id, details)
-                            # 更新 NHI 快取
-                            self._update_cache(db_path, drug_id, name, details)
+                            # A3-5: 用共用連線更新
+                            self._update_drug_fields_conn(write_conn, drug_id, details)
+                            self._update_cache_conn(write_conn, drug_id, name, details)
                             self.updated += 1
                             self._log(
                                 f"✓ [{drug_id}] {name} — 取得 {len(details)} 個欄位"
@@ -268,25 +285,36 @@ class BatchUpdateJob:
                         else:
                             self.skipped += 1
                             self._log(f"⊘ [{drug_id}] {name} — 無額外資訊")
+
+                        # A3-4: 成功時重設退避
+                        consecutive_failures = 0
                     else:
                         error_msg = (
                             result.get("error", "未知錯誤") if result else "無回應"
                         )
                         self.failed += 1
+                        consecutive_failures += 1
                         self._add_error(drug_id, name, error_msg)
                         self._log(f"✗ [{drug_id}] {name} — {error_msg}")
 
                 except Exception as e:
                     self.failed += 1
+                    consecutive_failures += 1
                     self._add_error(drug_id, name, str(e))
                     self._log(f"✗ [{drug_id}] {name} — 例外: {e}")
 
                 self.processed += 1
 
-                # 延遲，避免被封鎖
+                # A3-4: 延遲 + 指數退避（失敗時逐步增長到最多 30s）
                 if not self._stop_event.is_set():
-                    time.sleep(self.delay)
+                    backoff = min(self.delay * (2 ** consecutive_failures), 30.0)
+                    actual_delay = self.delay if consecutive_failures == 0 else backoff
+                    time.sleep(actual_delay)
 
+            # 清理共用資源
+            write_conn.close()
+            loop.run_until_complete(browser.close())
+            loop.run_until_complete(pw.stop())
             loop.close()
 
             if self._stop_event.is_set():
@@ -306,58 +334,65 @@ class BatchUpdateJob:
             logger.error(f"[BatchUpdate] 嚴重錯誤: {e}", exc_info=True)
 
     def _update_drug_fields(self, db_path, drug_id, details):
-        """從 NHI 資料更新 drugs 表欄位"""
+        """從 NHI 資料更新 drugs 表欄位（舊版，每次開連線）"""
         try:
             conn = sqlite3.connect(db_path)
-            updates = []
-            values = []
-
-            for nhi_field, db_field in NHI_FIELD_MAP.items():
-                if nhi_field in details and details[nhi_field]:
-                    value = details[nhi_field].strip()
-                    if value and value != "--":
-                        updates.append(f"{db_field} = ?")
-                        values.append(value)
-
-            if updates:
-                updates.append("updated_at = CURRENT_TIMESTAMP")
-                values.append(drug_id)
-                set_clause = ", ".join(updates)
-                conn.execute(f"UPDATE drugs SET {set_clause} WHERE id = ?", values)
-                conn.commit()
-
+            self._update_drug_fields_conn(conn, drug_id, details)
             conn.close()
         except Exception as e:
             logger.error(f"✗ 更新 drug {drug_id} 欄位失敗: {e}")
 
+    def _update_drug_fields_conn(self, conn, drug_id, details):
+        """從 NHI 資料更新 drugs 表欄位（A3-5: 共用連線版）"""
+        updates = []
+        values = []
+
+        for nhi_field, db_field in NHI_FIELD_MAP.items():
+            if nhi_field in details and details[nhi_field]:
+                value = details[nhi_field].strip()
+                if value and value != "--":
+                    updates.append(f"{db_field} = ?")
+                    values.append(value)
+
+        if updates:
+            updates.append("updated_at = CURRENT_TIMESTAMP")
+            values.append(drug_id)
+            set_clause = ", ".join(updates)
+            conn.execute(f"UPDATE drugs SET {set_clause} WHERE id = ?", values)
+            conn.commit()
+
     def _update_cache(self, db_path, drug_id, search_name, details):
-        """更新 NHI 快取"""
+        """更新 NHI 快取（舊版，每次開連線）"""
         try:
             conn = sqlite3.connect(db_path)
-            conn.execute("""
-                CREATE TABLE IF NOT EXISTS nhi_cache (
-                    drug_id INTEGER PRIMARY KEY,
-                    search_name TEXT NOT NULL,
-                    nhi_data TEXT NOT NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-            conn.execute(
-                """
-                INSERT INTO nhi_cache (drug_id, search_name, nhi_data, created_at, updated_at)
-                VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-                ON CONFLICT(drug_id) DO UPDATE SET
-                    search_name = excluded.search_name,
-                    nhi_data = excluded.nhi_data,
-                    updated_at = CURRENT_TIMESTAMP
-            """,
-                (drug_id, search_name, json.dumps(details, ensure_ascii=False)),
-            )
-            conn.commit()
+            self._update_cache_conn(conn, drug_id, search_name, details)
             conn.close()
         except Exception as e:
             logger.error(f"✗ 更新快取 {drug_id} 失敗: {e}")
+
+    def _update_cache_conn(self, conn, drug_id, search_name, details):
+        """更新 NHI 快取（A3-5: 共用連線版）"""
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS nhi_cache (
+                drug_id INTEGER PRIMARY KEY,
+                search_name TEXT NOT NULL,
+                nhi_data TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.execute(
+            """
+            INSERT INTO nhi_cache (drug_id, search_name, nhi_data, created_at, updated_at)
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            ON CONFLICT(drug_id) DO UPDATE SET
+                search_name = excluded.search_name,
+                nhi_data = excluded.nhi_data,
+                updated_at = CURRENT_TIMESTAMP
+        """,
+            (drug_id, search_name, json.dumps(details, ensure_ascii=False)),
+        )
+        conn.commit()
 
 
 # 全域單例
