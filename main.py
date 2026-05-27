@@ -67,6 +67,35 @@ from models import db
 
 db.init_app(app)
 
+# 初始化 JWT（A1-3）
+from flask_jwt_extended import JWTManager
+from datetime import timedelta
+
+app.config["JWT_SECRET_KEY"] = config.JWT_SECRET_KEY
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(
+    seconds=config.JWT_ACCESS_TOKEN_EXPIRES
+)
+app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(
+    seconds=config.JWT_REFRESH_TOKEN_EXPIRES
+)
+jwt = JWTManager(app)
+
+# JWT Token 黑名單檢查（A1-3）
+from routes.auth import is_token_revoked
+
+jwt.token_in_blocklist_loader(is_token_revoked)
+
+# 初始化 Rate Limiter（P0-5）
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["200 per minute"],
+    storage_uri="memory://",
+)
+
 # 配置 CORS
 CORS(
     app,
@@ -267,6 +296,7 @@ def health_check():
 
 
 @app.route("/api/recognize", methods=["POST"])
+@limiter.limit("30 per minute")
 def recognize_drug():
     """
     藥物辨識端點
@@ -274,6 +304,7 @@ def recognize_drug():
     請求:
         - 檔案: image (multipart/form-data)
         - 可選: language ('zh' for 中文, 'en' for English)
+        - 可選: Authorization: Bearer <token>（記錄辨識歷史）
 
     回應:
         {
@@ -785,6 +816,18 @@ def get_image(filepath):
 def not_found(error):
     """404 錯誤處理"""
     return jsonify({"success": False, "error": "端點不存在"}), 404
+
+
+@app.errorhandler(405)
+def method_not_allowed(error):
+    """405 錯誤處理"""
+    return jsonify({"success": False, "error": "不允許的 HTTP 方法"}), 405
+
+
+@app.errorhandler(429)
+def ratelimit_handler(error):
+    """429 Rate Limit 錯誤（P0-5）"""
+    return jsonify({"success": False, "error": "請求過於頻繁，請稍後再試"}), 429
 
 
 @app.errorhandler(500)

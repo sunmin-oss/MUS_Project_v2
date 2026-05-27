@@ -758,7 +758,19 @@ def batch_update_resume():
 
 @admin_bp.route("/api/batch-update/status", methods=["GET"])
 def batch_update_status():
-    """取得批次更新狀態"""
+    """取得批次更新狀態（含 A3-6 throughput 指標）"""
     from scripts.batch_update import batch_job
 
-    return jsonify({"success": True, **batch_job.get_status()})
+    status = batch_job.get_status()
+
+    # A3-6: 計算 throughput 指標
+    elapsed = status.get("elapsed") or 0
+    processed = status.get("processed") or 0
+    if elapsed > 0 and processed > 0:
+        status["throughput_per_min"] = round(processed / (elapsed / 60), 2)
+        status["avg_seconds_per_drug"] = round(elapsed / processed, 2)
+    else:
+        status["throughput_per_min"] = 0
+        status["avg_seconds_per_drug"] = 0
+
+    return jsonify({"success": True, **status})

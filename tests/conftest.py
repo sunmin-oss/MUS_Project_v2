@@ -1,4 +1,4 @@
-"""pytest 共用 fixtures（P0-4）"""
+"""pytest 共用 fixtures（P0-4 + Sprint 2）"""
 
 import os
 import sys
@@ -31,3 +31,31 @@ def db_session(app):
 
     with app.app_context():
         yield db.session
+
+
+@pytest.fixture
+def auth_tokens(client, app):
+    """註冊 + 登入並回傳 access / refresh token"""
+    import uuid
+
+    username = f"test_{uuid.uuid4().hex[:8]}"
+    client.post("/api/auth/register", json={
+        "username": username,
+        "password": "Test1234!",
+        "display_name": "測試使用者",
+    })
+    resp = client.post("/api/auth/login", json={
+        "username": username,
+        "password": "Test1234!",
+    })
+    data = resp.get_json()
+    return {
+        "access": data["access_token"],
+        "refresh": data["refresh_token"],
+        "user": data["user"],
+    }
+
+
+def auth_header(token):
+    """產生 Authorization header"""
+    return {"Authorization": f"Bearer {token}"}

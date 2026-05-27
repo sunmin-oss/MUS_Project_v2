@@ -77,6 +77,11 @@ class Config:
         "connect_args": {"check_same_thread": False},
     }
 
+    # JWT 設定（A1-3）
+    JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", os.urandom(32).hex())
+    JWT_ACCESS_TOKEN_EXPIRES = int(os.getenv("JWT_ACCESS_EXPIRES", 900))  # 15 分鐘
+    JWT_REFRESH_TOKEN_EXPIRES = int(os.getenv("JWT_REFRESH_EXPIRES", 604800))  # 7 天
+
     # CORS 設定
     CORS_ORIGINS = [
         "http://localhost:*",
