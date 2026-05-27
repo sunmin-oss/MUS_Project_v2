@@ -5,6 +5,7 @@ SQLAlchemy>=2.0.25
 bcrypt>=4.1.0               # 密碼雜湊（A1-2）
 flask-jwt-extended>=4.6.0   # JWT 認證（A1-3）
 flask-limiter>=3.5.0        # Rate Limit（P0-5）
+APScheduler>=3.10.0         # 用藥提醒排程（S1-3）
 requests==2.31.0
 python-dotenv==1.0.0
 Werkzeug==2.3.7
