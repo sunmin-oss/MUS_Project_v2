@@ -27,12 +27,19 @@ db = SQLAlchemy()
 from models.drug import Drug, DrugImage, NhiCache, ApiLog  # noqa: E402,F401
 from models.user import User  # noqa: E402,F401
 from models.profile import Profile  # noqa: E402,F401
-from models.safety import (
+from models.safety import (  # noqa: E402,F401
     Ingredient,
+    DrugInteraction,
     UserAllergy,
     SafetyCheckLog,
     drug_ingredients,
-)  # noqa: E402,F401
+)
+from models.medication import (  # noqa: E402,F401
+    Medication,
+    MedicationSchedule,
+    AdherenceLog,
+    PushToken,
+)
 
 __all__ = [
     "db",
@@ -43,7 +50,12 @@ __all__ = [
     "User",
     "Profile",
     "Ingredient",
+    "DrugInteraction",
     "UserAllergy",
     "SafetyCheckLog",
     "drug_ingredients",
+    "Medication",
+    "MedicationSchedule",
+    "AdherenceLog",
+    "PushToken",
 ]

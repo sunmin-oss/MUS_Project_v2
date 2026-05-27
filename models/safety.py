@@ -1,9 +1,10 @@
 """
-用藥安全 ORM Models（S6-1 / S6-3 / S6-4 / S6-5）
+用藥安全 ORM Models（S6-1 / S6-2 / S6-3 / S6-4 / S6-5）
 
 新增資料表：
 - ingredients         成分表
 - drug_ingredients    藥物-成分 多對多
+- drug_interactions   藥物交互作用（S6-2）
 - user_allergies      使用者過敏紀錄
 - safety_check_logs   安全檢查紀錄
 """
@@ -42,6 +43,50 @@ drug_ingredients = db.Table(
         "ingredient_id", db.Integer, db.ForeignKey("ingredients.id"), primary_key=True
     ),
 )
+
+
+# ── S6-2  藥物交互作用 ────────────────────
+class DrugInteraction(db.Model):
+    """藥物交互作用紀錄"""
+
+    __tablename__ = "drug_interactions"
+
+    id = db.Column(db.Integer, primary_key=True)
+    ingredient_a_id = db.Column(
+        db.Integer, db.ForeignKey("ingredients.id"), nullable=False, index=True
+    )
+    ingredient_b_id = db.Column(
+        db.Integer, db.ForeignKey("ingredients.id"), nullable=False, index=True
+    )
+    severity = db.Column(
+        db.String(16), nullable=False
+    )  # mild / moderate / severe / contraindicated
+    description = db.Column(db.Text, nullable=False)
+    mechanism = db.Column(db.Text)
+    recommendation = db.Column(db.Text)
+    source = db.Column(db.String(128))  # 資料來源
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    ingredient_a = db.relationship("Ingredient", foreign_keys=[ingredient_a_id])
+    ingredient_b = db.relationship("Ingredient", foreign_keys=[ingredient_b_id])
+
+    __table_args__ = (
+        db.UniqueConstraint(
+            "ingredient_a_id", "ingredient_b_id", name="uq_interaction_pair"
+        ),
+    )
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "ingredient_a": self.ingredient_a.name if self.ingredient_a else None,
+            "ingredient_b": self.ingredient_b.name if self.ingredient_b else None,
+            "severity": self.severity,
+            "description": self.description,
+            "mechanism": self.mechanism,
+            "recommendation": self.recommendation,
+            "source": self.source,
+        }
 
 
 # ── S6-3  使用者過敏紀錄 ───────────────────
