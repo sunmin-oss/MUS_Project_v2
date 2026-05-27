@@ -1,0 +1,20 @@
+# Xcode
+build/
+DerivedData/
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+*.xcuserstate
+xcuserdata/
+
+# XcodeGen 產出（由 project.yml 動態生成）
+MUS-iOS.xcodeproj/
+
+# Swift Package Manager
+.swiftpm/
+.build/
+
+# CocoaPods（目前未使用）
+Pods/
+
+# macOS
+.DS_Store
