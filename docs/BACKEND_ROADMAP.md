@@ -99,6 +99,65 @@ GET  /api/subscription/usage            (查看本月額度使用量)
 
 ---
 
+### A-3：藥品資料更新爬蟲效能優化（資料維運）
+
+**目前狀態**：
+- `scripts/nhi_crawler.py` 使用 Playwright 逐筆爬取 NHI / TFDA
+- `scripts/batch_update.py` 以單執行緒 `for` 迴圈呼叫，搭配固定 `delay`（預設 3s）
+- 全表 **4000 筆需 ~11 小時**（約 10 秒/筆），無法支撐後續 Feature 對最新藥品資料的需求
+
+**瓶頸分析**：
+| # | 位置 | 單筆耗時 | 問題 |
+|---|---|---|---|
+| 1 | 每筆都 `p.chromium.launch()` | 1–2s | Browser 未重用 |
+| 2 | `wait_for_timeout(3000)` 搜尋後硬等 | 3s | 應改顯式等待 |
+| 3 | `wait_for_timeout(5000)` 詳情頁硬等 | 5s | 應改顯式等待 |
+| 4 | `wait_for_timeout(2000)` 圖片 tab 硬等 | 2s | 應改顯式等待 |
+| 5 | `time.sleep(self.delay)` 預設 3s | 3s | 應採成功 0.5s / 失敗指數退避 |
+| 6 | 每筆寫 `tfda_detail_page_debug.txt` | ~50ms | 僅 debug 用途，正式跑無意義 |
+| 7 | 全程單執行緒 `for` 迴圈 | — | 無並發 |
+| 8 | 每筆 sqlite 連線開關 2 次 | ~30ms | 應共用連線、批次 commit |
+
+**優化方案（分階段）**：
+
+| 方案 | 內容 | 預估全表耗時 | 提速 | 成本 |
+|---|---|---|---|---|
+| 現況 | — | 11 小時 | 1× | — |
+| **A** Quick Win | Browser 重用、移除硬等、`wait_for_selector` / `networkidle`、移除 debug 寫檔、`delay` 預設 0.5s、共用 DB 連線、WAL mode | ~1 小時 | 11× | 低 |
+| **B** 並發 | A + `asyncio.Semaphore(5–8)` 多 context 並發、DB 寫入 lock/queue | ~10–15 分鐘 | 44× | 中 |
+| **C** HTTP 直連 | 逆向 NHI/TFDA 表單 POST，改 `httpx.AsyncClient` + `lxml`/`selectolax` | ~3–5 分鐘 | 130× | 中高 |
+| **D** OpenData ETL | 改抓 TFDA / 健保署開放資料 CSV，pandas UPSERT；爬蟲降級為「只補圖片/缺漏」維運工具 | ~1 分鐘 + 補圖 | 600×+ | 中（需確認資料欄位對應）|
+
+**檔案異動範圍**：
+- `scripts/nhi_crawler.py`：抽離 browser/context 管理、改顯式等待
+- `scripts/batch_update.py`：改 async worker pool、DB 連線共用、`PRAGMA journal_mode=WAL`
+- `scripts/opendata_importer.py`（新增）：方案 D 的 CSV ETL 任務
+- `admin_routes.py`：批次更新 API 補充並發/延遲參數
+
+**新增/修改端點**：
+```
+POST /admin/api/batch-update/start         (補充參數：concurrency、mode=crawler/opendata)
+GET  /admin/api/batch-update/status        (現有，補充 throughput 指標)
+POST /admin/api/opendata/sync              (方案 D 新增：手動觸發 OpenData 同步)
+```
+
+**預定資料來源（方案 D 候選）**：
+- TFDA 西藥許可證 OpenData：<https://data.gov.tw/dataset/40402>
+- 健保用藥品項 OpenData：<https://data.gov.tw/dataset/24074>
+- 衛福部藥局名冊（同步用於 Feature 03）：<https://data.gov.tw/dataset/6122>
+
+**排程整合**：
+- 完成方案 D 後，由 `APScheduler` 每週自動執行一次 OpenData 同步
+- 爬蟲改為「按需補缺」：僅針對 OpenData 無提供的欄位（如仿單圖片）執行
+
+**驗收條件**：
+- [ ] 方案 A 完成：全表更新 ≤ 1.5 小時
+- [ ] 方案 B 完成：全表更新 ≤ 20 分鐘
+- [ ] 方案 D 完成：OpenData 同步 ≤ 3 分鐘，覆蓋率 ≥ 90%
+- [ ] 後台 `/admin` 儀表板可顯示更新進度與 throughput（筆/分鐘）
+
+---
+
 ## Feature 01：個人用藥管理
 
 ### 1.1 藥品提醒系統
@@ -500,6 +559,11 @@ flask-socketio           # 或遷移 FastAPI + WebSocket
 
 # 驗證/序列化
 marshmallow              # 請求資料驗證
+
+# 爬蟲優化（A-3）
+httpx                    # 異步 HTTP（方案 C/D）
+selectolax               # 高速 HTML 解析（替代 BeautifulSoup）
+pandas                   # OpenData CSV ETL（方案 D）
 ```
 
 ---
@@ -510,9 +574,11 @@ marshmallow              # 請求資料驗證
 Phase 0（前置架構）：
   A-1 使用者帳號系統 + JWT
   A-2 訂閱/額度管理
+  A-3 爬蟲方案 A（Quick Win）：移除硬等待、Browser 重用、WAL
   資料庫：SQLAlchemy + Alembic 導入
 
 Phase 1（MVP 核心）：
+  A-3 爬蟲方案 B（並發）+ 方案 D（OpenData ETL）
   Spec 06  安全性功能資料表 + SafetyCheckService
   Spec 01  medications / schedules / adherence_logs
            處方箋 OCR（新 prompt）
@@ -556,3 +622,5 @@ Phase 3：
 - [ ] FCM/APNs 推播是否需要佇列（高並發時）？
 - [ ] 交互作用資料庫採購哪個商業資料庫（DrugBank API？授權費用？）？
 - [ ] 是否統一使用 Blueprint 拆分各模組（medications、safety、consultation…）？
+- [ ] 爬蟲優化（A-3）採方案 B（並發 Playwright）或方案 C（HTTP 逆向）作為短期主力？
+- [ ] OpenData（方案 D）欄位對應到 `drugs` 表的差異需要對齊（CAS、ATC 是否齊全）？
