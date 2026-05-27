@@ -2,6 +2,7 @@ import SwiftUI
 
 struct HomeView: View {
     @EnvironmentObject private var env: AppEnvironment
+    @EnvironmentObject private var settings: AppSettings
 
     var body: some View {
         NavigationStack {
@@ -22,22 +23,27 @@ struct HomeView: View {
                         }
                     }
 
-                    PrimaryButton("home.action.recognize", systemImage: "camera.fill") {}
+                    PrimaryButton("home.action.recognize", systemImage: "camera.fill",
+                                  tint: settings.theme.primaryColor) {}
                     PrimaryButton("home.action.prescription",
                                   systemImage: "doc.text.viewfinder",
-                                  style: .bordered) {}
+                                  style: .bordered,
+                                  tint: settings.theme.primaryColor) {}
                     PrimaryButton("home.action.search",
                                   systemImage: "magnifyingglass",
-                                  style: .bordered) {}
+                                  style: .bordered,
+                                  tint: settings.theme.primaryColor) {}
                 }
                 .padding(DesignSpacing.md)
             }
-            .background(DesignColors.background)
+            .background(settings.theme.backgroundGradient.ignoresSafeArea())
             .navigationTitle("tab.home")
         }
     }
 }
 
 #Preview {
-    HomeView().environmentObject(AppEnvironment.makeDefault())
+    HomeView()
+        .environmentObject(AppEnvironment.makeDefault())
+        .environmentObject(AppSettings())
 }

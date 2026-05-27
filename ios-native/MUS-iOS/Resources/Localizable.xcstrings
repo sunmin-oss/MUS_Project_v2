@@ -73,6 +73,39 @@
     "profile.section.account" : {
       "localizations" : { "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "帳號" } } }
     },
+    "profile.section.appearance" : {
+      "localizations" : { "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "外觀" } } }
+    },
+    "profile.font.size" : {
+      "localizations" : { "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "字體大小" } } }
+    },
+    "profile.theme" : {
+      "localizations" : { "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "主題模式" } } }
+    },
+    "profile.theme.preview" : {
+      "localizations" : { "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "快速切換" } } }
+    },
+    "settings.font.normal" : {
+      "localizations" : { "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "標準" } } }
+    },
+    "settings.font.medium" : {
+      "localizations" : { "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "較大" } } }
+    },
+    "settings.font.large" : {
+      "localizations" : { "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "特大" } } }
+    },
+    "settings.theme.system" : {
+      "localizations" : { "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "跟隨系統" } } }
+    },
+    "settings.theme.light" : {
+      "localizations" : { "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "日間（綠植）" } } }
+    },
+    "settings.theme.warm" : {
+      "localizations" : { "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "暖白" } } }
+    },
+    "settings.theme.dark" : {
+      "localizations" : { "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "夜間（深紫漸層）" } } }
+    },
     "profile.section.settings" : {
       "localizations" : { "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "設定" } } }
     },

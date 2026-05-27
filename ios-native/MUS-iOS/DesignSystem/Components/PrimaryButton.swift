@@ -7,6 +7,7 @@ struct PrimaryButton: View {
     let action: () -> Void
     var isLoading: Bool = false
     var style: Style = .filled
+    var tint: Color = DesignColors.primary
 
     enum Style { case filled, bordered }
 
@@ -14,11 +15,13 @@ struct PrimaryButton: View {
          systemImage: String? = nil,
          isLoading: Bool = false,
          style: Style = .filled,
+         tint: Color = DesignColors.primary,
          action: @escaping () -> Void) {
         self.titleKey = titleKey
         self.systemImage = systemImage
         self.isLoading = isLoading
         self.style = style
+        self.tint = tint
         self.action = action
     }
 
@@ -41,18 +44,17 @@ struct PrimaryButton: View {
     }
 
     private var foreground: Color {
-        style == .filled ? .white : DesignColors.primary
+        style == .filled ? .white : tint
     }
 
+    @ViewBuilder
     private var background: some View {
-        Group {
-            switch style {
-            case .filled:
-                DesignColors.primary
-            case .bordered:
-                RoundedRectangle(cornerRadius: DesignRadius.md)
-                    .stroke(DesignColors.primary, lineWidth: 2)
-            }
+        switch style {
+        case .filled:
+            tint
+        case .bordered:
+            RoundedRectangle(cornerRadius: DesignRadius.md)
+                .stroke(tint, lineWidth: 2)
         }
     }
 }

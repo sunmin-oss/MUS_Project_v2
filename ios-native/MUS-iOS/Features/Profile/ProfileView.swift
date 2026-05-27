@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ProfileView: View {
     @EnvironmentObject private var env: AppEnvironment
+    @EnvironmentObject private var settings: AppSettings
 
     var body: some View {
         NavigationStack {
@@ -9,6 +10,46 @@ struct ProfileView: View {
                 Section("profile.section.account") {
                     Label("profile.guest", systemImage: "person.crop.circle")
                         .font(DesignTypography.body)
+                }
+
+                Section("profile.section.appearance") {
+                    Picker(selection: $settings.fontScale) {
+                        ForEach(AppSettings.FontScale.allCases) { scale in
+                            Text(scale.titleKey).tag(scale)
+                        }
+                    } label: {
+                        Label("profile.font.size", systemImage: "textformat.size")
+                    }
+                    .pickerStyle(.menu)
+
+                    Picker(selection: $settings.theme) {
+                        ForEach(AppSettings.Theme.allCases) { theme in
+                            Text(theme.titleKey).tag(theme)
+                        }
+                    } label: {
+                        Label("profile.theme", systemImage: "paintbrush.fill")
+                    }
+                    .pickerStyle(.menu)
+
+                    // 主題色預覽
+                    HStack(spacing: DesignSpacing.sm) {
+                        Text("profile.theme.preview")
+                            .font(DesignTypography.caption)
+                            .foregroundStyle(DesignColors.textSecondary)
+                        Spacer()
+                        ForEach(AppSettings.Theme.allCases) { theme in
+                            Button { settings.theme = theme } label: {
+                                Circle()
+                                    .fill(theme.primaryColor)
+                                    .frame(width: 28, height: 28)
+                                    .overlay(
+                                        Circle().stroke(.primary,
+                                                        lineWidth: settings.theme == theme ? 2 : 0)
+                                    )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
                 }
 
                 Section("profile.section.settings") {
@@ -45,5 +86,7 @@ struct ProfileView: View {
 }
 
 #Preview {
-    ProfileView().environmentObject(AppEnvironment.makeDefault())
+    ProfileView()
+        .environmentObject(AppEnvironment.makeDefault())
+        .environmentObject(AppSettings())
 }
