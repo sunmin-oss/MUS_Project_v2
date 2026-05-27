@@ -1,12 +1,31 @@
 import asyncio
-from playwright.async_api import async_playwright
+from playwright.async_api import async_playwright, Browser, Page
 import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 
-async def scrape_nhi_drug_info(drug_name: str) -> dict:
-    async with async_playwright() as p:
-        # Launch browser in headless mode
-        browser = await p.chromium.launch(headless=True)
+async def scrape_nhi_drug_info(drug_name: str, browser: Browser = None) -> dict:
+    """
+    爬取單一藥物的 NHI/TFDA 詳細資訊。
+
+    Args:
+        drug_name: 藥物名稱
+        browser: 可選，已啟動的 Browser 實例（A3-1 重構：外部注入以重用）
+                 若未提供則自行啟動/關閉
+
+    Returns:
+        dict with status/details or error
+    """
+    own_browser = browser is None
+    pw_ctx = None
+
+    try:
+        if own_browser:
+            pw_ctx = await async_playwright().start()
+            browser = await pw_ctx.chromium.launch(headless=True)
+
         page = await browser.new_page()
 
         try:
@@ -23,21 +42,42 @@ async def scrape_nhi_drug_info(drug_name: str) -> dict:
             button_locator = page.get_by_text("查詢", exact=True)
             await button_locator.click()
 
-            # Wait for results to load
-            await page.wait_for_timeout(3000)
+            # A3-2: 等待結果載入（取代 wait_for_timeout(3000)）
+            try:
+                await page.wait_for_selector(
+                    "table tbody tr, :text('無資料')", timeout=10000
+                )
+            except Exception:
+                pass  # 超時則繼續檢查
 
             # Check if there are no results
             no_data = await page.get_by_text("無資料").count()
             if no_data > 0:
-                await browser.close()
+                await page.close()
+                if own_browser:
+                    await browser.close()
+                    if pw_ctx:
+                        await pw_ctx.stop()
                 return {"status": "success", "results": []}
 
             # Extract table data
-            await page.wait_for_selector("table tbody tr")
+            try:
+                await page.wait_for_selector("table tbody tr", timeout=5000)
+            except Exception:
+                await page.close()
+                if own_browser:
+                    await browser.close()
+                    if pw_ctx:
+                        await pw_ctx.stop()
+                return {"status": "success", "results": []}
 
             rows = await page.locator("table tbody tr").all()
             if not rows:
-                await browser.close()
+                await page.close()
+                if own_browser:
+                    await browser.close()
+                    if pw_ctx:
+                        await pw_ctx.stop()
                 return {"status": "success", "results": []}
 
             # Click the first drug's ID link to get to the details page
@@ -54,13 +94,11 @@ async def scrape_nhi_drug_info(drug_name: str) -> dict:
                 if href.startswith("/"):
                     href = "https://info.nhi.gov.tw" + href
                 await page.goto(href)
-                await page.wait_for_timeout(5000)
+                # A3-2: 等待頁面載入完成（取代 wait_for_timeout(5000)）
+                await page.wait_for_load_state("domcontentloaded")
 
-                # Try to click on the "適應症", "副作用" tabs if they exist (TFDA site might use tabs)
-                # Let's just dump the text first to see the structure
+                # A3-3: 移除 debug 寫檔
                 page_text = await page.locator("body").inner_text()
-                with open("tfda_detail_page_debug.txt", "w", encoding="utf-8") as f:
-                    f.write(page_text)
 
             details = {"id": drug_id, "source_url": href}
 
@@ -120,7 +158,11 @@ async def scrape_nhi_drug_info(drug_name: str) -> dict:
                     tab = page.get_by_text("仿單/外盒標籤/藥品外觀", exact=False)
                     if await tab.count() > 0:
                         await tab.first.click()
-                        await page.wait_for_timeout(2000)
+                        # A3-2: 等待圖片載入（取代 wait_for_timeout(2000)）
+                        try:
+                            await page.wait_for_selector("img", timeout=3000)
+                        except Exception:
+                            pass
 
                         images = await page.locator("img").all()
                         img_urls = []
@@ -147,12 +189,33 @@ async def scrape_nhi_drug_info(drug_name: str) -> dict:
             except Exception as e:
                 details["error_extracting"] = str(e)
 
-            await browser.close()
+            await page.close()
+            if own_browser:
+                await browser.close()
+                if pw_ctx:
+                    await pw_ctx.stop()
             return {"status": "success", "details": details}
 
         except Exception as e:
-            await browser.close()
+            try:
+                await page.close()
+            except Exception:
+                pass
+            if own_browser:
+                try:
+                    await browser.close()
+                except Exception:
+                    pass
+                if pw_ctx:
+                    await pw_ctx.stop()
             return {"error": str(e)}
+    except Exception as e:
+        if own_browser and pw_ctx:
+            try:
+                await pw_ctx.stop()
+            except Exception:
+                pass
+        return {"error": str(e)}
 
 
 if __name__ == "__main__":

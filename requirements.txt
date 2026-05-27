@@ -1,11 +1,18 @@
 Flask==2.3.3
 flask-cors==4.0.0
+Flask-SQLAlchemy>=3.1.0     # ORM 封裝（P0-1）
+SQLAlchemy>=2.0.25
+bcrypt>=4.1.0               # 密碼雜湊（A1-2）
 requests==2.31.0
 python-dotenv==1.0.0
 Werkzeug==2.3.7
 
 # 視覺 API 依賴
 google-generativeai>=0.3.0  # Google Gemini API
+
+# 測試依賴（P0-4）
+pytest>=8.0.0
+pytest-flask>=1.3.0
 
 # 可選依賴（用於特定功能）
 # opencv-python>=4.8.0  # 如果需要本地圖片處理

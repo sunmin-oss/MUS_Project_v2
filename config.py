@@ -56,12 +56,26 @@ class Config:
     # 藥物資料庫設定 (使用絕對路徑確保在任何目錄都能找到)
     _db_path = os.getenv("DATABASE_PATH")
     if _db_path:
-        DATABASE_PATH = _db_path
+        # 若 .env 設成相對路徑，相對於專案根目錄解析
+        DATABASE_PATH = (
+            _db_path
+            if os.path.isabs(_db_path)
+            else os.path.join(os.path.dirname(os.path.abspath(__file__)), _db_path)
+        )
     else:
         # 預設使用 MUS2 目錄中的資料庫
         DATABASE_PATH = os.path.join(
             os.path.dirname(os.path.abspath(__file__)), "drug_recognition.db"
         )
+
+    # SQLAlchemy 設定（P0-1）
+    # 注意：Windows 路徑需轉為 forward-slash，否則 sqlite URI 會解析失敗
+    SQLALCHEMY_DATABASE_URI = f"sqlite:///{Path(DATABASE_PATH).as_posix()}"
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        "pool_pre_ping": True,
+        "connect_args": {"check_same_thread": False},
+    }
 
     # CORS 設定
     CORS_ORIGINS = [

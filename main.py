@@ -62,6 +62,11 @@ app.config.from_object(config)
 # 初始化上傳資料夾
 config.init_upload_folder()
 
+# 初始化 SQLAlchemy ORM（P0-1）
+from models import db
+
+db.init_app(app)
+
 # 配置 CORS
 CORS(
     app,
@@ -71,10 +76,16 @@ CORS(
     },
 )
 
-# 註冊管理員 Blueprint
+# 註冊 Blueprints（P0-3）
 from admin_routes import admin_bp
+from routes import auth_bp
 
 app.register_blueprint(admin_bp)
+app.register_blueprint(auth_bp)
+
+# 建立新增資料表（users 等，不影響既有表）
+with app.app_context():
+    db.create_all()
 
 
 # ============================================
@@ -193,11 +204,11 @@ except Exception as e:
 try:
     from drug_database import DrugDatabase
 
-    db = DrugDatabase(config.DATABASE_PATH)
+    drug_db = DrugDatabase(config.DATABASE_PATH)
     logger.info(f"✓ 藥物資料庫已載入 ({config.DATABASE_PATH})")
 except Exception as e:
     logger.warning(f"⚠ 藥物資料庫初始化失敗: {e}")
-    db = None
+    drug_db = None
 
 
 def allowed_file(filename: str) -> bool:
@@ -244,11 +255,11 @@ def health_check():
         "timestamp": datetime.now().isoformat(),
         "services": {
             "vision_api": "ready" if recognizer else "unavailable",
-            "database": "ready" if db else "unavailable",
+            "database": "ready" if drug_db else "unavailable",
         },
     }
 
-    if recognizer is None or db is None:
+    if recognizer is None or drug_db is None:
         status["status"] = "degraded"
         return jsonify(status), 503
 
@@ -327,12 +338,12 @@ def recognize_drug():
         try:
             # 嘗試使用 RAG 模式（如果有資料庫且 recognizer 支持）
             if (
-                db
+                drug_db
                 and hasattr(recognizer, "recognize_with_rag")
                 and callable(getattr(recognizer, "recognize_with_rag"))
             ):
                 logger.info("📚 使用 RAG 模式識別...")
-                recognition_results = recognizer.recognize_with_rag(filepath, db)
+                recognition_results = recognizer.recognize_with_rag(filepath, drug_db)
             else:
                 logger.info("🔍 使用普通模式識別...")
                 recognition_results = recognizer.recognize(filepath)
@@ -368,16 +379,16 @@ def recognize_drug():
 
             # 如果是 RAG 模式，直接使用 drug_id 查詢
             if source == "gemini_rag" and item.get("drug_id"):
-                if db:
+                if drug_db:
                     try:
-                        drug_detail = db.get_drug_by_id(item.get("drug_id"))
+                        drug_detail = drug_db.get_drug_by_id(item.get("drug_id"))
                     except Exception as e:
                         logger.warning(f"⚠ 查詢藥物 ID {item.get('drug_id')} 失敗: {e}")
             # 否則按名稱查詢
             else:
-                if db:
+                if drug_db:
                     try:
-                        drug_detail_list = db.search_by_name(drug_name, limit=1)
+                        drug_detail_list = drug_db.search_by_name(drug_name, limit=1)
                         if drug_detail_list:
                             drug_detail = drug_detail_list[0]
                     except Exception as e:
@@ -386,9 +397,9 @@ def recognize_drug():
             # 取得藥物圖片
             images = []
             drug_id = drug_detail.get("id") if drug_detail else item.get("drug_id")
-            if db and drug_id:
+            if drug_db and drug_id:
                 try:
-                    images = db.get_drug_images(drug_id, limit=3)
+                    images = drug_db.get_drug_images(drug_id, limit=3)
                 except Exception as e:
                     logger.warning(f"⚠ 取得圖片失敗 (drug_id={drug_id}): {e}")
 
@@ -520,10 +531,10 @@ def recognize_prescription():
                 "details": None,
                 "drug_id": None,
             }
-            if db:
+            if drug_db:
                 try:
                     # 在本地資料庫中尋找該藥物
-                    results = db.search_by_name(name, limit=1)
+                    results = drug_db.search_by_name(name, limit=1)
                     if results:
                         db_drug = results[0]
                         detail["drug_id"] = db_drug.get("id")
@@ -538,7 +549,7 @@ def recognize_prescription():
 
                         # Add image if exists
                         try:
-                            images = db.get_drug_images(detail["drug_id"], limit=1)
+                            images = drug_db.get_drug_images(detail["drug_id"], limit=1)
                             detail["images"] = images
                         except:
                             detail["images"] = []
@@ -593,9 +604,9 @@ def search_drug():
         source = None
 
         # 1. 優先使用數據庫搜尋
-        if db:
+        if drug_db:
             logger.info(f"📚 使用數據庫搜尋: {query}")
-            results = db.search_by_name(query, limit=limit)
+            results = drug_db.search_by_name(query, limit=limit)
             if results:
                 source = "database"
                 logger.info(f"✓ 資料庫搜尋找到 {len(results)} 筆結果")
@@ -603,7 +614,7 @@ def search_drug():
                 for r in results:
                     drug_id = r.get("drug_id") or r.get("id")
                     if drug_id:
-                        r["images"] = db.get_drug_images(drug_id, limit=3)
+                        r["images"] = drug_db.get_drug_images(drug_id, limit=3)
                 return (
                     jsonify(
                         {
@@ -665,17 +676,17 @@ def search_drug():
 def get_drug_detail(drug_id):
     """取得單一藥物詳細資訊"""
     try:
-        if not db:
+        if not drug_db:
             return jsonify({"success": False, "error": "資料庫暫不可用"}), 503
 
-        drug = db.get_drug_by_id(int(drug_id))
+        drug = drug_db.get_drug_by_id(int(drug_id))
 
         if not drug:
             return jsonify({"success": False, "error": "藥物不存在"}), 404
 
         # 取得藥物圖片
         try:
-            images = db.get_drug_images(int(drug_id), limit=5)
+            images = drug_db.get_drug_images(int(drug_id), limit=5)
             drug["images"] = images
         except Exception as e:
             logger.warning(f"⚠ 取得藥物圖片失敗: {e}")
@@ -690,9 +701,9 @@ def get_drug_detail(drug_id):
             elif drug.get("english_name"):
                 search_name = drug.get("english_name")
 
-            if search_name and db:
+            if search_name and drug_db:
                 # 1. 先查快取（7 天內有效）
-                cached = db.get_nhi_cache(int(drug_id))
+                cached = drug_db.get_nhi_cache(int(drug_id))
                 if cached:
                     drug["nhi_details"] = cached
                     logger.info(f"⚡ 使用 NHI 快取資料 (drug_id={drug_id})")
@@ -719,7 +730,7 @@ def get_drug_detail(drug_id):
                         ):  # 至少有 id + source_url 以外的欄位
                             drug["nhi_details"] = details
                             # 3. 存入快取
-                            db.set_nhi_cache(int(drug_id), search_name, details)
+                            drug_db.set_nhi_cache(int(drug_id), search_name, details)
                             logger.info("✓ NHI/TFDA 資訊已爬取並快取")
                         else:
                             logger.info("ℹ NHI/TFDA 無額外資訊可快取")
