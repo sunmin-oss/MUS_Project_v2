@@ -52,6 +52,21 @@ struct ProfileView: View {
                     }
                 }
 
+                Section("profile.section.safety") {
+                    NavigationLink {
+                        AllergyListView()
+                    } label: {
+                        Label("allergy.list.title", systemImage: "allergens")
+                            .font(DesignTypography.body)
+                    }
+                    NavigationLink {
+                        HealthProfileView()
+                    } label: {
+                        Label("health.profile.title", systemImage: "heart.text.square.fill")
+                            .font(DesignTypography.body)
+                    }
+                }
+
                 Section("profile.section.settings") {
                     Toggle(isOn: $env.isDemoMode) {
                         Label("profile.demo.mode", systemImage: "theatermasks.fill")

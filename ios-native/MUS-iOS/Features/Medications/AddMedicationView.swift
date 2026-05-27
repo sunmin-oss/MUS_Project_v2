@@ -16,6 +16,8 @@ struct AddMedicationView: View {
     @State private var reminderTimes: [Date] = []
     @State private var isSaving = false
     @State private var errorMessage: String?
+    @State private var safetyAlerts: [SafetyAlert] = []
+    @State private var showSafetyCheck = false
 
     private let frequencyOptions = ["每日一次", "每日兩次", "三餐飯後", "每 6 小時", "需要時"]
     private let mealTimingOptions = ["飯前", "飯後", "隨時"]
@@ -112,6 +114,9 @@ struct AddMedicationView: View {
                 }
             }
             .onAppear { prefill() }
+            .sheet(isPresented: $showSafetyCheck) {
+                SafetyCheckSheet(alerts: safetyAlerts)
+            }
         }
     }
 
@@ -148,11 +153,19 @@ struct AddMedicationView: View {
                 } else {
                     try await store.add(medication: med, apiClient: env.apiClient)
                 }
-                dismiss()
+                // Trigger safety check after save
+                let alerts = try await env.apiClient.checkSafety(profileId: profileId, drugIds: [0])
+                isSaving = false
+                if alerts.isEmpty {
+                    dismiss()
+                } else {
+                    safetyAlerts = alerts
+                    showSafetyCheck = true
+                }
             } catch {
                 errorMessage = error.localizedDescription
+                isSaving = false
             }
-            isSaving = false
         }
     }
 }

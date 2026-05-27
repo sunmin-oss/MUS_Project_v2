@@ -6,6 +6,7 @@ struct HomeView: View {
     @State private var showRecognition = false
     @State private var showHistory = false
     @State private var showPrescriptionDraft = false
+    @State private var showPharmacy = false
     @StateObject private var prescriptionStore = MedicationStore()
 
     var body: some View {
@@ -43,10 +44,13 @@ struct HomeView: View {
                                   tint: settings.theme.primaryColor) {
                         showHistory = true
                     }
-                    PrimaryButton("home.action.search",
-                                  systemImage: "magnifyingglass",
+                    PrimaryButton("home.action.pharmacy",
+                                  systemImage: "mappin.and.ellipse",
                                   style: .bordered,
-                                  tint: settings.theme.primaryColor) {}
+                                  tint: settings.theme.primaryColor) {
+                        showPharmacy = true
+                    }
+                    .accessibilityIdentifier("home.action.pharmacy")
                 }
                 .padding(DesignSpacing.md)
             }
@@ -57,6 +61,9 @@ struct HomeView: View {
             }
             .navigationDestination(isPresented: $showHistory) {
                 RecognitionHistoryView()
+            }
+            .navigationDestination(isPresented: $showPharmacy) {
+                PharmacyMapView()
             }
             .sheet(isPresented: $showPrescriptionDraft) {
                 PrescriptionDraftView(store: prescriptionStore)
