@@ -3,6 +3,8 @@ import SwiftUI
 struct HomeView: View {
     @EnvironmentObject private var env: AppEnvironment
     @EnvironmentObject private var settings: AppSettings
+    @State private var showRecognition = false
+    @State private var showHistory = false
 
     var body: some View {
         NavigationStack {
@@ -24,11 +26,21 @@ struct HomeView: View {
                     }
 
                     PrimaryButton("home.action.recognize", systemImage: "camera.fill",
-                                  tint: settings.theme.primaryColor) {}
+                                  tint: settings.theme.primaryColor) {
+                        showRecognition = true
+                    }
                     PrimaryButton("home.action.prescription",
                                   systemImage: "doc.text.viewfinder",
                                   style: .bordered,
-                                  tint: settings.theme.primaryColor) {}
+                                  tint: settings.theme.primaryColor) {
+                        showRecognition = true
+                    }
+                    PrimaryButton("home.action.history",
+                                  systemImage: "clock.arrow.circlepath",
+                                  style: .bordered,
+                                  tint: settings.theme.primaryColor) {
+                        showHistory = true
+                    }
                     PrimaryButton("home.action.search",
                                   systemImage: "magnifyingglass",
                                   style: .bordered,
@@ -38,6 +50,12 @@ struct HomeView: View {
             }
             .background(settings.theme.backgroundGradient.ignoresSafeArea())
             .navigationTitle("tab.home")
+            .navigationDestination(isPresented: $showRecognition) {
+                RecognitionView()
+            }
+            .navigationDestination(isPresented: $showHistory) {
+                RecognitionHistoryView()
+            }
         }
     }
 }
