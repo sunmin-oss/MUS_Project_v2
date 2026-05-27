@@ -26,5 +26,24 @@ db = SQLAlchemy()
 # 匯出所有 Model 方便外部 import
 from models.drug import Drug, DrugImage, NhiCache, ApiLog  # noqa: E402,F401
 from models.user import User  # noqa: E402,F401
+from models.profile import Profile  # noqa: E402,F401
+from models.safety import (
+    Ingredient,
+    UserAllergy,
+    SafetyCheckLog,
+    drug_ingredients,
+)  # noqa: E402,F401
 
-__all__ = ["db", "Drug", "DrugImage", "NhiCache", "ApiLog", "User"]
+__all__ = [
+    "db",
+    "Drug",
+    "DrugImage",
+    "NhiCache",
+    "ApiLog",
+    "User",
+    "Profile",
+    "Ingredient",
+    "UserAllergy",
+    "SafetyCheckLog",
+    "drug_ingredients",
+]
