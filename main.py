@@ -118,6 +118,12 @@ app.register_blueprint(safety_bp)
 with app.app_context():
     db.create_all()
 
+# 初始化排程器（S1-3：非測試模式才啟動）
+if not app.config.get("TESTING"):
+    from services.scheduler import init_scheduler
+
+    init_scheduler(app)
+
 
 # ============================================
 # API 使用追蹤
@@ -475,6 +481,30 @@ def recognize_drug():
             "recognized_items": recognized_items,
             "message": f"辨識完成，找到 {len(recognized_items)} 個匹配結果",
         }
+
+        # S6-8: 若有 JWT token 則自動執行安全檢查
+        safety_warnings = []
+        try:
+            from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
+
+            verify_jwt_in_request(optional=True)
+            uid = get_jwt_identity()
+            if uid:
+                from services import SafetyCheckService
+
+                for item in recognized_items:
+                    did = item.get("drug_id")
+                    if did:
+                        result = SafetyCheckService.check(user_id=int(uid), drug_id=did)
+                        if result["overall"] != "safe":
+                            safety_warnings.append(
+                                {"drug_id": did, "name": item["name"], **result}
+                            )
+        except Exception:
+            pass  # JWT 驗證失敗或無 token 時靜默略過
+
+        if safety_warnings:
+            response["safety_warnings"] = safety_warnings
 
         return jsonify(response), 200
 
