@@ -26,6 +26,8 @@ struct AlertBanner: View {
         .padding(DesignSpacing.md)
         .background(backgroundColor)
         .clipShape(RoundedRectangle(cornerRadius: DesignRadius.md))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(Text(level.accessibilityName + ": ") + Text(titleKey))
     }
 
     private var backgroundColor: Color {
@@ -43,6 +45,28 @@ struct AlertBanner: View {
         case .major:    return "exclamationmark.triangle.fill"
         case .moderate: return "exclamationmark.circle.fill"
         case .minor:    return "info.circle.fill"
+        }
+    }
+}
+
+extension AlertBanner.Level {
+    var accessibilityName: String {
+        switch self {
+        case .critical:  return "禁用"
+        case .major:     return "重大警告"
+        case .moderate:  return "中度警告"
+        case .minor:     return "輕度注意"
+        }
+    }
+}
+
+extension SafetyAlert.Level {
+    var accessibilityName: String {
+        switch self {
+        case .contraindicated: return "禁用"
+        case .major:           return "重大警告"
+        case .moderate:        return "中度警告"
+        case .minor:           return "輕度注意"
         }
     }
 }

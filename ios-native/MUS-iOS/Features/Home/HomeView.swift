@@ -32,24 +32,34 @@ struct HomeView: View {
                                   tint: settings.theme.primaryColor) {
                         showRecognition = true
                     }
+                    .accessibilityLabel(Text("home.action.recognize"))
+                    .accessibilityIdentifier("home.action.recognize")
+
                     PrimaryButton("home.action.prescription",
                                   systemImage: "doc.text.viewfinder",
                                   style: .bordered,
                                   tint: settings.theme.primaryColor) {
                         showPrescriptionDraft = true
                     }
+                    .accessibilityLabel(Text("home.action.prescription"))
+                    .accessibilityIdentifier("home.action.prescription")
+
                     PrimaryButton("home.action.history",
                                   systemImage: "clock.arrow.circlepath",
                                   style: .bordered,
                                   tint: settings.theme.primaryColor) {
                         showHistory = true
                     }
+                    .accessibilityLabel(Text("home.action.history"))
+                    .accessibilityIdentifier("home.action.history")
+
                     PrimaryButton("home.action.pharmacy",
                                   systemImage: "mappin.and.ellipse",
                                   style: .bordered,
                                   tint: settings.theme.primaryColor) {
                         showPharmacy = true
                     }
+                    .accessibilityLabel(Text("home.action.pharmacy"))
                     .accessibilityIdentifier("home.action.pharmacy")
                 }
                 .padding(DesignSpacing.md)

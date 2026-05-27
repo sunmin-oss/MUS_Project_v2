@@ -3,6 +3,7 @@ import XCTest
 
 final class W1Tests: XCTestCase {
 
+    @MainActor
     func testFontScalePersistsToUserDefaults() {
         let settings = AppSettings()
         settings.fontScale = .large
@@ -10,6 +11,7 @@ final class W1Tests: XCTestCase {
         settings.fontScale = .normal
     }
 
+    @MainActor
     func testThemePersistsToUserDefaults() {
         let settings = AppSettings()
         settings.theme = .warm

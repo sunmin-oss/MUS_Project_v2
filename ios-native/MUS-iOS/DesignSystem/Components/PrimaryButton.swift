@@ -41,6 +41,8 @@ struct PrimaryButton: View {
             .clipShape(RoundedRectangle(cornerRadius: DesignRadius.md))
         }
         .disabled(isLoading)
+        .accessibilityAddTraits(.isButton)
+        .frame(minWidth: 44, minHeight: 44)
     }
 
     private var foreground: Color {
