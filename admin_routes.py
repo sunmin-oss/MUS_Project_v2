@@ -148,6 +148,111 @@ def dashboard():
 
 
 # ============================================
+# 監控指標 API（Sprint 5）
+# ============================================
+
+
+@admin_bp.route("/api/metrics", methods=["GET"])
+def metrics():
+    """
+    取得系統監控指標（請求數、錯誤率、平均延遲）。
+
+    Query params:
+        ?hours=24  (統計區間，預設 24 小時)
+    """
+    try:
+        from config import config
+
+        hours = int(request.args.get("hours", 24))
+        conn = get_db_connection(config.DATABASE_PATH)
+        cursor = conn.cursor()
+
+        # 總請求數 & 平均延遲
+        cursor.execute(
+            """
+            SELECT COUNT(*) AS total,
+                   COALESCE(AVG(duration_ms), 0) AS avg_latency,
+                   COALESCE(MAX(duration_ms), 0) AS max_latency,
+                   COALESCE(MIN(duration_ms), 0) AS min_latency
+            FROM api_logs
+            WHERE created_at >= datetime('now', ?)
+            """,
+            (f"-{hours} hours",),
+        )
+        row = cursor.fetchone()
+        total = row["total"]
+        avg_latency = round(row["avg_latency"], 2)
+        max_latency = round(row["max_latency"], 2)
+        min_latency = round(row["min_latency"], 2)
+
+        # 錯誤數（status_code >= 400）
+        cursor.execute(
+            """
+            SELECT COUNT(*) FROM api_logs
+            WHERE status_code >= 400
+              AND created_at >= datetime('now', ?)
+            """,
+            (f"-{hours} hours",),
+        )
+        error_count = cursor.fetchone()[0]
+        error_rate = round(error_count / total * 100, 2) if total > 0 else 0
+
+        # 各端點統計
+        cursor.execute(
+            """
+            SELECT endpoint,
+                   COUNT(*) AS count,
+                   ROUND(AVG(duration_ms), 2) AS avg_ms,
+                   SUM(CASE WHEN status_code >= 400 THEN 1 ELSE 0 END) AS errors
+            FROM api_logs
+            WHERE created_at >= datetime('now', ?)
+            GROUP BY endpoint
+            ORDER BY count DESC
+            LIMIT 20
+            """,
+            (f"-{hours} hours",),
+        )
+        endpoints = [dict(r) for r in cursor.fetchall()]
+
+        # 每小時趨勢
+        cursor.execute(
+            """
+            SELECT strftime('%Y-%m-%d %H:00', created_at) AS hour,
+                   COUNT(*) AS count,
+                   ROUND(AVG(duration_ms), 2) AS avg_ms
+            FROM api_logs
+            WHERE created_at >= datetime('now', ?)
+            GROUP BY hour
+            ORDER BY hour
+            """,
+            (f"-{hours} hours",),
+        )
+        hourly = [dict(r) for r in cursor.fetchall()]
+
+        conn.close()
+
+        return jsonify(
+            {
+                "success": True,
+                "period_hours": hours,
+                "summary": {
+                    "total_requests": total,
+                    "error_count": error_count,
+                    "error_rate_pct": error_rate,
+                    "avg_latency_ms": avg_latency,
+                    "max_latency_ms": max_latency,
+                    "min_latency_ms": min_latency,
+                },
+                "endpoints": endpoints,
+                "hourly_trend": hourly,
+            }
+        )
+    except Exception as e:
+        logger.error(f"✗ 指標查詢錯誤: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ============================================
 # 藥物管理 API
 # ============================================
 
