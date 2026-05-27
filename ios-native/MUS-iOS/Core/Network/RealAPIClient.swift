@@ -26,4 +26,14 @@ final class RealAPIClient: APIClientProtocol {
     func fetchConsultations() async throws -> [ConsultationSummary] { throw APIError.unknown }
     func fetchNearbyPharmacies(latitude: Double, longitude: Double, radius: Double) async throws -> [Pharmacy] { throw APIError.unknown }
     func checkSafety(profileId: String, drugIds: [Int]) async throws -> [SafetyAlert] { throw APIError.unknown }
+
+    // MARK: - W3 stubs
+    func fetchMedicationRecords(profileId: String) async throws -> [MedicationRecord] { throw APIError.unknown }
+    func addMedication(_ medication: Medication) async throws -> Medication { throw APIError.unknown }
+    func updateMedication(_ medication: Medication) async throws -> Medication { throw APIError.unknown }
+    func deleteMedication(id: String) async throws { throw APIError.unknown }
+    func recordMedicationTaken(record: MedicationRecord) async throws -> MedicationRecord { throw APIError.unknown }
+    func fetchAllergyItems(profileId: String) async throws -> [AllergyItem] { throw APIError.unknown }
+    func addAllergyItem(_ item: AllergyItem) async throws -> AllergyItem { throw APIError.unknown }
+    func deleteAllergyItem(id: String) async throws { throw APIError.unknown }
 }

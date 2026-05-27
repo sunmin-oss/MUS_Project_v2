@@ -5,6 +5,8 @@ struct HomeView: View {
     @EnvironmentObject private var settings: AppSettings
     @State private var showRecognition = false
     @State private var showHistory = false
+    @State private var showPrescriptionDraft = false
+    @StateObject private var prescriptionStore = MedicationStore()
 
     var body: some View {
         NavigationStack {
@@ -33,7 +35,7 @@ struct HomeView: View {
                                   systemImage: "doc.text.viewfinder",
                                   style: .bordered,
                                   tint: settings.theme.primaryColor) {
-                        showRecognition = true
+                        showPrescriptionDraft = true
                     }
                     PrimaryButton("home.action.history",
                                   systemImage: "clock.arrow.circlepath",
@@ -55,6 +57,9 @@ struct HomeView: View {
             }
             .navigationDestination(isPresented: $showHistory) {
                 RecognitionHistoryView()
+            }
+            .sheet(isPresented: $showPrescriptionDraft) {
+                PrescriptionDraftView(store: prescriptionStore)
             }
         }
     }

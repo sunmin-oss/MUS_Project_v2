@@ -47,4 +47,16 @@ protocol APIClientProtocol {
 
     // MARK: - Safety (Spec 06)
     func checkSafety(profileId: String, drugIds: [Int]) async throws -> [SafetyAlert]
+
+    // MARK: - W3: Medication Records & CRUD
+    func fetchMedicationRecords(profileId: String) async throws -> [MedicationRecord]
+    func addMedication(_ medication: Medication) async throws -> Medication
+    func updateMedication(_ medication: Medication) async throws -> Medication
+    func deleteMedication(id: String) async throws
+    func recordMedicationTaken(record: MedicationRecord) async throws -> MedicationRecord
+
+    // MARK: - W3: Allergy
+    func fetchAllergyItems(profileId: String) async throws -> [AllergyItem]
+    func addAllergyItem(_ item: AllergyItem) async throws -> AllergyItem
+    func deleteAllergyItem(id: String) async throws
 }

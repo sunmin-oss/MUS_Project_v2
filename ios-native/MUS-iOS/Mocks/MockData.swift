@@ -20,13 +20,16 @@ enum MockData {
     static let medications: [Medication] = [
         Medication(id: "m1", profileId: "p1", drugName: "普拿疼 500mg",
                    dosage: "1 顆", frequency: "每 6 小時", mealTiming: "飯後",
-                   nextDoseAt: Date().addingTimeInterval(3600), currentStock: 12),
+                   nextDoseAt: Date().addingTimeInterval(3600), currentStock: 12,
+                   reminderTimes: [], notes: ""),
         Medication(id: "m2", profileId: "p1", drugName: "胃乳片",
                    dosage: "2 顆", frequency: "三餐飯後", mealTiming: "飯後",
-                   nextDoseAt: Date().addingTimeInterval(7200), currentStock: 3),
+                   nextDoseAt: Date().addingTimeInterval(7200), currentStock: 3,
+                   reminderTimes: [], notes: ""),
         Medication(id: "m3", profileId: "p2", drugName: "降血壓藥",
                    dosage: "1 顆", frequency: "每日一次", mealTiming: "早餐後",
-                   nextDoseAt: Date().addingTimeInterval(28800), currentStock: 25)
+                   nextDoseAt: Date().addingTimeInterval(28800), currentStock: 25,
+                   reminderTimes: [], notes: "")
     ]
 
     static let consultations: [ConsultationSummary] = [
@@ -52,5 +55,25 @@ enum MockData {
                     title: "交互作用警告",
                     message: "阿斯匹靈與抗凝血劑同時服用可能增加出血風險",
                     recommendation: "建議諮詢藥師或醫師調整劑量")
+    ]
+
+    static let medicationRecords: [MedicationRecord] = {
+        let day: TimeInterval = 86400
+        let statuses: [MedicationRecord.Status] = [.taken, .taken, .taken, .skipped, .taken, .taken, .taken]
+        return (0..<7).map { i in
+            MedicationRecord(
+                id: "r1_\(i)",
+                medicationId: "m1",
+                profileId: "p1",
+                scheduledAt: Date().addingTimeInterval(-day * Double(6 - i)),
+                takenAt: statuses[i] == .taken ? Date().addingTimeInterval(-day * Double(6 - i) + 300) : nil,
+                status: statuses[i]
+            )
+        }
+    }()
+
+    static let allergyItems: [AllergyItem] = [
+        AllergyItem(id: "a1", profileId: "p1", name: "盤尼西林"),
+        AllergyItem(id: "a2", profileId: "p1", name: "磺胺類")
     ]
 }
