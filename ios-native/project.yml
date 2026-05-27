@@ -42,3 +42,32 @@ targets:
         ENABLE_PREVIEWS: YES
         GENERATE_INFOPLIST_FILE: NO
         SWIFT_EMIT_LOC_STRINGS: YES
+        PRODUCT_MODULE_NAME: MUS_iOS
+
+  MUS-iOSTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: Tests/Unit
+    dependencies:
+      - target: MUS-iOS
+    settings:
+      base:
+        BUNDLE_LOADER: $(TEST_HOST)
+        TEST_HOST: $(BUILT_PRODUCTS_DIR)/藥知道.app/藥知道
+        PRODUCT_BUNDLE_IDENTIFIER: com.mus2.drugrecognition.tests
+        SWIFT_VERSION: "5.9"
+        GENERATE_INFOPLIST_FILE: YES
+
+  MUS-iOSUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: Tests/UI
+    dependencies:
+      - target: MUS-iOS
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.mus2.drugrecognition.uitests
+        SWIFT_VERSION: "5.9"
+        GENERATE_INFOPLIST_FILE: YES

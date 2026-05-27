@@ -11,9 +11,15 @@ final class AppEnvironment: ObservableObject {
         didSet { UserDefaults.standard.set(isDemoMode, forKey: "isDemoMode") }
     }
 
+    /// 目前選取的成員 profileId（跨頁面同步）
+    @Published var selectedProfileId: String {
+        didSet { UserDefaults.standard.set(selectedProfileId, forKey: "selectedProfileId") }
+    }
+
     init(apiClient: APIClientProtocol, isDemoMode: Bool) {
         self.apiClient = apiClient
         self.isDemoMode = isDemoMode
+        self.selectedProfileId = UserDefaults.standard.string(forKey: "selectedProfileId") ?? "p1"
     }
 
     static func makeDefault() -> AppEnvironment {

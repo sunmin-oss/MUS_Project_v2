@@ -21,14 +21,16 @@ struct Profile: Identifiable, Codable, Hashable {
 }
 
 struct Medication: Identifiable, Codable, Hashable {
-    let id: String
-    let profileId: String
-    let drugName: String
-    let dosage: String
-    let frequency: String
-    let mealTiming: String
-    let nextDoseAt: Date
-    let currentStock: Int
+    var id: String
+    var profileId: String
+    var drugName: String
+    var dosage: String
+    var frequency: String
+    var mealTiming: String
+    var nextDoseAt: Date
+    var currentStock: Int
+    var reminderTimes: [Date]
+    var notes: String
 }
 
 struct ConsultationSummary: Identifiable, Codable, Hashable {
@@ -56,6 +58,24 @@ struct SafetyAlert: Identifiable, Codable, Hashable {
     let title: String
     let message: String
     let recommendation: String
+}
+
+// MARK: - W3 Models
+
+struct MedicationRecord: Identifiable, Codable, Hashable {
+    enum Status: String, Codable { case taken, skipped, snoozed }
+    let id: String
+    let medicationId: String
+    let profileId: String
+    let scheduledAt: Date
+    var takenAt: Date?
+    var status: Status
+}
+
+struct AllergyItem: Identifiable, Codable, Hashable {
+    let id: String
+    let profileId: String
+    let name: String
 }
 
 struct RecognitionResult: Codable, Hashable {

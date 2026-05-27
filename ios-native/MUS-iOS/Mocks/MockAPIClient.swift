@@ -59,4 +59,45 @@ final class MockAPIClient: APIClientProtocol {
         await delay()
         return MockData.safetyAlerts
     }
+
+    // MARK: - W3
+    func fetchMedicationRecords(profileId: String) async throws -> [MedicationRecord] {
+        await delay()
+        return MockData.medicationRecords.filter { $0.profileId == profileId }
+    }
+
+    func addMedication(_ medication: Medication) async throws -> Medication {
+        await delay()
+        var m = medication
+        m.id = UUID().uuidString
+        return m
+    }
+
+    func updateMedication(_ medication: Medication) async throws -> Medication {
+        await delay()
+        return medication
+    }
+
+    func deleteMedication(id: String) async throws {
+        await delay()
+    }
+
+    func recordMedicationTaken(record: MedicationRecord) async throws -> MedicationRecord {
+        await delay()
+        return record
+    }
+
+    func fetchAllergyItems(profileId: String) async throws -> [AllergyItem] {
+        await delay()
+        return MockData.allergyItems.filter { $0.profileId == profileId }
+    }
+
+    func addAllergyItem(_ item: AllergyItem) async throws -> AllergyItem {
+        await delay()
+        return item
+    }
+
+    func deleteAllergyItem(id: String) async throws {
+        await delay()
+    }
 }
