@@ -819,3 +819,65 @@ paths:
       responses:
         "200":
           description: 刪除成功
+
+  /admin/api/dashboard:
+    get:
+      summary: 管理員儀表板
+      tags: [Admin]
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: 儀表板統計
+        "403":
+          description: 非管理員
+
+  /admin/api/metrics:
+    get:
+      summary: 系統監控指標
+      tags: [Admin]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: hours
+          in: query
+          schema:
+            type: integer
+            default: 24
+      responses:
+        "200":
+          description: 監控指標
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  period_hours:
+                    type: integer
+                  summary:
+                    type: object
+                    properties:
+                      total_requests:
+                        type: integer
+                      error_count:
+                        type: integer
+                      error_rate_pct:
+                        type: number
+                      avg_latency_ms:
+                        type: number
+                      max_latency_ms:
+                        type: number
+                      min_latency_ms:
+                        type: number
+                  endpoints:
+                    type: array
+                    items:
+                      type: object
+                  hourly_trend:
+                    type: array
+                    items:
+                      type: object
+        "403":
+          description: 非管理員

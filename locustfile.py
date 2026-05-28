@@ -151,4 +151,4 @@ class AdminUser(HttpUser):
 
     @task
     def metrics(self):
-        self.client.get("/api/admin/metrics")
+        self.client.get("/admin/api/metrics")

@@ -17,6 +17,8 @@
 """
 
 from flask import Blueprint, request, jsonify, send_from_directory
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from functools import wraps
 import os
 import sqlite3
 import json
@@ -27,6 +29,42 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
+
+
+def admin_required(fn):
+    """裝飾器：要求 JWT + is_admin=True"""
+
+    @wraps(fn)
+    @jwt_required()
+    def wrapper(*args, **kwargs):
+        from models.user import User
+
+        user_id = int(get_jwt_identity())
+        user = User.query.get(user_id)
+        if not user or not user.is_admin:
+            return jsonify({"success": False, "error": "需要管理員權限"}), 403
+        return fn(*args, **kwargs)
+
+    return wrapper
+
+
+def _ensure_admin_column():
+    """確保 users 表有 is_admin 欄位（向下相容既有資料庫）"""
+    try:
+        from config import config
+
+        conn = sqlite3.connect(config.DATABASE_PATH)
+        cursor = conn.execute("PRAGMA table_info(users)")
+        columns = [row[1] for row in cursor.fetchall()]
+        if "is_admin" not in columns:
+            conn.execute(
+                "ALTER TABLE users ADD COLUMN is_admin BOOLEAN NOT NULL DEFAULT 0"
+            )
+            conn.commit()
+            logger.info("✓ users 表新增 is_admin 欄位")
+        conn.close()
+    except Exception as e:
+        logger.warning(f"⚠ 確認 is_admin 欄位失敗: {e}")
 
 
 def get_db_connection(db_path):
@@ -53,8 +91,9 @@ def admin_page():
 
 
 @admin_bp.route("/api/dashboard", methods=["GET"])
+@admin_required
 def dashboard():
-    """取得儀表板統計資料"""
+    """取得儀表板統計資料（需管理員 JWT）"""
     try:
         from config import config
 
@@ -153,9 +192,10 @@ def dashboard():
 
 
 @admin_bp.route("/api/metrics", methods=["GET"])
+@admin_required
 def metrics():
     """
-    取得系統監控指標（請求數、錯誤率、平均延遲）。
+    取得系統監控指標（請求數、錯誤率、平均延遲）。需管理員 JWT。
 
     Query params:
         ?hours=24  (統計區間，預設 24 小時)

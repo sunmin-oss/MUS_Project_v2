@@ -11,17 +11,17 @@ services:
       API_PROVIDER: gemini
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       GOOGLE_VISION_API_KEY: ${GOOGLE_VISION_API_KEY}
-      DATABASE_PATH: /app/drug_recognition.db
+      DATABASE_PATH: /app/data/drug_recognition.db
       UPLOAD_FOLDER: /app/uploads
       MAX_FILE_SIZE: 10485760
       MIN_CONFIDENCE: '0.3'
       MAX_RESULTS: '5'
-      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-me-in-production}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?必須設定}
       JWT_ACCESS_EXPIRES: '900'
       JWT_REFRESH_EXPIRES: '604800'
     volumes:
       - ./uploads:/app/uploads
-      - ./drug_recognition.db:/app/drug_recognition.db
+      - ./data:/app/data
       - ./medicine_photos:/app/medicine_photos:ro
     restart: unless-stopped
     healthcheck:

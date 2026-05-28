@@ -17,7 +17,8 @@
 8. [服藥紀錄 Adherence](#服藥紀錄-adherence)
 9. [Push Token 管理](#push-token-管理)
 10. [安全檢查 Safety](#安全檢查-safety)
-11. [錯誤碼對照](#錯誤碼對照)
+11. [管理員 Admin](#管理員-admin)
+12. [錯誤碼對照](#錯誤碼對照)
 
 ---
 
@@ -943,6 +944,96 @@ Rate Limit：**30 次 / 分鐘**
   "message": "已刪除"
 }
 ```
+
+---
+
+## 管理員 Admin
+
+> 管理員端點需要 **JWT 認證 + `is_admin=true`**。在 Docker 部署中，nginx 額外限制僅允許內網 IP 存取。
+
+### `GET /admin/api/dashboard`
+
+🔒 **需管理員認證**
+
+取得儀表板統計資料（藥物總數、圖片數、快取數、API 使用統計）。
+
+**回應 200：**
+```json
+{
+  "success": true,
+  "stats": {
+    "drug_count": 4000,
+    "image_count": 3500,
+    "cache_count": 200,
+    "total_requests": 15000,
+    "today_requests": 320,
+    "recognize_count": 150,
+    "search_count": 500,
+    "uploads_size_mb": 45.2,
+    "uploads_file_count": 120
+  },
+  "recent_logs": [
+    {
+      "endpoint": "/api/search",
+      "method": "POST",
+      "status_code": 200,
+      "duration_ms": 12.3,
+      "created_at": "2026-05-28 10:00:00",
+      "query_params": "普拿疼"
+    }
+  ]
+}
+```
+
+---
+
+### `GET /admin/api/metrics`
+
+🔒 **需管理員認證**
+
+取得系統監控指標（請求數、錯誤率、延遲、趨勢）。
+
+**Query 參數：**
+| 參數 | 類型 | 說明 |
+|---|---|---|
+| hours | integer | 統計區間小時數（預設 24） |
+
+**回應 200：**
+```json
+{
+  "success": true,
+  "period_hours": 24,
+  "summary": {
+    "total_requests": 1500,
+    "error_count": 12,
+    "error_rate_pct": 0.8,
+    "avg_latency_ms": 45.2,
+    "max_latency_ms": 1200.5,
+    "min_latency_ms": 1.2
+  },
+  "endpoints": [
+    {
+      "endpoint": "/api/search",
+      "count": 500,
+      "avg_ms": 35.2,
+      "errors": 2
+    }
+  ],
+  "hourly_trend": [
+    {
+      "hour": "2026-05-28 09:00",
+      "count": 120,
+      "avg_ms": 40.1
+    }
+  ]
+}
+```
+
+**錯誤：**
+| 狀態碼 | 情境 |
+|---|---|
+| 401 | 未認證 |
+| 403 | 非管理員 |
 
 ---
 

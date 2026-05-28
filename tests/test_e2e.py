@@ -133,11 +133,28 @@ class TestE2ESafetyFlow:
         token = r.get_json()["access_token"]
         hdr = auth_header(token)
 
-        # 2. 建立成分（直接用 ORM）
+        # 2. 建立成分 + 測試用藥物（直接用 ORM）
         from models import db
         from models.safety import Ingredient
+        from models.drug import Drug
 
         with app.app_context():
+            # 確保有測試藥物
+            test_drug = Drug.query.first()
+            if not test_drug:
+                from sqlalchemy import text
+
+                db.session.execute(
+                    text(
+                        "INSERT INTO drugs (id, license_number, chinese_name, english_name) "
+                        "VALUES (99999, 'E2E-TEST-000', 'E2E測試藥', 'E2E_TEST_DRUG')"
+                    )
+                )
+                db.session.commit()
+                test_drug_id = 99999
+            else:
+                test_drug_id = test_drug.id
+
             ing = Ingredient(name=f"E2E成分_{uuid.uuid4().hex[:6]}")
             db.session.add(ing)
             db.session.commit()
@@ -158,8 +175,10 @@ class TestE2ESafetyFlow:
         r = client.get("/api/safety/allergies", headers=hdr)
         assert len(r.get_json()["allergies"]) >= 1
 
-        # 5. 對任意藥物做安全檢查（drug_id=1）
-        r = client.post("/api/safety/check", headers=hdr, json={"drug_id": 1})
+        # 5. 對測試藥物做安全檢查
+        r = client.post(
+            "/api/safety/check", headers=hdr, json={"drug_id": test_drug_id}
+        )
         assert r.status_code == 200
         data = r.get_json()
         assert data["overall"] in ("safe", "warning", "danger")
