@@ -7,6 +7,7 @@ struct HomeView: View {
     @State private var showHistory = false
     @State private var showPrescriptionDraft = false
     @State private var showPharmacy = false
+    @State private var showSearch = false
     @StateObject private var prescriptionStore = MedicationStore()
 
     var body: some View {
@@ -34,6 +35,15 @@ struct HomeView: View {
                     }
                     .accessibilityLabel(Text("home.action.recognize"))
                     .accessibilityIdentifier("home.action.recognize")
+
+                    PrimaryButton(LocalizedStringKey("藥物名稱搜尋"),
+                                  systemImage: "magnifyingglass",
+                                  style: .bordered,
+                                  tint: settings.theme.primaryColor) {
+                        showSearch = true
+                    }
+                    .accessibilityLabel(Text(verbatim: "藥物名稱搜尋"))
+                    .accessibilityIdentifier("home.action.search")
 
                     PrimaryButton("home.action.prescription",
                                   systemImage: "doc.text.viewfinder",
@@ -74,6 +84,9 @@ struct HomeView: View {
             }
             .navigationDestination(isPresented: $showPharmacy) {
                 PharmacyMapView()
+            }
+            .navigationDestination(isPresented: $showSearch) {
+                DrugSearchView()
             }
             .sheet(isPresented: $showPrescriptionDraft) {
                 PrescriptionDraftView(store: prescriptionStore)
