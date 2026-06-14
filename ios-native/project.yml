@@ -1,0 +1,73 @@
+name: MUS-iOS
+options:
+  bundleIdPrefix: com.mus2
+  deploymentTarget:
+    iOS: "16.0"
+  developmentLanguage: zh-Hant
+  xcodeVersion: "16.4"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+    ENABLE_BITCODE: NO
+    SWIFT_STRICT_CONCURRENCY: minimal
+    DEVELOPMENT_TEAM: ""
+    CODE_SIGN_STYLE: Automatic
+
+targets:
+  MUS-iOS:
+    type: application
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - path: MUS-iOS
+        excludes:
+          - "**/.DS_Store"
+    resources:
+      - path: MUS-iOS/Resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.mus2.drugrecognition
+        PRODUCT_NAME: 藥知道
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: "1"
+        INFOPLIST_FILE: MUS-iOS/Resources/Info.plist
+        TARGETED_DEVICE_FAMILY: "1"  # iPhone only
+        SUPPORTS_MACCATALYST: NO
+        SUPPORTED_PLATFORMS: "iphoneos iphonesimulator"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        ENABLE_PREVIEWS: YES
+        GENERATE_INFOPLIST_FILE: NO
+        SWIFT_EMIT_LOC_STRINGS: YES
+        PRODUCT_MODULE_NAME: MUS_iOS
+
+  MUS-iOSTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: Tests/Unit
+    dependencies:
+      - target: MUS-iOS
+    settings:
+      base:
+        BUNDLE_LOADER: $(TEST_HOST)
+        TEST_HOST: $(BUILT_PRODUCTS_DIR)/藥知道.app/藥知道
+        PRODUCT_BUNDLE_IDENTIFIER: com.mus2.drugrecognition.tests
+        SWIFT_VERSION: "5.9"
+        GENERATE_INFOPLIST_FILE: YES
+
+  MUS-iOSUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: Tests/UI
+    dependencies:
+      - target: MUS-iOS
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.mus2.drugrecognition.uitests
+        SWIFT_VERSION: "5.9"
+        GENERATE_INFOPLIST_FILE: YES
