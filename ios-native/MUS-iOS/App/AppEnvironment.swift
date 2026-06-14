@@ -11,6 +11,9 @@ final class AppEnvironment: ObservableObject {
         didSet {
             UserDefaults.standard.set(isDemoMode, forKey: "isDemoMode")
             apiClient = Self.makeClient(isDemoMode: isDemoMode)
+            if !isDemoMode {
+                Task { await self.apiClient.bootstrap() }
+            }
         }
     }
 
@@ -23,6 +26,10 @@ final class AppEnvironment: ObservableObject {
         self.isDemoMode = isDemoMode
         self.apiClient = Self.makeClient(isDemoMode: isDemoMode)
         self.selectedProfileId = UserDefaults.standard.string(forKey: "selectedProfileId") ?? "p1"
+        // 啟動時 bootstrap RealAPIClient（自動 register-or-login）
+        if !isDemoMode {
+            Task { await self.apiClient.bootstrap() }
+        }
     }
 
     static func makeClient(isDemoMode: Bool) -> APIClientProtocol {
@@ -31,7 +38,7 @@ final class AppEnvironment: ObservableObject {
     }
 
     static func makeDefault() -> AppEnvironment {
-        let demo = UserDefaults.standard.object(forKey: "isDemoMode") as? Bool ?? true
+        let demo = UserDefaults.standard.object(forKey: "isDemoMode") as? Bool ?? false
         return AppEnvironment(isDemoMode: demo)
     }
 }

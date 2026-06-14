@@ -13,6 +13,10 @@ final class MockAPIClient: APIClientProtocol {
         try? await Task.sleep(for: simulatedLatency)
     }
 
+    func bootstrap() async {
+        // Mock 不需要登入
+    }
+
     func recognizeDrug(imageData: Data) async throws -> RecognitionResult {
         await delay()
         let items = MockData.drugs.prefix(2).map {
