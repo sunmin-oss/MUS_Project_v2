@@ -62,6 +62,40 @@ app.config.from_object(config)
 # 初始化上傳資料夾
 config.init_upload_folder()
 
+# 初始化 SQLAlchemy ORM（P0-1）
+from models import db
+
+db.init_app(app)
+
+# 初始化 JWT（A1-3）
+from flask_jwt_extended import JWTManager
+from datetime import timedelta
+
+app.config["JWT_SECRET_KEY"] = config.JWT_SECRET_KEY
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(
+    seconds=config.JWT_ACCESS_TOKEN_EXPIRES
+)
+app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(
+    seconds=config.JWT_REFRESH_TOKEN_EXPIRES
+)
+jwt = JWTManager(app)
+
+# JWT Token 黑名單檢查（A1-3）
+from routes.auth import is_token_revoked
+
+jwt.token_in_blocklist_loader(is_token_revoked)
+
+# 初始化 Rate Limiter（P0-5）
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["200 per minute"],
+    storage_uri="memory://",
+)
+
 # 配置 CORS
 CORS(
     app,
@@ -71,15 +105,42 @@ CORS(
     },
 )
 
-# 註冊管理員 Blueprint
+# 註冊 Blueprints（P0-3）
 from admin_routes import admin_bp
+from routes import auth_bp, medications_bp, safety_bp
 
 app.register_blueprint(admin_bp)
+app.register_blueprint(auth_bp)
+app.register_blueprint(medications_bp)
+app.register_blueprint(safety_bp)
+
+# 建立新增資料表（users 等，不影響既有表）
+with app.app_context():
+    db.create_all()
+
+# 確保既有資料庫有 is_admin 欄位（向下相容）
+from admin_routes import _ensure_admin_column
+
+with app.app_context():
+    _ensure_admin_column()
+
+# 初始化排程器（S1-3：非測試模式才啟動）
+if not app.config.get("TESTING"):
+    from services.scheduler import init_scheduler
+
+    init_scheduler(app)
 
 
 # ============================================
-# API 使用追蹤
+# API 使用追蹤（背景批次寫入，避免 SQLite writer lock）
 # ============================================
+
+import threading
+import queue as _queue
+
+_log_queue: _queue.Queue = _queue.Queue()
+_LOG_FLUSH_INTERVAL = 2  # 秒
+_LOG_BATCH_SIZE = 50
 
 
 def _ensure_api_logs_table():
@@ -103,7 +164,58 @@ def _ensure_api_logs_table():
         logger.warning(f"⚠ 建立 api_logs 表失敗: {e}")
 
 
+def _log_writer_loop():
+    """背景 thread：批次寫入 api_logs + 定期清理 30 天前紀錄"""
+    cleanup_counter = 0
+    while True:
+        batch = []
+        try:
+            # 等待第一筆，最多等 _LOG_FLUSH_INTERVAL 秒
+            item = _log_queue.get(timeout=_LOG_FLUSH_INTERVAL)
+            batch.append(item)
+        except _queue.Empty:
+            pass
+
+        # 取出隊列中剩餘項目（最多 _LOG_BATCH_SIZE）
+        while len(batch) < _LOG_BATCH_SIZE:
+            try:
+                batch.append(_log_queue.get_nowait())
+            except _queue.Empty:
+                break
+
+        if batch:
+            try:
+                conn = sqlite3.connect(config.DATABASE_PATH)
+                conn.executemany(
+                    "INSERT INTO api_logs (endpoint, method, status_code, duration_ms, query_params) "
+                    "VALUES (?, ?, ?, ?, ?)",
+                    batch,
+                )
+                conn.commit()
+                conn.close()
+            except Exception:
+                pass  # 日誌寫入失敗不應影響系統
+
+        # 每 ~500 次 flush（約 15-30 分鐘）清理舊紀錄
+        cleanup_counter += 1
+        if cleanup_counter >= 500:
+            cleanup_counter = 0
+            try:
+                conn = sqlite3.connect(config.DATABASE_PATH)
+                conn.execute(
+                    "DELETE FROM api_logs WHERE created_at < datetime('now', '-30 days')"
+                )
+                conn.commit()
+                conn.close()
+            except Exception:
+                pass
+
+
 _ensure_api_logs_table()
+
+# 啟動背景寫入 thread（daemon=True 隨主程序退出）
+_writer_thread = threading.Thread(target=_log_writer_loop, daemon=True)
+_writer_thread.start()
 
 
 @app.before_request
@@ -114,8 +226,7 @@ def before_request_timer():
 
 @app.after_request
 def log_api_request(response):
-    """記錄 API 請求到資料庫"""
-    # 只記錄 API 端點，排除靜態資源和管理員 API
+    """記錄 API 請求（放入背景佇列，批次寫入）"""
     path = request.path
     if not path.startswith("/api/") or path.startswith("/api/images/"):
         return response
@@ -128,21 +239,17 @@ def log_api_request(response):
             if data and data.get("query"):
                 query_params = data["query"]
 
-        conn = sqlite3.connect(config.DATABASE_PATH)
-        conn.execute(
-            "INSERT INTO api_logs (endpoint, method, status_code, duration_ms, query_params) VALUES (?, ?, ?, ?, ?)",
+        _log_queue.put_nowait(
             (
                 path,
                 request.method,
                 response.status_code,
                 round(duration_ms, 1),
                 query_params,
-            ),
+            )
         )
-        conn.commit()
-        conn.close()
-    except Exception:
-        pass  # 日誌記錄失敗不應影響正常請求
+    except _queue.Full:
+        pass  # 佇列滿時丟棄，不影響請求
 
     return response
 
@@ -193,11 +300,11 @@ except Exception as e:
 try:
     from drug_database import DrugDatabase
 
-    db = DrugDatabase(config.DATABASE_PATH)
+    drug_db = DrugDatabase(config.DATABASE_PATH)
     logger.info(f"✓ 藥物資料庫已載入 ({config.DATABASE_PATH})")
 except Exception as e:
     logger.warning(f"⚠ 藥物資料庫初始化失敗: {e}")
-    db = None
+    drug_db = None
 
 
 def allowed_file(filename: str) -> bool:
@@ -244,11 +351,11 @@ def health_check():
         "timestamp": datetime.now().isoformat(),
         "services": {
             "vision_api": "ready" if recognizer else "unavailable",
-            "database": "ready" if db else "unavailable",
+            "database": "ready" if drug_db else "unavailable",
         },
     }
 
-    if recognizer is None or db is None:
+    if recognizer is None or drug_db is None:
         status["status"] = "degraded"
         return jsonify(status), 503
 
@@ -256,6 +363,7 @@ def health_check():
 
 
 @app.route("/api/recognize", methods=["POST"])
+@limiter.limit("30 per minute")
 def recognize_drug():
     """
     藥物辨識端點
@@ -263,6 +371,7 @@ def recognize_drug():
     請求:
         - 檔案: image (multipart/form-data)
         - 可選: language ('zh' for 中文, 'en' for English)
+        - 可選: Authorization: Bearer <token>（記錄辨識歷史）
 
     回應:
         {
@@ -327,12 +436,12 @@ def recognize_drug():
         try:
             # 嘗試使用 RAG 模式（如果有資料庫且 recognizer 支持）
             if (
-                db
+                drug_db
                 and hasattr(recognizer, "recognize_with_rag")
                 and callable(getattr(recognizer, "recognize_with_rag"))
             ):
                 logger.info("📚 使用 RAG 模式識別...")
-                recognition_results = recognizer.recognize_with_rag(filepath, db)
+                recognition_results = recognizer.recognize_with_rag(filepath, drug_db)
             else:
                 logger.info("🔍 使用普通模式識別...")
                 recognition_results = recognizer.recognize(filepath)
@@ -368,16 +477,16 @@ def recognize_drug():
 
             # 如果是 RAG 模式，直接使用 drug_id 查詢
             if source == "gemini_rag" and item.get("drug_id"):
-                if db:
+                if drug_db:
                     try:
-                        drug_detail = db.get_drug_by_id(item.get("drug_id"))
+                        drug_detail = drug_db.get_drug_by_id(item.get("drug_id"))
                     except Exception as e:
                         logger.warning(f"⚠ 查詢藥物 ID {item.get('drug_id')} 失敗: {e}")
             # 否則按名稱查詢
             else:
-                if db:
+                if drug_db:
                     try:
-                        drug_detail_list = db.search_by_name(drug_name, limit=1)
+                        drug_detail_list = drug_db.search_by_name(drug_name, limit=1)
                         if drug_detail_list:
                             drug_detail = drug_detail_list[0]
                     except Exception as e:
@@ -386,9 +495,9 @@ def recognize_drug():
             # 取得藥物圖片
             images = []
             drug_id = drug_detail.get("id") if drug_detail else item.get("drug_id")
-            if db and drug_id:
+            if drug_db and drug_id:
                 try:
-                    images = db.get_drug_images(drug_id, limit=3)
+                    images = drug_db.get_drug_images(drug_id, limit=3)
                 except Exception as e:
                     logger.warning(f"⚠ 取得圖片失敗 (drug_id={drug_id}): {e}")
 
@@ -431,6 +540,30 @@ def recognize_drug():
             "recognized_items": recognized_items,
             "message": f"辨識完成，找到 {len(recognized_items)} 個匹配結果",
         }
+
+        # S6-8: 若有 JWT token 則自動執行安全檢查
+        safety_warnings = []
+        try:
+            from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
+
+            verify_jwt_in_request(optional=True)
+            uid = get_jwt_identity()
+            if uid:
+                from services import SafetyCheckService
+
+                for item in recognized_items:
+                    did = item.get("drug_id")
+                    if did:
+                        result = SafetyCheckService.check(user_id=int(uid), drug_id=did)
+                        if result["overall"] != "safe":
+                            safety_warnings.append(
+                                {"drug_id": did, "name": item["name"], **result}
+                            )
+        except Exception:
+            pass  # JWT 驗證失敗或無 token 時靜默略過
+
+        if safety_warnings:
+            response["safety_warnings"] = safety_warnings
 
         return jsonify(response), 200
 
@@ -520,10 +653,10 @@ def recognize_prescription():
                 "details": None,
                 "drug_id": None,
             }
-            if db:
+            if drug_db:
                 try:
                     # 在本地資料庫中尋找該藥物
-                    results = db.search_by_name(name, limit=1)
+                    results = drug_db.search_by_name(name, limit=1)
                     if results:
                         db_drug = results[0]
                         detail["drug_id"] = db_drug.get("id")
@@ -538,7 +671,7 @@ def recognize_prescription():
 
                         # Add image if exists
                         try:
-                            images = db.get_drug_images(detail["drug_id"], limit=1)
+                            images = drug_db.get_drug_images(detail["drug_id"], limit=1)
                             detail["images"] = images
                         except:
                             detail["images"] = []
@@ -593,9 +726,9 @@ def search_drug():
         source = None
 
         # 1. 優先使用數據庫搜尋
-        if db:
+        if drug_db:
             logger.info(f"📚 使用數據庫搜尋: {query}")
-            results = db.search_by_name(query, limit=limit)
+            results = drug_db.search_by_name(query, limit=limit)
             if results:
                 source = "database"
                 logger.info(f"✓ 資料庫搜尋找到 {len(results)} 筆結果")
@@ -603,7 +736,7 @@ def search_drug():
                 for r in results:
                     drug_id = r.get("drug_id") or r.get("id")
                     if drug_id:
-                        r["images"] = db.get_drug_images(drug_id, limit=3)
+                        r["images"] = drug_db.get_drug_images(drug_id, limit=3)
                 return (
                     jsonify(
                         {
@@ -665,17 +798,17 @@ def search_drug():
 def get_drug_detail(drug_id):
     """取得單一藥物詳細資訊"""
     try:
-        if not db:
+        if not drug_db:
             return jsonify({"success": False, "error": "資料庫暫不可用"}), 503
 
-        drug = db.get_drug_by_id(int(drug_id))
+        drug = drug_db.get_drug_by_id(int(drug_id))
 
         if not drug:
             return jsonify({"success": False, "error": "藥物不存在"}), 404
 
         # 取得藥物圖片
         try:
-            images = db.get_drug_images(int(drug_id), limit=5)
+            images = drug_db.get_drug_images(int(drug_id), limit=5)
             drug["images"] = images
         except Exception as e:
             logger.warning(f"⚠ 取得藥物圖片失敗: {e}")
@@ -690,9 +823,9 @@ def get_drug_detail(drug_id):
             elif drug.get("english_name"):
                 search_name = drug.get("english_name")
 
-            if search_name and db:
+            if search_name and drug_db:
                 # 1. 先查快取（7 天內有效）
-                cached = db.get_nhi_cache(int(drug_id))
+                cached = drug_db.get_nhi_cache(int(drug_id))
                 if cached:
                     drug["nhi_details"] = cached
                     logger.info(f"⚡ 使用 NHI 快取資料 (drug_id={drug_id})")
@@ -719,7 +852,7 @@ def get_drug_detail(drug_id):
                         ):  # 至少有 id + source_url 以外的欄位
                             drug["nhi_details"] = details
                             # 3. 存入快取
-                            db.set_nhi_cache(int(drug_id), search_name, details)
+                            drug_db.set_nhi_cache(int(drug_id), search_name, details)
                             logger.info("✓ NHI/TFDA 資訊已爬取並快取")
                         else:
                             logger.info("ℹ NHI/TFDA 無額外資訊可快取")
@@ -774,6 +907,18 @@ def get_image(filepath):
 def not_found(error):
     """404 錯誤處理"""
     return jsonify({"success": False, "error": "端點不存在"}), 404
+
+
+@app.errorhandler(405)
+def method_not_allowed(error):
+    """405 錯誤處理"""
+    return jsonify({"success": False, "error": "不允許的 HTTP 方法"}), 405
+
+
+@app.errorhandler(429)
+def ratelimit_handler(error):
+    """429 Rate Limit 錯誤（P0-5）"""
+    return jsonify({"success": False, "error": "請求過於頻繁，請稍後再試"}), 429
 
 
 @app.errorhandler(500)
