@@ -730,6 +730,7 @@
       }
     },
     "tab.home": {
+      "extractionState": "manual",
       "localizations": {
         "zh-Hant": {
           "stringUnit": {
@@ -740,26 +741,29 @@
       }
     },
     "tab.medications": {
+      "extractionState": "manual",
       "localizations": {
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "用藥"
+            "value": "我的用藥"
           }
         }
       }
     },
     "tab.consultation": {
+      "extractionState": "manual",
       "localizations": {
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "諮詢"
+            "value": "藥師諮詢"
           }
         }
       }
     },
     "tab.profile": {
+      "extractionState": "manual",
       "localizations": {
         "zh-Hant": {
           "stringUnit": {
@@ -774,7 +778,7 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "歡迎使用藥知道"
+            "value": "您好，藥知道為您服務"
           }
         }
       }
@@ -784,7 +788,7 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "您的智慧用藥管家"
+            "value": "拍照、搜尋或上傳藥單，立即查詢藥物資訊"
           }
         }
       }
@@ -834,7 +838,7 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "已服藥"
+            "value": "✅ 已服藥"
           }
         }
       }
@@ -844,7 +848,7 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "延後 15 分鐘"
+            "value": "⏰ 延後 15 分鐘"
           }
         }
       }
@@ -854,7 +858,7 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "略過這次"
+            "value": "❌ 略過這次"
           }
         }
       }
@@ -924,7 +928,7 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "庫存：%d 顆"
+            "value": "剩餘庫存：%d 顆"
           }
         }
       }
@@ -1004,7 +1008,7 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "讓藥知道在您的用藥時間發送提醒"
+            "value": "讓藥知道在您的用藥時間發送提醒，避免忘記服藥"
           }
         }
       }
@@ -1014,7 +1018,7 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "開啟推撥通知"
+            "value": "開啟推播通知"
           }
         }
       }
@@ -1094,7 +1098,7 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "訪客"
+            "value": "訪客（尚未登入）"
           }
         }
       }
@@ -1114,7 +1118,7 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "主題風格"
+            "value": "主題模式"
           }
         }
       }
@@ -1124,7 +1128,7 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "主題預覽"
+            "value": "快速切換"
           }
         }
       }
@@ -1134,7 +1138,7 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "展示模式"
+            "value": "展示模式（Mock 資料）"
           }
         }
       }
@@ -1154,7 +1158,7 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "即將推出"
+            "value": "功能開發中"
           }
         }
       }
@@ -1274,7 +1278,7 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "尚無用藥記錄"
+            "value": "尚無用藥紀錄"
           }
         }
       }
@@ -1284,985 +1288,121 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "點擊右上角 + 新增藥品"
+            "value": "新增第一筆用藥以開啟提醒功能"
+          }
+        }
+      }
+    },
+    "home.action.search": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "搜尋藥物名稱"
+          }
+        }
+      }
+    },
+    "settings.font.large": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "特大"
+          }
+        }
+      }
+    },
+    "settings.font.medium": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "較大"
+          }
+        }
+      }
+    },
+    "settings.font.normal": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "標準"
+          }
+        }
+      }
+    },
+    "settings.theme.dark": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "夜間（深紫漸層）"
+          }
+        }
+      }
+    },
+    "settings.theme.light": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "日間（綠植）"
+          }
+        }
+      }
+    },
+    "settings.theme.system": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "跟隨系統"
+          }
+        }
+      }
+    },
+    "settings.theme.warm": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暖白"
+          }
+        }
+      }
+    },
+    "general.cancel": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "取消"
+          }
+        }
+      }
+    },
+    "general.save": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "儲存"
+          }
+        }
+      }
+    },
+    "general.done": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "完成"
           }
         }
       }
     }
   },
-  "home.action.search": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "搜尋藥物名稱"
-        }
-      }
-    }
-  },
-  "home.welcome.subtitle": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "拍照、搜尋或上傳藥單，立即查詢藥物資訊"
-        }
-      }
-    }
-  },
-  "home.welcome.title": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "您好，藥知道為您服務"
-        }
-      }
-    }
-  },
-  "home.action.recognize": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "拍照辨識藥物"
-        }
-      }
-    }
-  },
-  "medications.empty.message": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "新增第一筆用藥以開啟提醒功能"
-        }
-      }
-    }
-  },
-  "medications.empty.title": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "尚無用藥紀錄"
-        }
-      }
-    }
-  },
-  "medications.stock": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "剩餘庫存：%d 顆"
-        }
-      }
-    }
-  },
-  "profile.coming.soon": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "功能開發中"
-        }
-      }
-    }
-  },
-  "profile.demo.mode": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "展示模式（Mock 資料）"
-        }
-      }
-    }
-  },
-  "profile.font.size": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "字體大小"
-        }
-      }
-    }
-  },
-  "profile.guest": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "訪客（尚未登入）"
-        }
-      }
-    }
-  },
-  "profile.notifications": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "通知設定"
-        }
-      }
-    }
-  },
-  "profile.section.about": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "關於"
-        }
-      }
-    }
-  },
-  "profile.section.account": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "帳號"
-        }
-      }
-    }
-  },
-  "profile.section.appearance": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "外觀"
-        }
-      }
-    }
-  },
-  "profile.section.settings": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "設定"
-        }
-      }
-    }
-  },
-  "profile.theme": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "主題模式"
-        }
-      }
-    }
-  },
-  "profile.theme.preview": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "快速切換"
-        }
-      }
-    }
-  },
-  "profile.version": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "版本"
-        }
-      }
-    }
-  },
-  "settings.font.large": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "特大"
-        }
-      }
-    }
-  },
-  "settings.font.medium": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "較大"
-        }
-      }
-    }
-  },
-  "settings.font.normal": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "標準"
-        }
-      }
-    }
-  },
-  "settings.theme.dark": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "夜間（深紫漸層）"
-        }
-      }
-    }
-  },
-  "settings.theme.light": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "日間（綠植）"
-        }
-      }
-    }
-  },
-  "settings.theme.system": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "跟隨系統"
-        }
-      }
-    }
-  },
-  "settings.theme.warm": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "暖白"
-        }
-      }
-    }
-  },
-  "tab.consultation": {
-    "extractionState": "manual",
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "藥師諮詢"
-        }
-      }
-    }
-  },
-  "tab.home": {
-    "extractionState": "manual",
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "首頁"
-        }
-      }
-    }
-  },
-  "tab.medications": {
-    "extractionState": "manual",
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "我的用藥"
-        }
-      }
-    }
-  },
-  "tab.profile": {
-    "extractionState": "manual",
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "我的"
-        }
-      }
-    }
-  },
-  "medications.add.title": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "新增用藥"
-        }
-      }
-    }
-  },
-  "medications.edit.title": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "編輯用藥"
-        }
-      }
-    }
-  },
-  "medications.drug.name": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "藥品名稱"
-        }
-      }
-    }
-  },
-  "medications.dosage": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "劑量"
-        }
-      }
-    }
-  },
-  "medications.frequency": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "服用頻率"
-        }
-      }
-    }
-  },
-  "medications.meal.timing": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "用餐時機"
-        }
-      }
-    }
-  },
-  "medications.stock.low": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "庫存不足"
-        }
-      }
-    }
-  },
-  "medications.reminder.times": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "提醒時間"
-        }
-      }
-    }
-  },
-  "medications.notes": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "備注"
-        }
-      }
-    }
-  },
-  "medications.confirm.title": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "服藥確認"
-        }
-      }
-    }
-  },
-  "medications.confirm.taken": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "✅ 已服藥"
-        }
-      }
-    }
-  },
-  "medications.confirm.snooze": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "⏰ 延後 15 分鐘"
-        }
-      }
-    }
-  },
-  "medications.confirm.skip": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "❌ 略過這次"
-        }
-      }
-    }
-  },
-  "medications.calendar.title": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "服藥日曆"
-        }
-      }
-    }
-  },
-  "medications.stats.title": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "服藥統計"
-        }
-      }
-    }
-  },
-  "medications.stats.week": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "本週服藥率"
-        }
-      }
-    }
-  },
-  "medications.stats.month": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "本月服藥率"
-        }
-      }
-    }
-  },
-  "medications.stats.streak": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "連續服藥天數"
-        }
-      }
-    }
-  },
-  "medications.stats.low.stock": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "最低庫存"
-        }
-      }
-    }
-  },
-  "prescription.draft.title": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "處方箋草稿"
-        }
-      }
-    }
-  },
-  "prescription.draft.confirm": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "全部加入用藥清單"
-        }
-      }
-    }
-  },
-  "notification.permission.title": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "開啟用藥提醒"
-        }
-      }
-    }
-  },
-  "notification.permission.desc": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "讓藥知道在您的用藥時間發送提醒，避免忘記服藥"
-        }
-      }
-    }
-  },
-  "notification.permission.enable": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "開啟推播通知"
-        }
-      }
-    }
-  },
-  "notification.permission.later": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "稍後再說"
-        }
-      }
-    }
-  },
-  "profile.switcher.title": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "成員"
-        }
-      }
-    }
-  },
-  "medications.freq.once": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "每日一次"
-        }
-      }
-    }
-  },
-  "medications.freq.twice": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "每日兩次"
-        }
-      }
-    }
-  },
-  "medications.freq.meals": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "三餐飯後"
-        }
-      }
-    }
-  },
-  "medications.freq.every6h": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "每 6 小時"
-        }
-      }
-    }
-  },
-  "medications.freq.asneeded": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "需要時"
-        }
-      }
-    }
-  },
-  "medications.timing.before": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "飯前"
-        }
-      }
-    }
-  },
-  "medications.timing.after": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "飯後"
-        }
-      }
-    }
-  },
-  "medications.timing.anytime": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "隨時"
-        }
-      }
-    }
-  },
-  "general.cancel": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "取消"
-        }
-      }
-    }
-  },
-  "general.save": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "儲存"
-        }
-      }
-    }
-  },
-  "general.done": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "完成"
-        }
-      }
-    }
-  },
-  "version": "1.0",
-  "pharmacy.tab.map": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "地圖"
-        }
-      }
-    }
-  },
-  "pharmacy.tab.list": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "列表"
-        }
-      }
-    }
-  },
-  "pharmacy.filter.all": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "全部"
-        }
-      }
-    }
-  },
-  "pharmacy.filter.nhi": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "健保特約"
-        }
-      }
-    }
-  },
-  "pharmacy.filter.24h": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "24小時"
-        }
-      }
-    }
-  },
-  "pharmacy.detail.call": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "撥打電話"
-        }
-      }
-    }
-  },
-  "pharmacy.detail.navigate": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "導航"
-        }
-      }
-    }
-  },
-  "pharmacy.detail.favorite.add": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "加入最愛"
-        }
-      }
-    }
-  },
-  "pharmacy.detail.favorite.remove": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "移除最愛"
-        }
-      }
-    }
-  },
-  "pharmacy.refresh": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "重新整理"
-        }
-      }
-    }
-  },
-  "pharmacy.nearby.title": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "附近藥局"
-        }
-      }
-    }
-  },
-  "pharmacy.empty": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "附近無藥局資料"
-        }
-      }
-    }
-  },
-  "safety.check.title": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "用藥安全檢查"
-        }
-      }
-    }
-  },
-  "safety.check.clear": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "未發現安全疑慮"
-        }
-      }
-    }
-  },
-  "safety.check.confirm": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "確認"
-        }
-      }
-    }
-  },
-  "allergy.list.title": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "過敏清單"
-        }
-      }
-    }
-  },
-  "allergy.add.button": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "新增過敏藥品"
-        }
-      }
-    }
-  },
-  "allergy.add.placeholder": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "藥品或成分名稱"
-        }
-      }
-    }
-  },
-  "allergy.empty": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "尚未設定過敏藥品"
-        }
-      }
-    }
-  },
-  "health.profile.title": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "健康狀態"
-        }
-      }
-    }
-  },
-  "health.condition.pregnant": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "懷孕中"
-        }
-      }
-    }
-  },
-  "health.condition.breastfeeding": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "哺乳中"
-        }
-      }
-    }
-  },
-  "health.condition.kidney": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "腎功能不全"
-        }
-      }
-    }
-  },
-  "health.condition.liver": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "肝功能不全"
-        }
-      }
-    }
-  },
-  "health.condition.heart": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "心臟病"
-        }
-      }
-    }
-  },
-  "health.condition.diabetes": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "糖尿病"
-        }
-      }
-    }
-  },
-  "health.condition.hypertension": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "高血壓"
-        }
-      }
-    }
-  },
-  "health.profile.note": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "此資訊用於個人化用藥安全檢查"
-        }
-      }
-    }
-  },
-  "profile.section.safety": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "安全與健康"
-        }
-      }
-    }
-  },
-  "home.action.pharmacy": {
-    "localizations": {
-      "zh-Hant": {
-        "stringUnit": {
-          "state": "translated",
-          "value": "附近藥局"
-        }
-      }
-    }
-  }
+  "version": "1.0"
 }

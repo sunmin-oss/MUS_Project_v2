@@ -70,12 +70,15 @@ struct DrugSearchView: View {
                 NavigationLink {
                     DrugDetailView(drugId: drug.id, name: drug.chineseName)
                 } label: {
-                    VStack(alignment: .leading, spacing: DesignSpacing.xs) {
-                        Text(drug.chineseName).font(DesignTypography.body)
-                        if let en = drug.englishName, !en.isEmpty {
-                            Text(en)
-                                .font(DesignTypography.caption)
-                                .foregroundStyle(DesignColors.textSecondary)
+                    HStack(spacing: DesignSpacing.sm) {
+                        DrugThumb(url: drug.imageURL, size: 44)
+                        VStack(alignment: .leading, spacing: DesignSpacing.xs) {
+                            Text(drug.chineseName).font(DesignTypography.body)
+                            if let en = drug.englishName, !en.isEmpty {
+                                Text(en)
+                                    .font(DesignTypography.caption)
+                                    .foregroundStyle(DesignColors.textSecondary)
+                            }
                         }
                     }
                     .padding(.vertical, DesignSpacing.xs)

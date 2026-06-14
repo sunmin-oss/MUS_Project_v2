@@ -11,6 +11,7 @@ struct Drug: Identifiable, Codable, Hashable {
     let shape: String?
     let color: String?
     let usage: String?
+    let imageURL: URL?
 }
 
 struct Profile: Identifiable, Codable, Hashable {

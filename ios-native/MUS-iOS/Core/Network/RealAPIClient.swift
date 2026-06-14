@@ -169,8 +169,41 @@ final class RealAPIClient: APIClientProtocol {
 
     // MARK: - Recognition / Search / Drug (public)
 
-    private struct SearchResponse: Decodable { let success: Bool; let results: [Drug] }
-    private struct DrugResponse: Decodable { let success: Bool; let drug: Drug }
+    private struct DrugDTO: Decodable {
+        let id: Int
+        let chineseName: String?
+        let englishName: String?
+        let licenseNumber: String?
+        let shape: String?
+        let color: String?
+        let usage: String?
+        let indications: String?
+        let images: [DrugImageDTO]?
+    }
+    private struct DrugImageDTO: Decodable {
+        let path: String?
+        let filename: String?
+    }
+    private struct SearchResponse: Decodable { let success: Bool; let results: [DrugDTO] }
+    private struct DrugResponse: Decodable { let success: Bool; let drug: DrugDTO }
+
+    private func makeDrug(_ dto: DrugDTO) -> Drug {
+        let img = dto.images?.first.flatMap { d -> URL? in
+            guard let raw = d.path ?? d.filename, !raw.isEmpty else { return nil }
+            let normalized = raw.replacingOccurrences(of: "\\", with: "/")
+            let encoded = normalized.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? normalized
+            return URL(string: "api/images/\(encoded)", relativeTo: baseURL)?.absoluteURL
+        }
+        return Drug(id: dto.id,
+                    chineseName: dto.chineseName ?? "",
+                    englishName: dto.englishName,
+                    licenseNumber: dto.licenseNumber,
+                    shape: dto.shape,
+                    color: dto.color,
+                    usage: dto.usage ?? dto.indications,
+                    imageURL: img)
+    }
+
     private struct RecognizeResponse: Decodable {
         let success: Bool
         let requestId: String
@@ -206,7 +239,7 @@ final class RealAPIClient: APIClientProtocol {
         let url = baseURL.appendingPathComponent("api/drug/\(id)")
         let (data, resp) = try await session.data(from: url)
         try validate(resp)
-        return try decoder.decode(DrugResponse.self, from: data).drug
+        return makeDrug(try decoder.decode(DrugResponse.self, from: data).drug)
     }
 
     func searchDrugs(query: String, limit: Int) async throws -> [Drug] {
@@ -217,7 +250,7 @@ final class RealAPIClient: APIClientProtocol {
         req.httpBody = try JSONSerialization.data(withJSONObject: ["query": query, "limit": limit])
         let (data, resp) = try await session.data(for: req)
         try validate(resp)
-        return try decoder.decode(SearchResponse.self, from: data).results
+        return try decoder.decode(SearchResponse.self, from: data).results.map(makeDrug)
     }
 
     // MARK: - Profiles
