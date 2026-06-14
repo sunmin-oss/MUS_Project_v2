@@ -334,6 +334,17 @@ def list_drugs():
             )
 
         drugs = [dict(row) for row in cursor.fetchall()]
+
+        # 附加每筆藥物的第一張圖片
+        for d in drugs:
+            img_row = conn.execute(
+                "SELECT image_filename FROM drug_images WHERE drug_id = ? ORDER BY image_order LIMIT 1",
+                (d["id"],),
+            ).fetchone()
+            d["image_url"] = (
+                f"/api/images/{img_row['image_filename']}" if img_row else None
+            )
+
         conn.close()
 
         return jsonify(
