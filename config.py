@@ -78,7 +78,13 @@ class Config:
     }
 
     # JWT 設定（A1-3）
-    JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", os.urandom(32).hex())
+    _jwt_secret = os.getenv("JWT_SECRET_KEY")
+    if not _jwt_secret and os.getenv("FLASK_ENV") == "production":
+        raise RuntimeError(
+            "JWT_SECRET_KEY 未設定！Production 環境禁止使用隨機秘鑰，"
+            "請在 .env 或環境變數中設定固定的 JWT_SECRET_KEY"
+        )
+    JWT_SECRET_KEY = _jwt_secret or os.urandom(32).hex()
     JWT_ACCESS_TOKEN_EXPIRES = int(os.getenv("JWT_ACCESS_EXPIRES", 900))  # 15 分鐘
     JWT_REFRESH_TOKEN_EXPIRES = int(os.getenv("JWT_REFRESH_EXPIRES", 604800))  # 7 天
 

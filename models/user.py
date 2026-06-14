@@ -22,6 +22,7 @@ class User(db.Model):
     password_hash = db.Column(db.String(128), nullable=False)
     display_name = db.Column(db.String(64))
     is_active = db.Column(db.Boolean, default=True, nullable=False)
+    is_admin = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(
         db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
@@ -44,6 +45,7 @@ class User(db.Model):
             "username": self.username,
             "display_name": self.display_name,
             "is_active": self.is_active,
+            "is_admin": self.is_admin,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
 

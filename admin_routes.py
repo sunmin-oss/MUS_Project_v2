@@ -17,6 +17,8 @@
 """
 
 from flask import Blueprint, request, jsonify, send_from_directory
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from functools import wraps
 import os
 import sqlite3
 import json
@@ -27,6 +29,42 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
+
+
+def admin_required(fn):
+    """裝飾器：要求 JWT + is_admin=True"""
+
+    @wraps(fn)
+    @jwt_required()
+    def wrapper(*args, **kwargs):
+        from models.user import User
+
+        user_id = int(get_jwt_identity())
+        user = User.query.get(user_id)
+        if not user or not user.is_admin:
+            return jsonify({"success": False, "error": "需要管理員權限"}), 403
+        return fn(*args, **kwargs)
+
+    return wrapper
+
+
+def _ensure_admin_column():
+    """確保 users 表有 is_admin 欄位（向下相容既有資料庫）"""
+    try:
+        from config import config
+
+        conn = sqlite3.connect(config.DATABASE_PATH)
+        cursor = conn.execute("PRAGMA table_info(users)")
+        columns = [row[1] for row in cursor.fetchall()]
+        if "is_admin" not in columns:
+            conn.execute(
+                "ALTER TABLE users ADD COLUMN is_admin BOOLEAN NOT NULL DEFAULT 0"
+            )
+            conn.commit()
+            logger.info("✓ users 表新增 is_admin 欄位")
+        conn.close()
+    except Exception as e:
+        logger.warning(f"⚠ 確認 is_admin 欄位失敗: {e}")
 
 
 def get_db_connection(db_path):
@@ -53,8 +91,9 @@ def admin_page():
 
 
 @admin_bp.route("/api/dashboard", methods=["GET"])
+@admin_required
 def dashboard():
-    """取得儀表板統計資料"""
+    """取得儀表板統計資料（需管理員 JWT）"""
     try:
         from config import config
 
@@ -148,6 +187,112 @@ def dashboard():
 
 
 # ============================================
+# 監控指標 API（Sprint 5）
+# ============================================
+
+
+@admin_bp.route("/api/metrics", methods=["GET"])
+@admin_required
+def metrics():
+    """
+    取得系統監控指標（請求數、錯誤率、平均延遲）。需管理員 JWT。
+
+    Query params:
+        ?hours=24  (統計區間，預設 24 小時)
+    """
+    try:
+        from config import config
+
+        hours = int(request.args.get("hours", 24))
+        conn = get_db_connection(config.DATABASE_PATH)
+        cursor = conn.cursor()
+
+        # 總請求數 & 平均延遲
+        cursor.execute(
+            """
+            SELECT COUNT(*) AS total,
+                   COALESCE(AVG(duration_ms), 0) AS avg_latency,
+                   COALESCE(MAX(duration_ms), 0) AS max_latency,
+                   COALESCE(MIN(duration_ms), 0) AS min_latency
+            FROM api_logs
+            WHERE created_at >= datetime('now', ?)
+            """,
+            (f"-{hours} hours",),
+        )
+        row = cursor.fetchone()
+        total = row["total"]
+        avg_latency = round(row["avg_latency"], 2)
+        max_latency = round(row["max_latency"], 2)
+        min_latency = round(row["min_latency"], 2)
+
+        # 錯誤數（status_code >= 400）
+        cursor.execute(
+            """
+            SELECT COUNT(*) FROM api_logs
+            WHERE status_code >= 400
+              AND created_at >= datetime('now', ?)
+            """,
+            (f"-{hours} hours",),
+        )
+        error_count = cursor.fetchone()[0]
+        error_rate = round(error_count / total * 100, 2) if total > 0 else 0
+
+        # 各端點統計
+        cursor.execute(
+            """
+            SELECT endpoint,
+                   COUNT(*) AS count,
+                   ROUND(AVG(duration_ms), 2) AS avg_ms,
+                   SUM(CASE WHEN status_code >= 400 THEN 1 ELSE 0 END) AS errors
+            FROM api_logs
+            WHERE created_at >= datetime('now', ?)
+            GROUP BY endpoint
+            ORDER BY count DESC
+            LIMIT 20
+            """,
+            (f"-{hours} hours",),
+        )
+        endpoints = [dict(r) for r in cursor.fetchall()]
+
+        # 每小時趨勢
+        cursor.execute(
+            """
+            SELECT strftime('%Y-%m-%d %H:00', created_at) AS hour,
+                   COUNT(*) AS count,
+                   ROUND(AVG(duration_ms), 2) AS avg_ms
+            FROM api_logs
+            WHERE created_at >= datetime('now', ?)
+            GROUP BY hour
+            ORDER BY hour
+            """,
+            (f"-{hours} hours",),
+        )
+        hourly = [dict(r) for r in cursor.fetchall()]
+
+        conn.close()
+
+        return jsonify(
+            {
+                "success": True,
+                "period_hours": hours,
+                "summary": {
+                    "total_requests": total,
+                    "error_count": error_count,
+                    "error_rate_pct": error_rate,
+                    "avg_latency_ms": avg_latency,
+                    "max_latency_ms": max_latency,
+                    "min_latency_ms": min_latency,
+                },
+                "endpoints": endpoints,
+                "hourly_trend": hourly,
+            }
+        )
+    except Exception as e:
+        logger.error(f"✗ 指標查詢錯誤: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ============================================
 # 藥物管理 API
 # ============================================
 
@@ -189,6 +334,17 @@ def list_drugs():
             )
 
         drugs = [dict(row) for row in cursor.fetchall()]
+
+        # 附加每筆藥物的第一張圖片
+        for d in drugs:
+            img_row = conn.execute(
+                "SELECT image_filename FROM drug_images WHERE drug_id = ? ORDER BY image_order LIMIT 1",
+                (d["id"],),
+            ).fetchone()
+            d["image_url"] = (
+                f"/api/images/{img_row['image_filename']}" if img_row else None
+            )
+
         conn.close()
 
         return jsonify(

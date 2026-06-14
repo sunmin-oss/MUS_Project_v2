@@ -118,6 +118,12 @@ app.register_blueprint(safety_bp)
 with app.app_context():
     db.create_all()
 
+# 確保既有資料庫有 is_admin 欄位（向下相容）
+from admin_routes import _ensure_admin_column
+
+with app.app_context():
+    _ensure_admin_column()
+
 # 初始化排程器（S1-3：非測試模式才啟動）
 if not app.config.get("TESTING"):
     from services.scheduler import init_scheduler
@@ -126,8 +132,15 @@ if not app.config.get("TESTING"):
 
 
 # ============================================
-# API 使用追蹤
+# API 使用追蹤（背景批次寫入，避免 SQLite writer lock）
 # ============================================
+
+import threading
+import queue as _queue
+
+_log_queue: _queue.Queue = _queue.Queue()
+_LOG_FLUSH_INTERVAL = 2  # 秒
+_LOG_BATCH_SIZE = 50
 
 
 def _ensure_api_logs_table():
@@ -151,7 +164,58 @@ def _ensure_api_logs_table():
         logger.warning(f"⚠ 建立 api_logs 表失敗: {e}")
 
 
+def _log_writer_loop():
+    """背景 thread：批次寫入 api_logs + 定期清理 30 天前紀錄"""
+    cleanup_counter = 0
+    while True:
+        batch = []
+        try:
+            # 等待第一筆，最多等 _LOG_FLUSH_INTERVAL 秒
+            item = _log_queue.get(timeout=_LOG_FLUSH_INTERVAL)
+            batch.append(item)
+        except _queue.Empty:
+            pass
+
+        # 取出隊列中剩餘項目（最多 _LOG_BATCH_SIZE）
+        while len(batch) < _LOG_BATCH_SIZE:
+            try:
+                batch.append(_log_queue.get_nowait())
+            except _queue.Empty:
+                break
+
+        if batch:
+            try:
+                conn = sqlite3.connect(config.DATABASE_PATH)
+                conn.executemany(
+                    "INSERT INTO api_logs (endpoint, method, status_code, duration_ms, query_params) "
+                    "VALUES (?, ?, ?, ?, ?)",
+                    batch,
+                )
+                conn.commit()
+                conn.close()
+            except Exception:
+                pass  # 日誌寫入失敗不應影響系統
+
+        # 每 ~500 次 flush（約 15-30 分鐘）清理舊紀錄
+        cleanup_counter += 1
+        if cleanup_counter >= 500:
+            cleanup_counter = 0
+            try:
+                conn = sqlite3.connect(config.DATABASE_PATH)
+                conn.execute(
+                    "DELETE FROM api_logs WHERE created_at < datetime('now', '-30 days')"
+                )
+                conn.commit()
+                conn.close()
+            except Exception:
+                pass
+
+
 _ensure_api_logs_table()
+
+# 啟動背景寫入 thread（daemon=True 隨主程序退出）
+_writer_thread = threading.Thread(target=_log_writer_loop, daemon=True)
+_writer_thread.start()
 
 
 @app.before_request
@@ -162,8 +226,7 @@ def before_request_timer():
 
 @app.after_request
 def log_api_request(response):
-    """記錄 API 請求到資料庫"""
-    # 只記錄 API 端點，排除靜態資源和管理員 API
+    """記錄 API 請求（放入背景佇列，批次寫入）"""
     path = request.path
     if not path.startswith("/api/") or path.startswith("/api/images/"):
         return response
@@ -176,21 +239,17 @@ def log_api_request(response):
             if data and data.get("query"):
                 query_params = data["query"]
 
-        conn = sqlite3.connect(config.DATABASE_PATH)
-        conn.execute(
-            "INSERT INTO api_logs (endpoint, method, status_code, duration_ms, query_params) VALUES (?, ?, ?, ?, ?)",
+        _log_queue.put_nowait(
             (
                 path,
                 request.method,
                 response.status_code,
                 round(duration_ms, 1),
                 query_params,
-            ),
+            )
         )
-        conn.commit()
-        conn.close()
-    except Exception:
-        pass  # 日誌記錄失敗不應影響正常請求
+    except _queue.Full:
+        pass  # 佇列滿時丟棄，不影響請求
 
     return response
 
