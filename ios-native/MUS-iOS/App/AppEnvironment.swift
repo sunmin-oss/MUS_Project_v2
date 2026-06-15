@@ -34,7 +34,7 @@ final class AppEnvironment: ObservableObject {
 
     static func makeClient(isDemoMode: Bool) -> APIClientProtocol {
         if isDemoMode { return MockAPIClient() }
-        return RealAPIClient(baseURL: URL(string: "http://192.168.1.103:5000")!)
+        return RealAPIClient(baseURL: URL(string: "http://100.82.235.49:5000")!)
     }
 
     static func makeDefault() -> AppEnvironment {
