@@ -10,11 +10,11 @@ enum MockData {
 
     static let drugs: [Drug] = [
         Drug(id: 101, chineseName: "普拿疼", englishName: "Paracetamol",
-             licenseNumber: "衛部藥製字第000123號", shape: "圓形", color: "白色", usage: "退燒、止痛"),
+             licenseNumber: "衛部藥製字第000123號", shape: "圓形", color: "白色", usage: "退燒、止痛", imageURL: nil),
         Drug(id: 102, chineseName: "胃乳片", englishName: "Aluminum Hydroxide",
-             licenseNumber: "衛部藥製字第000456號", shape: "圓形", color: "粉紅", usage: "緩解胃酸過多"),
+             licenseNumber: "衛部藥製字第000456號", shape: "圓形", color: "粉紅", usage: "緩解胃酸過多", imageURL: nil),
         Drug(id: 103, chineseName: "阿斯匹靈", englishName: "Aspirin",
-             licenseNumber: "衛部藥輸字第000789號", shape: "圓形", color: "白色", usage: "解熱鎮痛、抗血小板")
+             licenseNumber: "衛部藥輸字第000789號", shape: "圓形", color: "白色", usage: "解熱鎮痛、抗血小板", imageURL: nil)
     ]
 
     static let medications: [Medication] = [

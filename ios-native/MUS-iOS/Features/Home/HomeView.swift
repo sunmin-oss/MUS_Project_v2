@@ -7,7 +7,9 @@ struct HomeView: View {
     @State private var showHistory = false
     @State private var showPrescriptionDraft = false
     @State private var showPharmacy = false
-    @StateObject private var prescriptionStore = MedicationStore()
+    @State private var showSearch = false
+    @EnvironmentObject private var prescriptionStore: MedicationStore
+    @StateObject private var serverStatus = ServerStatusChecker(baseURL: URL(string: "http://100.82.235.49:5001")!)
 
     var body: some View {
         NavigationStack {
@@ -21,69 +23,83 @@ struct HomeView: View {
 
                     Card {
                         VStack(alignment: .leading, spacing: DesignSpacing.sm) {
-                            Text("home.welcome.title").font(DesignTypography.title)
+                            HStack {
+                                Text("home.welcome.title").font(DesignTypography.title)
+                                Spacer()
+                                serverStatusBadge
+                            }
                             Text("home.welcome.subtitle")
                                 .font(DesignTypography.body)
                                 .foregroundStyle(DesignColors.textSecondary)
                         }
                     }
 
-                    PrimaryButton("home.action.recognize", systemImage: "camera.fill",
-                                  tint: settings.theme.primaryColor) {
+                    homeBtn("home.action.recognize", icon: "camera.fill", filled: true) {
                         showRecognition = true
                     }
-                    .accessibilityLabel(Text("home.action.recognize"))
-                    .accessibilityIdentifier("home.action.recognize")
-
-                    PrimaryButton("home.action.prescription",
-                                  systemImage: "doc.text.viewfinder",
-                                  style: .bordered,
-                                  tint: settings.theme.primaryColor) {
+                    homeBtn("home.action.search", icon: "magnifyingglass", filled: false) {
+                        showSearch = true
+                    }
+                    homeBtn("home.action.prescription", icon: "doc.text.viewfinder", filled: false) {
                         showPrescriptionDraft = true
                     }
-                    .accessibilityLabel(Text("home.action.prescription"))
-                    .accessibilityIdentifier("home.action.prescription")
-
-                    PrimaryButton("home.action.history",
-                                  systemImage: "clock.arrow.circlepath",
-                                  style: .bordered,
-                                  tint: settings.theme.primaryColor) {
+                    homeBtn("home.action.history", icon: "clock.arrow.circlepath", filled: false) {
                         showHistory = true
                     }
-                    .accessibilityLabel(Text("home.action.history"))
-                    .accessibilityIdentifier("home.action.history")
-
-                    PrimaryButton("home.action.pharmacy",
-                                  systemImage: "mappin.and.ellipse",
-                                  style: .bordered,
-                                  tint: settings.theme.primaryColor) {
+                    homeBtn("home.action.pharmacy", icon: "mappin.and.ellipse", filled: false) {
                         showPharmacy = true
                     }
-                    .accessibilityLabel(Text("home.action.pharmacy"))
-                    .accessibilityIdentifier("home.action.pharmacy")
                 }
                 .padding(DesignSpacing.md)
             }
             .background(settings.theme.backgroundGradient.ignoresSafeArea())
             .navigationTitle("tab.home")
-            .navigationDestination(isPresented: $showRecognition) {
-                RecognitionView()
-            }
-            .navigationDestination(isPresented: $showHistory) {
-                RecognitionHistoryView()
-            }
-            .navigationDestination(isPresented: $showPharmacy) {
-                PharmacyMapView()
-            }
+            .onAppear { serverStatus.startMonitoring() }
+            .onDisappear { serverStatus.stopMonitoring() }
+            .navigationDestination(isPresented: $showRecognition) { RecognitionView() }
+            .navigationDestination(isPresented: $showHistory) { RecognitionHistoryView() }
+            .navigationDestination(isPresented: $showPharmacy) { PharmacyMapView() }
+            .navigationDestination(isPresented: $showSearch) { DrugSearchView() }
             .sheet(isPresented: $showPrescriptionDraft) {
                 PrescriptionDraftView(store: prescriptionStore)
             }
         }
     }
+
+    private var serverStatusBadge: some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(serverStatus.isOnline ? Color.green : Color.red)
+                .frame(width: 8, height: 8)
+            Text(serverStatus.isOnline ? "伺服器連線中" : "伺服器離線")
+                .font(.system(size: 12))
+                .foregroundStyle(serverStatus.isOnline ? .green : .red)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 4)
+        .background(
+            Capsule()
+                .fill(serverStatus.isOnline ? Color.green.opacity(0.1) : Color.red.opacity(0.1))
+        )
+        .onTapGesture { serverStatus.check() }
+    }
+
+    private func homeBtn(_ titleKey: String, icon: String, filled: Bool,
+                         action: @escaping () -> Void) -> some View {
+        let tint = settings.theme.primaryColor
+        return Button(action: action) {
+            SpacedButtonLabel(text: NSLocalizedString(titleKey, comment: ""),
+                              systemImage: icon)
+        }
+        .buttonStyle(SpacedButtonStyle(filled: filled, tint: tint))
+        .accessibilityIdentifier(titleKey)
+    }
 }
 
 #Preview {
-    HomeView()
-        .environmentObject(AppEnvironment.makeDefault())
+    let env = AppEnvironment.makeDefault()
+    return HomeView()
+        .environmentObject(env)
+        .environmentObject(env.medicationStore)
         .environmentObject(AppSettings())
 }

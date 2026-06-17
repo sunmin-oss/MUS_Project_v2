@@ -13,12 +13,27 @@ final class MockAPIClient: APIClientProtocol {
         try? await Task.sleep(for: simulatedLatency)
     }
 
+    func bootstrap() async {
+        // Mock 不需要登入
+    }
+
     func recognizeDrug(imageData: Data) async throws -> RecognitionResult {
         await delay()
         let items = MockData.drugs.prefix(2).map {
             RecognitionItem(drugId: $0.id, name: $0.chineseName, confidence: 0.88)
         }
         return RecognitionResult(requestId: UUID().uuidString, items: Array(items))
+    }
+
+    
+    func recognizePrescription(imageData: Data) async throws -> PrescriptionOCRResult {
+        await delay()
+        return PrescriptionOCRResult(
+            requestId: UUID().uuidString,
+            recognizedDrugs: [],
+            drugDetails: [],
+            message: "Mock: no OCR"
+        )
     }
 
     func fetchDrug(id: Int) async throws -> Drug {

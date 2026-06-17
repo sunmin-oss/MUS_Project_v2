@@ -28,8 +28,12 @@ enum APIError: LocalizedError {
 /// APIClient 抽象介面。MockAPIClient 與 RealAPIClient 雙實作，可由 AppEnvironment 切換注入。
 /// Phase 3 接後端時：替換 AppEnvironment.makeDefault() 內的實作即可，View 層無需修改。
 protocol APIClientProtocol {
+    /// 啟動時呼叫；RealAPIClient 用來自動 register-or-login，Mock 可空實作
+    func bootstrap() async
+
     // MARK: - Recognition
     func recognizeDrug(imageData: Data) async throws -> RecognitionResult
+    func recognizePrescription(imageData: Data) async throws -> PrescriptionOCRResult
     func fetchDrug(id: Int) async throws -> Drug
     func searchDrugs(query: String, limit: Int) async throws -> [Drug]
 

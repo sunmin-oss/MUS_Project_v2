@@ -11,6 +11,7 @@ struct Drug: Identifiable, Codable, Hashable {
     let shape: String?
     let color: String?
     let usage: String?
+    let imageURL: URL?
 }
 
 struct Profile: Identifiable, Codable, Hashable {
@@ -31,6 +32,7 @@ struct Medication: Identifiable, Codable, Hashable {
     var currentStock: Int
     var reminderTimes: [Date]
     var notes: String
+    var prescriptionLabel: String?
 }
 
 struct ConsultationSummary: Identifiable, Codable, Hashable {
@@ -89,3 +91,39 @@ struct RecognitionItem: Identifiable, Codable, Hashable {
     let name: String
     let confidence: Double
 }
+
+struct PrescriptionOCRResult: Codable {
+    let requestId: String
+    let recognizedDrugs: [String]
+    let drugDetails: [PrescriptionDrugDetail]
+    let message: String
+}
+
+struct PrescriptionDrugDetail: Identifiable, Codable {
+    var id: String { name }
+    let name: String
+    let confidence: Double
+    let source: String
+    let drugId: Int?
+    let prescriptionInfo: PrescriptionInfo?
+    let details: PrescriptionDrugInfo?
+}
+
+struct PrescriptionInfo: Codable {
+    let route: String?
+    let days: Int?
+    let frequency: String?
+    let dosePerTime: String?
+    let totalQuantity: String?
+    let ingredient: String?
+}
+
+struct PrescriptionDrugInfo: Codable {
+    let chineseName: String?
+    let englishName: String?
+    let licenseNumber: String?
+    let shape: String?
+    let color: String?
+    let indications: String?
+}
+

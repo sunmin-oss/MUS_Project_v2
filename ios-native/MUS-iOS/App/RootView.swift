@@ -25,9 +25,13 @@ struct RootView: View {
                 .tabItem { Label("tab.profile", systemImage: "person.crop.circle.fill") }
                 .tag(Tab.profile)
         }
+        .environmentObject(env.medicationStore)
     }
 }
 
 #Preview {
-    RootView().environmentObject(AppEnvironment.makeDefault())
+    let env = AppEnvironment.makeDefault()
+    return RootView()
+        .environmentObject(env)
+        .environmentObject(env.medicationStore)
 }

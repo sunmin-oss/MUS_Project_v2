@@ -32,9 +32,10 @@ final class W3Tests: XCTestCase {
     }
 
     @MainActor
-    func testRecordTakenCreatesTakenRecord() async {
+    func testRecordTakenCreatesTakenRecord() async throws {
         let store = MedicationStore()
-        await store.recordTaken(medicationId: "m1", profileId: "p1")
+        let client = MockAPIClient()
+        try await store.recordTaken(medicationId: "m1", profileId: "p1", apiClient: client)
         XCTAssertTrue(store.records.contains { $0.medicationId == "m1" && $0.status == .taken })
     }
 

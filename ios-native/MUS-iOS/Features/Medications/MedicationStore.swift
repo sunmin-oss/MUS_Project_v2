@@ -33,7 +33,7 @@ final class MedicationStore: ObservableObject {
         records.removeAll { $0.medicationId == id }
     }
 
-    func recordTaken(medicationId: String, profileId: String) async {
+    func recordTaken(medicationId: String, profileId: String, apiClient: APIClientProtocol) async throws {
         let record = MedicationRecord(
             id: UUID().uuidString,
             medicationId: medicationId,
@@ -42,10 +42,11 @@ final class MedicationStore: ObservableObject {
             takenAt: Date(),
             status: .taken
         )
-        records.append(record)
+        let saved = try await apiClient.recordMedicationTaken(record: record)
+        records.append(saved)
     }
 
-    func recordSkipped(medicationId: String, profileId: String) async {
+    func recordSkipped(medicationId: String, profileId: String, apiClient: APIClientProtocol) async throws {
         let record = MedicationRecord(
             id: UUID().uuidString,
             medicationId: medicationId,
@@ -54,7 +55,8 @@ final class MedicationStore: ObservableObject {
             takenAt: nil,
             status: .skipped
         )
-        records.append(record)
+        let saved = try await apiClient.recordMedicationTaken(record: record)
+        records.append(saved)
     }
 
     /// Adherence rate (0.0–1.0) for the past `days` days

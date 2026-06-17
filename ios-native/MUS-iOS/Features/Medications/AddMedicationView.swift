@@ -144,7 +144,8 @@ struct AddMedicationView: View {
             nextDoseAt: Date().addingTimeInterval(3600),
             currentStock: currentStock,
             reminderTimes: reminderTimes,
-            notes: notes
+            notes: notes,
+            prescriptionLabel: editingMedication?.prescriptionLabel
         )
         Task {
             do {

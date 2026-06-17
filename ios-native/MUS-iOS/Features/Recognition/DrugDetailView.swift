@@ -46,9 +46,7 @@ struct DrugDetailView: View {
     private func drugHeader(_ drug: Drug) -> some View {
         Card {
             HStack(spacing: DesignSpacing.md) {
-                Image(systemName: "pills.fill")
-                    .font(.system(size: 48))
-                    .foregroundStyle(settings.theme.primaryColor)
+                DrugThumb(url: drug.imageURL, size: 64)
                 VStack(alignment: .leading, spacing: DesignSpacing.xs) {
                     Text(drug.chineseName).font(DesignTypography.title)
                     if let en = drug.englishName {
