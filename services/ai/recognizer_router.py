@@ -30,6 +30,17 @@ def _provider_brand(target: Any) -> Optional[str]:
     return next((b for b in ("gemini", "google", "claude", "openai") if b in name), None)
 
 
+def _provider_model(target: Any) -> Optional[str]:
+    """從 target 抽出 model 名稱（model_name / model 兩種命名都支援）。"""
+    if target is None:
+        return None
+    for attr in ("model_name", "model"):
+        v = getattr(target, attr, None)
+        if isinstance(v, str) and v:
+            return v
+    return None
+
+
 class RecognizerRouter:
     """多層 Vision Recognizer 統一介面。"""
 
@@ -116,6 +127,7 @@ class RecognizerRouter:
         max_retry = max(0, int(getattr(self.settings, "AI_MAX_RETRY", 1)))
         last_exc: Optional[BaseException] = None
         fallback_used = name != "primary"
+        model = _provider_model(target)
 
         for attempt in range(max_retry + 1):
             t0 = time.time()
@@ -132,6 +144,7 @@ class RecognizerRouter:
                     feature=method,
                     provider=name,
                     provider_name=brand,
+                    model=model,
                     success=True,
                     fallback_used=fallback_used,
                     latency_ms=latency,
@@ -145,6 +158,7 @@ class RecognizerRouter:
                     feature=method,
                     provider=name,
                     provider_name=brand,
+                    model=model,
                     success=False,
                     fallback_used=fallback_used,
                     latency_ms=latency,

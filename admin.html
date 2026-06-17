@@ -1025,6 +1025,15 @@
                 </div>
             </div>
             <div class="stat-grid" id="aiStatCards"></div>
+            <div class="card">
+                <div class="card-header"><h3>依 API 分項拆分</h3></div>
+                <div class="table-wrapper">
+                    <table>
+                        <thead><tr><th>API</th><th>品牌</th><th>Model</th><th>呼叫數</th><th>成功率</th><th>平均延遲</th><th>Tokens (輸入/輸出)</th><th>最近使用</th></tr></thead>
+                        <tbody id="aiByApi"></tbody>
+                    </table>
+                </div>
+            </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
                 <div class="card">
                     <div class="card-header"><h3>依 Provider 拆分</h3></div>
@@ -1061,6 +1070,7 @@
                                 <th>時間</th>
                                 <th>功能</th>
                                 <th>Provider</th>
+                                <th>Model</th>
                                 <th>狀態</th>
                                 <th>延遲</th>
                                 <th>HTTP</th>
@@ -2041,6 +2051,36 @@
                     </tr>`;
                 }).join('') || '<tr><td colspan="5" style="text-align:center;color:#999;">尚無資料</td></tr>';
 
+            // 友善名稱 mapping：slot 內部名 → 中文標籤
+            const apiLabel = (provider, brand) => {
+                const b = brand || '';
+                const map = {
+                    primary:          `${b ? b + ' ' : ''}主 Key`,
+                    secondary:        `${b ? b + ' ' : ''}備用 Key`,
+                    openai_fallback:  `跨品牌備援 (${b || 'openai'})`,
+                    openai_consult:   `AI 諮詢 (${b || 'openai'})`,
+                };
+                return map[provider] || provider;
+            };
+
+            document.getElementById('aiByApi').innerHTML =
+                (s.by_api || []).map(a => {
+                    const sr = a.calls ? (a.success / a.calls) : 0;
+                    const tIn  = a.tokens_in  || 0;
+                    const tOut = a.tokens_out || 0;
+                    const last = (a.last_used || '').replace('T', ' ').slice(0, 19) || '-';
+                    return `<tr>
+                        <td><b>${apiLabel(a.provider, a.provider_name)}</b><br><code style="font-size:11px;color:#888;">${a.provider}</code></td>
+                        <td>${a.provider_name || '-'}</td>
+                        <td><code>${a.model || '-'}</code></td>
+                        <td>${a.calls}</td>
+                        <td>${pct(sr)} <span style="color:#888;font-size:11px;">(${a.success}/${a.calls})</span></td>
+                        <td>${ms(a.avg_latency)}</td>
+                        <td>${tIn ? tIn.toLocaleString() : '-'} / ${tOut ? tOut.toLocaleString() : '-'}</td>
+                        <td style="font-size:11px;color:#666;">${last}</td>
+                    </tr>`;
+                }).join('') || '<tr><td colspan="8" style="text-align:center;color:#999;">尚無資料</td></tr>';
+
             document.getElementById('aiByFeature').innerHTML =
                 (s.by_feature || []).map(f => {
                     const sr = f.calls ? (f.success / f.calls) : 0;
@@ -2078,10 +2118,10 @@
         async function loadAiLogs() {
             const data = await api('/ai-logs?limit=50');
             const tbody = document.getElementById('aiLogsBody');
-            if (!data.success) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#c00;">載入失敗</td></tr>'; return; }
+            if (!data.success) { tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#c00;">載入失敗</td></tr>'; return; }
             const items = data.items || [];
             if (items.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#999;">尚無紀錄</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#999;">尚無紀錄</td></tr>';
                 return;
             }
             tbody.innerHTML = items.map(r => {
@@ -2093,6 +2133,7 @@
                     <td>${(r.created_at || '').replace('T', ' ')}</td>
                     <td><code>${r.feature}</code></td>
                     <td><code>${r.provider}</code> ${r.provider_name || ''}${fb}</td>
+                    <td><code style="font-size:11px;">${r.model || '-'}</code></td>
                     <td>${ok}</td>
                     <td>${r.latency_ms == null ? '-' : Math.round(r.latency_ms) + ' ms'}</td>
                     <td>${r.status_code || '-'}</td>

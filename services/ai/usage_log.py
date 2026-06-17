@@ -38,6 +38,7 @@ def ensure_table() -> None:
                 feature TEXT NOT NULL,
                 provider TEXT NOT NULL,
                 provider_name TEXT,
+                model TEXT,
                 success INTEGER NOT NULL,
                 fallback_used INTEGER NOT NULL DEFAULT 0,
                 latency_ms REAL,
@@ -49,6 +50,11 @@ def ensure_table() -> None:
             )
             """
         )
+        # 舊表 migration：補上 model 欄位
+        try:
+            conn.execute("ALTER TABLE ai_provider_logs ADD COLUMN model TEXT")
+        except sqlite3.OperationalError:
+            pass  # 欄位已存在
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_ai_logs_created_at ON ai_provider_logs(created_at)"
         )
@@ -71,6 +77,7 @@ def log_event(
     latency_ms: Optional[float] = None,
     *,
     provider_name: Optional[str] = None,
+    model: Optional[str] = None,
     fallback_used: bool = False,
     status_code: Optional[int] = None,
     error_type: Optional[str] = None,
@@ -84,6 +91,7 @@ def log_event(
                 feature,
                 provider,
                 provider_name,
+                model,
                 1 if success else 0,
                 1 if fallback_used else 0,
                 round(latency_ms, 1) if latency_ms is not None else None,
@@ -119,9 +127,9 @@ def _writer_loop() -> None:
                 conn.executemany(
                     """
                     INSERT INTO ai_provider_logs
-                        (feature, provider, provider_name, success, fallback_used,
+                        (feature, provider, provider_name, model, success, fallback_used,
                          latency_ms, status_code, error_type, tokens_in, tokens_out, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     batch,
                 )
@@ -207,6 +215,27 @@ def query_summary(days: int = 7) -> Dict[str, Any]:
             ).fetchall()
         ]
 
+        # 依個別 API（provider + provider_name + model）拆分
+        by_api = [
+            dict(r)
+            for r in conn.execute(
+                f"""
+                SELECT provider, provider_name, model,
+                       COUNT(*) AS calls,
+                       SUM(success) AS success,
+                       SUM(CASE WHEN fallback_used=1 THEN 1 END) AS fallback,
+                       AVG(latency_ms) AS avg_latency,
+                       SUM(COALESCE(tokens_in, 0))  AS tokens_in,
+                       SUM(COALESCE(tokens_out, 0)) AS tokens_out,
+                       MAX(created_at)              AS last_used
+                FROM ai_provider_logs {where}
+                GROUP BY provider, provider_name, model
+                ORDER BY calls DESC
+                """,
+                (arg,),
+            ).fetchall()
+        ]
+
         # 依 feature
         by_feature = [
             dict(r)
@@ -268,6 +297,7 @@ def query_summary(days: int = 7) -> Dict[str, Any]:
         "success_rate": (success / total) if total else 0.0,
         "fallback_rate": (fallback / total) if total else 0.0,
         "avg_latency_ms": round(avg_latency, 1),
+        "by_api": by_api,
         "by_provider": by_provider,
         "by_feature": by_feature,
         "daily": daily,
@@ -306,7 +336,7 @@ def query_recent(
             dict(r)
             for r in conn.execute(
                 f"""
-                SELECT id, feature, provider, provider_name, success, fallback_used,
+                SELECT id, feature, provider, provider_name, model, success, fallback_used,
                        latency_ms, status_code, error_type, tokens_in, tokens_out, created_at
                 FROM ai_provider_logs {where}
                 ORDER BY id DESC

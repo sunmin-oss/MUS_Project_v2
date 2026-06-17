@@ -77,7 +77,8 @@ class ConsultClient:
             usage_log.log_event(
                 feature="consult",
                 provider="openai_consult",
-                provider_name="openai",
+                provider_name=self.brand,
+                model=self.model,
                 success=False,
                 latency_ms=(time.time() - t0) * 1000,
                 error_type="retryable",
@@ -87,7 +88,8 @@ class ConsultClient:
             usage_log.log_event(
                 feature="consult",
                 provider="openai_consult",
-                provider_name="openai",
+                provider_name=self.brand,
+                model=self.model,
                 success=False,
                 latency_ms=(time.time() - t0) * 1000,
                 error_type="retryable",
@@ -116,7 +118,8 @@ class ConsultClient:
             usage_log.log_event(
                 feature="consult",
                 provider="openai_consult",
-                provider_name="openai",
+                provider_name=self.brand,
+                model=self.model,
                 success=False,
                 latency_ms=latency,
                 status_code=resp.status_code,
@@ -135,7 +138,8 @@ class ConsultClient:
             usage_log.log_event(
                 feature="consult",
                 provider="openai_consult",
-                provider_name="openai",
+                provider_name=self.brand,
+                model=self.model,
                 success=False,
                 latency_ms=latency,
                 status_code=resp.status_code,
@@ -155,7 +159,8 @@ class ConsultClient:
         usage_log.log_event(
             feature="consult",
             provider="openai_consult",
-            provider_name="openai",
+            provider_name=self.brand,
+            model=self.model,
             success=True,
             latency_ms=latency,
             status_code=resp.status_code,
