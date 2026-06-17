@@ -187,8 +187,8 @@ def _log_writer_loop():
             try:
                 conn = sqlite3.connect(config.DATABASE_PATH)
                 conn.executemany(
-                    "INSERT INTO api_logs (endpoint, method, status_code, duration_ms, query_params) "
-                    "VALUES (?, ?, ?, ?, ?)",
+                    "INSERT INTO api_logs (endpoint, method, status_code, duration_ms, query_params, created_at) "
+                    "VALUES (?, ?, ?, ?, ?, ?)",
                     batch,
                 )
                 conn.commit()
@@ -246,6 +246,7 @@ def log_api_request(response):
                 response.status_code,
                 round(duration_ms, 1),
                 query_params,
+                datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             )
         )
     except _queue.Full:
@@ -645,20 +646,61 @@ def recognize_prescription():
         # 將名稱轉化並收集 DB 資料 (為了前端簡單顯示)
         drug_details = []
 
-        for name in drug_names:
+        # 取得 Gemini 結構化資料（含許可證字號）
+        prescription_details = (
+            getattr(recognizer, "_last_prescription_details", None) or []
+        )
+
+        for idx, name in enumerate(drug_names):
             detail = {
                 "name": name,
                 "confidence": 1.0,
                 "source": "prescription",
                 "details": None,
                 "drug_id": None,
+                "prescription_info": None,
             }
+
+            # 附加處方資訊（用法用量）
+            if idx < len(prescription_details):
+                item = prescription_details[idx]
+                detail["prescription_info"] = {
+                    "route": item.get("route", ""),
+                    "days": item.get("days", 0),
+                    "frequency": item.get("frequency", ""),
+                    "dose_per_time": item.get("dose_per_time", ""),
+                    "total_quantity": item.get("total_quantity", ""),
+                    "ingredient": item.get("ingredient", ""),
+                }
+
             if drug_db:
                 try:
-                    # 在本地資料庫中尋找該藥物
-                    results = drug_db.search_by_name(name, limit=1)
-                    if results:
-                        db_drug = results[0]
+                    db_drug = None
+
+                    # 優先用許可證字號精確比對
+                    if idx < len(prescription_details):
+                        item = prescription_details[idx]
+                        lic = item.get("license_number", "")
+                        if lic:
+                            results = drug_db.search_by_name(lic, limit=1)
+                            if results:
+                                db_drug = results[0]
+
+                    # 許可證字號找不到，用中文名搜尋
+                    if not db_drug:
+                        results = drug_db.search_by_name(name, limit=1)
+                        if results:
+                            db_drug = results[0]
+
+                    # 中文名也找不到，嘗試英文名
+                    if not db_drug and idx < len(prescription_details):
+                        en_name = prescription_details[idx].get("english_name", "")
+                        if en_name:
+                            results = drug_db.search_by_name(en_name, limit=1)
+                            if results:
+                                db_drug = results[0]
+
+                    if db_drug:
                         detail["drug_id"] = db_drug.get("id")
                         detail["details"] = {
                             "chinese_name": db_drug.get("chinese_name"),
@@ -666,7 +708,7 @@ def recognize_prescription():
                             "license_number": db_drug.get("license_number"),
                             "shape": db_drug.get("shape"),
                             "color": db_drug.get("color"),
-                            "usage": db_drug.get("usage"),
+                            "indications": db_drug.get("indications"),
                         }
 
                         # Add image if exists
