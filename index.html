@@ -1010,15 +1010,15 @@
                     <div style="padding:0 16px 16px;">
                         <div class="form-group">
                             <label>身高（cm）</label>
-                            <input type="number" id="piHeight" class="form-input" placeholder="例：170" min="50" max="250" oninput="calcBMI()">
+                            <input type="text" inputmode="decimal" id="piHeight" class="form-input" placeholder="例：170" pattern="[0-9]*\.?[0-9]*" onkeydown="return numericOnly(event)" oninput="stripNonNumeric(this);calcBMI()">
                         </div>
                         <div class="form-group">
                             <label>體重（kg）</label>
-                            <input type="number" id="piWeight" class="form-input" placeholder="例：65" min="20" max="300" oninput="calcBMI()">
+                            <input type="text" inputmode="decimal" id="piWeight" class="form-input" placeholder="例：65" pattern="[0-9]*\.?[0-9]*" onkeydown="return numericOnly(event)" oninput="stripNonNumeric(this);calcBMI()">
                         </div>
                         <div class="form-group">
-                            <label>出生年份</label>
-                            <input type="number" id="piBirthYear" class="form-input" placeholder="例：1960" min="1900" max="2024">
+                            <label>出生日期</label>
+                            <input type="date" id="piBirthDate" class="form-input" max="2026-06-17">
                         </div>
                         <div class="form-group">
                             <label>性別</label>
@@ -2089,17 +2089,47 @@
         const info = JSON.parse(localStorage.getItem('mus_personal_info') || '{}');
         if (info.height) document.getElementById('piHeight').value = info.height;
         if (info.weight) document.getElementById('piWeight').value = info.weight;
-        if (info.birthYear) document.getElementById('piBirthYear').value = info.birthYear;
+        if (info.birthDate) document.getElementById('piBirthDate').value = info.birthDate;
+        else if (info.birthYear) document.getElementById('piBirthDate').value = info.birthYear + '-01-01';
         if (info.gender) document.getElementById('piGender').value = info.gender;
         if (info.bloodType) document.getElementById('piBloodType').value = info.bloodType;
         calcBMI();
     }
 
+    function numericOnly(e) {
+        if (['Backspace','Delete','Tab','ArrowLeft','ArrowRight','Home','End'].includes(e.key)) return true;
+        if ((e.ctrlKey || e.metaKey) && ['a','c','v','x','z'].includes(e.key.toLowerCase())) return true;
+        if (e.key === '.' && !e.target.value.includes('.')) return true;
+        if (e.key >= '0' && e.key <= '9') return true;
+        e.preventDefault();
+        return false;
+    }
+
+    function stripNonNumeric(el, intOnly) {
+        if (intOnly) { el.value = el.value.replace(/[^0-9]/g, ''); }
+        else { el.value = el.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1'); }
+    }
+
     function savePersonalInfo() {
+        const h = parseFloat(document.getElementById('piHeight').value);
+        const w = parseFloat(document.getElementById('piWeight').value);
+        const bd = document.getElementById('piBirthDate').value;
+        if (document.getElementById('piHeight').value && (isNaN(h) || h < 50 || h > 250)) {
+            showToast('身高請輸入 50~250 cm', 'error'); return;
+        }
+        if (document.getElementById('piWeight').value && (isNaN(w) || w < 20 || w > 300)) {
+            showToast('體重請輸入 20~300 kg', 'error'); return;
+        }
+        if (bd) {
+            const d = new Date(bd);
+            if (isNaN(d.getTime()) || d > new Date()) {
+                showToast('出生日期不正確', 'error'); return;
+            }
+        }
         const info = {
             height: document.getElementById('piHeight').value,
             weight: document.getElementById('piWeight').value,
-            birthYear: document.getElementById('piBirthYear').value,
+            birthDate: bd,
             gender: document.getElementById('piGender').value,
             bloodType: document.getElementById('piBloodType').value,
         };
