@@ -603,10 +603,37 @@ class GeminiVisionRecognizer:
             image_b64 = base64.standard_b64encode(image_data).decode("utf-8")
 
             prompt = """請分析這張醫院藥單/處方箋的照片。
-請提取出上面所有的「藥物名稱」(包含中文或英文商品名，不需要提取劑量或用法)。
-請回傳一個純 JSON 陣列格式，不需要其他說明文字。例如：
-["普拿疼", "Amoxicillin", "Cetirizine"]
-如果沒看到任何藥物，請回傳 []。"""
+請提取出上面每一項藥物的以下資訊，回傳 JSON 陣列：
+- license_number: 許可證字號（如 A037598116、AC42626100 等，通常在藥名後面）
+- chinese_name: 中文藥名（如 愛克痰、安鼻寧錠 等）
+- english_name: 英文藥名（如 ACTEIN GRANULES、ANPIRIN TABLETS 等）
+- route: 給藥途徑（如 口服、外用、注射 等）
+- days: 天數（純數字，如 3、7、14）
+- frequency: 服用頻率（如 三餐餐後、早晚餐後、睡前、需要時使用 等）
+- dose_per_time: 每次劑量（如 1 TAB、1 pack、1 CC 等）
+- total_quantity: 總量（如 共 9 TAB、共 6 TAB 等）
+- ingredient: 成分名稱（如 ACETYLCYSTEINE、LORATADINE 等，通常在「成分名:」後面）
+
+範例格式：
+[
+  {
+    "license_number": "A037598116",
+    "chinese_name": "愛克痰",
+    "english_name": "ACTEIN GRANULES",
+    "route": "口服",
+    "days": 3,
+    "frequency": "三餐餐後",
+    "dose_per_time": "1 pack",
+    "total_quantity": "共 9 Bot",
+    "ingredient": "ACETYLCYSTEINE"
+  }
+]
+
+規則：
+1. 每一條藥物都要提取，不要遺漏
+2. 如果某個欄位看不清楚，填空字串 ""，數字欄位填 0
+3. 只回傳 JSON，不需要其他文字
+4. 如果沒看到任何藥物，回傳 []"""
 
             api_url = (
                 f"{self.base_url}/{self.model_name}:generateContent?key={self.api_key}"
@@ -651,9 +678,25 @@ class GeminiVisionRecognizer:
             import re
 
             json_match = re.search(r"\[.*\]", result_text, re.DOTALL)
-            if json_match:
-                return json.loads(json_match.group())
-            return []
+            if not json_match:
+                return []
+
+            parsed = json.loads(json_match.group())
+
+            # 如果回傳的是新格式（dict 列表），轉換為向後相容的名稱列表
+            # 同時保留結構化資料供後續比對使用
+            if parsed and isinstance(parsed[0], dict):
+                self._last_prescription_details = parsed
+                # 回傳中文名為主，英文名為輔的名稱列表
+                names = []
+                for item in parsed:
+                    name = item.get("chinese_name", "") or item.get("english_name", "")
+                    if name:
+                        names.append(name)
+                return names
+
+            self._last_prescription_details = None
+            return parsed
 
         except Exception as e:
             logger.error(f"✗ 藥單 OCR 失敗: {e}")

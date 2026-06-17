@@ -1277,10 +1277,34 @@
                         const imagePath = firstImage.path.replace(/\\/g, '/');
                         imageHtml = `<img src="/api/images/${imagePath}" alt="${item.name}" class="drug-image" style="max-width: 150px; max-height: 150px; margin: 10px 0; border-radius: 8px;">`;
                     }
+<<<<<<< Updated upstream
                     
+=======
+
+                    // 處方用法用量
+                    let rxHtml = '';
+                    const rx = item.prescription_info;
+                    if (rx && (rx.frequency || rx.days || rx.dose_per_time)) {
+                        const tags = [];
+                        if (rx.route) tags.push(rx.route);
+                        if (rx.days) tags.push(`${rx.days}天`);
+                        if (rx.frequency) tags.push(rx.frequency);
+                        if (rx.dose_per_time) tags.push(`每次 ${rx.dose_per_time}`);
+                        if (rx.total_quantity) tags.push(rx.total_quantity);
+
+                        rxHtml = `<div class="rx-tags" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">
+                            ${tags.map(t => `<span style="display:inline-block;padding:3px 10px;border-radius:12px;background:#E8F5E9;color:#2E7D32;font-size:13px;">${t}</span>`).join('')}
+                        </div>`;
+                        if (rx.ingredient) {
+                            rxHtml += `<div style="margin-top:6px;font-size:12px;color:#888;">成分：${rx.ingredient}</div>`;
+                        }
+                    }
+
+>>>>>>> Stashed changes
                     html += `
                         <div class="result-item" onclick="loadAndShowDrugDetail(${item.id || item.drug_id || 'null'}, ${JSON.stringify(item).replace(/"/g, '&quot;')})">
                             ${imageHtml}
+<<<<<<< Updated upstream
                             <div class="result-title">${item.name}</div>
                             <div class="result-info">
                                 <div>匹配度：${confidence}%</div>
@@ -1290,6 +1314,11 @@
                             </div>
                             <div class="confidence-bar">
                                 <div class="confidence-fill" style="width: ${confidence}%"></div>
+=======
+                            ${rxHtml}
+                            <div class="confidence-track">
+                                <div class="confidence-bar" style="width: ${confidence}%"></div>
+>>>>>>> Stashed changes
                             </div>
                         </div>
                     `;

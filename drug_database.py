@@ -76,15 +76,15 @@ class DrugDatabase:
             cursor.execute(
                 """
                 SELECT DISTINCT
-                    drug_id,
+                    id,
                     chinese_name,
                     english_name,
                     license_number,
                     shape,
                     color,
-                    usage,
-                    formulation,
-                    dosage_strength
+                    indications,
+                    special_dosage_form,
+                    ingredient
                 FROM drugs
                 WHERE 
                     chinese_name LIKE ? OR
