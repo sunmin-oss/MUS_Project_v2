@@ -35,6 +35,27 @@ struct HomeView: View {
                         }
                     }
 
+                    // AI 資訊免責提示
+                    HStack(alignment: .top, spacing: 8) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 13))
+                            .foregroundStyle(.orange)
+                        Text("本 App 含有 AI 生成內容，可能存在錯誤或不完整資訊。用藥決策請以專業醫療人員建議為準。")
+                            .font(.system(size: 12))
+                            .foregroundStyle(DesignColors.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color.orange.opacity(0.06))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color.orange.opacity(0.2), lineWidth: 0.5)
+                            )
+                    )
+
                     homeBtn("home.action.recognize", icon: "camera.fill", filled: true) {
                         showRecognition = true
                     }
@@ -70,19 +91,35 @@ struct HomeView: View {
     private var serverStatusBadge: some View {
         HStack(spacing: 6) {
             Circle()
-                .fill(serverStatus.isOnline ? Color.green : Color.red)
+                .fill(statusColor)
                 .frame(width: 8, height: 8)
-            Text(serverStatus.isOnline ? "伺服器連線中" : "伺服器離線")
+            Text(statusText)
                 .font(.system(size: 12))
-                .foregroundStyle(serverStatus.isOnline ? .green : .red)
+                .foregroundStyle(statusColor)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 4)
         .background(
             Capsule()
-                .fill(serverStatus.isOnline ? Color.green.opacity(0.1) : Color.red.opacity(0.1))
+                .fill(statusColor.opacity(0.1))
         )
         .onTapGesture { serverStatus.check() }
+    }
+
+    private var statusColor: Color {
+        switch serverStatus.status {
+        case .online: return .green
+        case .checking: return .orange
+        case .offline: return .red
+        }
+    }
+
+    private var statusText: String {
+        switch serverStatus.status {
+        case .online: return "伺服器已連線"
+        case .checking: return "嘗試連線中..."
+        case .offline: return "伺服器離線"
+        }
     }
 
     private func homeBtn(_ titleKey: String, icon: String, filled: Bool,
