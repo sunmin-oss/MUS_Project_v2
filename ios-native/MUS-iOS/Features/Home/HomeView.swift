@@ -10,6 +10,7 @@ struct HomeView: View {
     @State private var showSearch = false
     @EnvironmentObject private var prescriptionStore: MedicationStore
     @StateObject private var serverStatus = ServerStatusChecker(baseURL: URL(string: "http://100.82.235.49:5001")!)
+    @StateObject private var recognitionHistory = RecognitionHistoryStore()
 
     var body: some View {
         NavigationStack {
@@ -56,8 +57,8 @@ struct HomeView: View {
             .navigationTitle("tab.home")
             .onAppear { serverStatus.startMonitoring() }
             .onDisappear { serverStatus.stopMonitoring() }
-            .navigationDestination(isPresented: $showRecognition) { RecognitionView() }
-            .navigationDestination(isPresented: $showHistory) { RecognitionHistoryView() }
+            .navigationDestination(isPresented: $showRecognition) { RecognitionView(historyStore: recognitionHistory) }
+            .navigationDestination(isPresented: $showHistory) { RecognitionHistoryView(store: recognitionHistory) }
             .navigationDestination(isPresented: $showPharmacy) { PharmacyMapView() }
             .navigationDestination(isPresented: $showSearch) { DrugSearchView() }
             .sheet(isPresented: $showPrescriptionDraft) {

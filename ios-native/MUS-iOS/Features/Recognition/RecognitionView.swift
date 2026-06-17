@@ -4,6 +4,7 @@ import SwiftUI
 struct RecognitionView: View {
     @EnvironmentObject private var env: AppEnvironment
     @EnvironmentObject private var settings: AppSettings
+    @ObservedObject var historyStore: RecognitionHistoryStore
 
     @State private var selectedImage: UIImage?
     @State private var phase: Phase = .idle
@@ -74,6 +75,8 @@ struct RecognitionView: View {
         do {
             let result = try await env.apiClient.recognizeDrug(imageData: data)
             phase = .result(result.items)
+            // 存入辨識歷史
+            historyStore.append(image: image, result: result)
         } catch {
             phase = .error(error.localizedDescription)
         }
@@ -125,7 +128,7 @@ struct RecognitionResultRow: View {
 }
 
 #Preview {
-    RecognitionView()
+    RecognitionView(historyStore: RecognitionHistoryStore())
         .environmentObject(AppEnvironment.makeDefault())
         .environmentObject(AppSettings())
 }
