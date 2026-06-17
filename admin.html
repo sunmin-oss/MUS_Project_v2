@@ -688,6 +688,7 @@
             <li><a href="#" class="active" data-page="dashboard"><span class="icon">📊</span><span
                         class="label">儀表板</span></a></li>
             <li><a href="#" data-page="drugs"><span class="icon">💊</span><span class="label">藥物管理</span></a></li>
+            <li><a href="#" data-page="users"><span class="icon">👤</span><span class="label">使用者管理</span></a></li>
             <li><a href="#" data-page="cache"><span class="icon">🗄️</span><span class="label">NHI 快取</span></a></li>
             <li><a href="#" data-page="uploads"><span class="icon">📁</span><span class="label">上傳檔案</span></a></li>
             <li><a href="#" data-page="settings"><span class="icon">⚙️</span><span class="label">系統設定</span></a>
@@ -779,7 +780,44 @@
             </div>
         </div>
 
-        <!-- ========== 3. NHI 快取 ========== -->
+        <!-- ========== 3. 使用者管理 ========== -->
+        <div class="page-section" id="page-users">
+            <div class="page-header">
+                <div>
+                    <h1>使用者管理</h1>
+                    <div class="subtitle">管理使用者帳號、權限與啟用狀態</div>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-success" onclick="showAddUserModal()">＋ 新增使用者</button>
+                </div>
+            </div>
+            <div class="search-bar">
+                <input type="text" class="form-control" id="userSearch" placeholder="搜尋帳號、顯示名稱..."
+                    onkeydown="if(event.key==='Enter')searchUsers()">
+                <button class="btn btn-primary" onclick="searchUsers()">搜尋</button>
+            </div>
+            <div class="card">
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>帳號</th>
+                                <th>顯示名稱</th>
+                                <th>管理員</th>
+                                <th>狀態</th>
+                                <th>建立時間</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="userTableBody"></tbody>
+                    </table>
+                </div>
+                <div class="pagination" id="userPagination"></div>
+            </div>
+        </div>
+
+        <!-- ========== 4. NHI 快取 ========== -->
         <div class="page-section" id="page-cache">
             <div class="page-header">
                 <div>
@@ -812,7 +850,7 @@
             </div>
         </div>
 
-        <!-- ========== 4. 上傳檔案 ========== -->
+        <!-- ========== 5. 上傳檔案 ========== -->
         <div class="page-section" id="page-uploads">
             <div class="page-header">
                 <div>
@@ -853,7 +891,7 @@
             </div>
         </div>
 
-        <!-- ========== 5. 系統設定 ========== -->
+        <!-- ========== 6. 系統設定 ========== -->
         <div class="page-section" id="page-settings">
             <div class="page-header">
                 <div>
@@ -877,7 +915,7 @@
             </div>
         </div>
 
-        <!-- ========== 6. API 統計 ========== -->
+        <!-- ========== 7. API 統計 ========== -->
         <div class="page-section" id="page-stats">
             <div class="page-header">
                 <div>
@@ -930,7 +968,7 @@
             </div>
         </div>
 
-        <!-- ========== 7. 批次更新 ========== -->
+        <!-- ========== 8. 批次更新 ========== -->
         <div class="page-section" id="page-batch">
             <div class="page-header">
                 <div>
@@ -1088,6 +1126,56 @@
         </div>
     </div>
 
+    <!-- ===== 使用者新增/編輯 Modal ===== -->
+    <div class="modal-backdrop" id="userModal">
+        <div class="modal">
+            <h3 id="userModalTitle">新增使用者</h3>
+            <input type="hidden" id="editUserId">
+
+            <div class="form-group">
+                <label>帳號</label>
+                <input type="text" class="form-control" id="userUsername" maxlength="32" placeholder="英數字、底線、連字號">
+            </div>
+            <div class="form-group">
+                <label>顯示名稱</label>
+                <input type="text" class="form-control" id="userDisplayName" maxlength="64">
+            </div>
+            <div class="form-group">
+                <label id="userPasswordLabel">密碼（至少 8 碼）</label>
+                <input type="password" class="form-control" id="userPassword" autocomplete="new-password">
+            </div>
+
+            <div style="display:flex;gap:16px;align-items:center;margin-top:6px;">
+                <label style="display:flex;gap:8px;align-items:center;font-size:14px;color:#555;">
+                    <input type="checkbox" id="userIsAdmin">
+                    管理員
+                </label>
+                <label style="display:flex;gap:8px;align-items:center;font-size:14px;color:#555;">
+                    <input type="checkbox" id="userIsActive" checked>
+                    啟用帳號
+                </label>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-outline" onclick="closeUserModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveUser()">儲存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 使用者資訊 Modal ===== -->
+    <div class="modal-backdrop" id="userInfoModal">
+        <div class="modal">
+            <h3>使用者資訊</h3>
+            <div id="userInfoContent" style="font-size:14px;color:#444;line-height:1.8;">
+                載入中...
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-outline" onclick="closeUserInfoModal()">關閉</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // ============================================
         // 全域設定
@@ -1095,6 +1183,8 @@
         const BASE = '/admin/api';
         let currentDrugPage = 1;
         let currentDrugSearch = '';
+        let currentUserPage = 1;
+        let currentUserSearch = '';
 
         // ============================================
         // 頁面導航
@@ -1113,6 +1203,7 @@
                 const loaders = {
                     dashboard: loadDashboard,
                     drugs: () => loadDrugs(1),
+                    users: () => loadUsers(1),
                     cache: loadCache,
                     uploads: loadUploads,
                     settings: () => { loadSettings(); loadLogs(); },
@@ -1312,7 +1403,231 @@
         }
 
         // ============================================
-        // 3. NHI 快取管理
+        // 3. 使用者管理
+        // ============================================
+        async function loadUsers(page = 1) {
+            currentUserPage = page;
+            const q = currentUserSearch ? `&search=${encodeURIComponent(currentUserSearch)}` : '';
+            const data = await api(`/users?page=${page}&per_page=15${q}`);
+            if (!data.success) return showToast('載入使用者失敗: ' + (data.error || ''), 'error');
+
+            const tbody = document.getElementById('userTableBody');
+            if (data.users.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#999;">無符合結果</td></tr>';
+            } else {
+                tbody.innerHTML = data.users.map(u => `
+                    <tr>
+                        <td>${u.id}</td>
+                        <td>${u.username || '-'}</td>
+                        <td>${u.display_name || '-'}</td>
+                        <td>${u.is_admin ? '<span class="badge badge-primary">是</span>' : '<span class="badge">否</span>'}</td>
+                        <td>${u.is_active ? '<span class="badge badge-success">啟用</span>' : '<span class="badge badge-warning">停用</span>'}</td>
+                        <td>${u.created_at ? new Date(u.created_at).toLocaleString('zh-TW') : '-'}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline" onclick="viewUser(${u.id})">查看</button>
+                            <button class="btn btn-sm btn-primary" onclick='editUser(${JSON.stringify(u).replace(/'/g, "\\'")})'>編輯</button>
+                            <button class="btn btn-sm ${u.is_active ? 'btn-warning' : 'btn-success'}" onclick="toggleUserActive(${u.id}, ${u.is_active ? 'true' : 'false'})">${u.is_active ? '停用' : '啟用'}</button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+
+            document.getElementById('userPagination').innerHTML = `
+                <button ${page <= 1 ? 'disabled' : ''} onclick="loadUsers(${page - 1})">上一頁</button>
+                <span>第 ${page} / ${data.total_pages} 頁（共 ${data.total} 筆）</span>
+                <button ${page >= data.total_pages ? 'disabled' : ''} onclick="loadUsers(${page + 1})">下一頁</button>
+            `;
+        }
+
+        function searchUsers() {
+            currentUserSearch = document.getElementById('userSearch').value.trim();
+            loadUsers(1);
+        }
+
+        function showAddUserModal() {
+            document.getElementById('userModalTitle').textContent = '新增使用者';
+            document.getElementById('editUserId').value = '';
+            document.getElementById('userUsername').value = '';
+            document.getElementById('userDisplayName').value = '';
+            document.getElementById('userPassword').value = '';
+            document.getElementById('userIsAdmin').checked = false;
+            document.getElementById('userIsActive').checked = true;
+            document.getElementById('userUsername').disabled = false;
+            document.getElementById('userPasswordLabel').textContent = '密碼（至少 8 碼）';
+            document.getElementById('userModal').classList.add('show');
+        }
+
+        function editUser(u) {
+            document.getElementById('userModalTitle').textContent = '編輯使用者';
+            document.getElementById('editUserId').value = u.id;
+            document.getElementById('userUsername').value = u.username || '';
+            document.getElementById('userDisplayName').value = u.display_name || '';
+            document.getElementById('userPassword').value = '';
+            document.getElementById('userIsAdmin').checked = !!u.is_admin;
+            document.getElementById('userIsActive').checked = !!u.is_active;
+            document.getElementById('userUsername').disabled = true;
+            document.getElementById('userPasswordLabel').textContent = '密碼（留空代表不變更）';
+            document.getElementById('userModal').classList.add('show');
+        }
+
+        function closeUserModal() {
+            document.getElementById('userModal').classList.remove('show');
+        }
+
+        async function viewUser(userId) {
+            document.getElementById('userInfoModal').classList.add('show');
+            document.getElementById('userInfoContent').innerHTML = '載入中...';
+
+            const res = await api(`/users/${userId}`);
+            if (!res.success) {
+                document.getElementById('userInfoContent').innerHTML = `<span style="color:#d33426;">載入失敗：${res.error || '未知錯誤'}</span>`;
+                return;
+            }
+
+            const u = res.user;
+            const profiles = Array.isArray(u.profiles) ? u.profiles : [];
+            const medications = Array.isArray(u.medications) ? u.medications : [];
+            const profileHtml = profiles.length
+                ? `<div class="table-wrapper" style="margin-top:6px;"><table>
+                    <thead>
+                        <tr>
+                            <th>名稱</th>
+                            <th>關係</th>
+                            <th>生日</th>
+                            <th>過敏</th>
+                            <th>備註</th>
+                            <th>預設</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${profiles.map(p => `
+                            <tr>
+                                <td>${p.name || '-'}</td>
+                                <td>${p.relationship || '-'}</td>
+                                <td>${p.birth_date || '-'}</td>
+                                <td>${p.allergies || '-'}</td>
+                                <td>${p.note || '-'}</td>
+                                <td>${p.is_default ? '<span class="badge badge-primary">是</span>' : '<span class="badge">否</span>'}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table></div>`
+                : '<span style="color:#888;">無 profile</span>';
+
+            const medicationHtml = medications.length
+                ? `<div class="table-wrapper" style="margin-top:6px;"><table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>藥名</th>
+                            <th>對象</th>
+                            <th>劑量</th>
+                            <th>頻率</th>
+                            <th>起訖日期</th>
+                            <th>庫存</th>
+                            <th>狀態</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${medications.map(m => `
+                            <tr>
+                                <td>${m.id}</td>
+                                <td>${m.name || '-'}</td>
+                                <td>${m.profile_name || '-'}</td>
+                                <td>${m.dosage || '-'} ${m.unit || ''}</td>
+                                <td>${m.frequency || '-'}</td>
+                                <td>${m.start_date || '-'} ~ ${m.end_date || '-'}</td>
+                                <td>${m.stock_qty ?? '-'}</td>
+                                <td>${m.is_active ? '<span class="badge badge-success">啟用</span>' : '<span class="badge badge-warning">停用</span>'}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table></div>`
+                : '<span style="color:#888;">無用藥紀錄</span>';
+
+            document.getElementById('userInfoContent').innerHTML = `
+                <div><strong>ID：</strong>${u.id}</div>
+                <div><strong>帳號：</strong>${u.username || '-'}</div>
+                <div><strong>顯示名稱：</strong>${u.display_name || '-'}</div>
+                <div><strong>管理員：</strong>${u.is_admin ? '是' : '否'}</div>
+                <div><strong>帳號狀態：</strong>${u.is_active ? '啟用' : '停用'}</div>
+                <div><strong>建立時間：</strong>${u.created_at ? new Date(u.created_at).toLocaleString('zh-TW') : '-'}</div>
+                <div><strong>更新時間：</strong>${u.updated_at ? new Date(u.updated_at).toLocaleString('zh-TW') : '-'}</div>
+                <hr style="border:none;border-top:1px solid #eee;margin:10px 0;">
+                <div><strong>Profile 數：</strong>${u.profile_count ?? 0}</div>
+                <div><strong>用藥筆數：</strong>${u.medication_count ?? 0}</div>
+                <div><strong>啟用中用藥：</strong>${u.active_medication_count ?? 0}</div>
+                <div><strong>過敏紀錄：</strong>${u.allergy_count ?? 0}</div>
+                <div style="margin-top:10px;"><strong>個人資訊（Profiles）</strong>${profileHtml}</div>
+                <div style="margin-top:12px;"><strong>所有用藥清單</strong>${medicationHtml}</div>
+            `;
+        }
+
+        function closeUserInfoModal() {
+            document.getElementById('userInfoModal').classList.remove('show');
+        }
+
+        async function saveUser() {
+            const id = document.getElementById('editUserId').value;
+            const username = document.getElementById('userUsername').value.trim();
+            const password = document.getElementById('userPassword').value;
+            const displayName = document.getElementById('userDisplayName').value.trim();
+            const isAdmin = document.getElementById('userIsAdmin').checked;
+            const isActive = document.getElementById('userIsActive').checked;
+
+            if (!id && !username) {
+                return showToast('請輸入帳號', 'error');
+            }
+            if (!id && password.length < 8) {
+                return showToast('新增使用者時，密碼至少 8 碼', 'error');
+            }
+
+            const body = {
+                display_name: displayName,
+                is_admin: isAdmin,
+                is_active: isActive,
+            };
+
+            if (!id) {
+                body.username = username;
+                body.password = password;
+            } else if (password) {
+                body.password = password;
+            }
+
+            const res = id
+                ? await api(`/users/${id}`, { method: 'PUT', body: JSON.stringify(body) })
+                : await api('/users', { method: 'POST', body: JSON.stringify(body) });
+
+            if (res.success) {
+                showToast(res.message || '儲存成功', 'success');
+                closeUserModal();
+                loadUsers(currentUserPage);
+            } else {
+                showToast('儲存失敗: ' + (res.error || '未知錯誤'), 'error');
+            }
+        }
+
+        async function toggleUserActive(userId, currentActive) {
+            const nextActive = !currentActive;
+            const actionText = nextActive ? '啟用' : '停用';
+            if (!confirm(`確定要${actionText}此帳號？`)) return;
+
+            const res = await api(`/users/${userId}`, {
+                method: 'PUT',
+                body: JSON.stringify({ is_active: nextActive }),
+            });
+
+            if (res.success) {
+                showToast(`帳號已${actionText}`, 'success');
+                loadUsers(currentUserPage);
+            } else {
+                showToast('更新失敗: ' + (res.error || '未知錯誤'), 'error');
+            }
+        }
+
+        // ============================================
+        // 4. NHI 快取管理
         // ============================================
         async function loadCache() {
             const data = await api('/cache');
@@ -1361,7 +1676,7 @@
         }
 
         // ============================================
-        // 4. 上傳檔案管理
+        // 5. 上傳檔案管理
         // ============================================
         async function loadUploads() {
             const data = await api('/uploads');
@@ -1437,7 +1752,7 @@
         }
 
         // ============================================
-        // 5. 系統設定
+        // 6. 系統設定
         // ============================================
         async function loadSettings() {
             const data = await api('/settings');
@@ -1472,7 +1787,7 @@
         }
 
         // ============================================
-        // 6. API 統計
+        // 7. API 統計
         // ============================================
         async function loadApiStats() {
             const data = await api('/stats');
@@ -1534,7 +1849,7 @@
         }
 
         // ============================================
-        // 7. 批次更新
+        // 8. 批次更新
         // ============================================
         let batchPollTimer = null;
 

@@ -25,6 +25,7 @@ import json
 import logging
 from datetime import datetime
 from pathlib import Path
+import bcrypt
 
 logger = logging.getLogger(__name__)
 
@@ -74,6 +75,19 @@ def get_db_connection(db_path):
     return conn
 
 
+def _parse_bool(value, default=False):
+    """將各種型別輸入轉為 bool。"""
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    if isinstance(value, str):
+        return value.strip().lower() in {"1", "true", "yes", "y", "on"}
+    return default
+
+
 # ============================================
 # 管理員前端頁面
 # ============================================
@@ -91,9 +105,8 @@ def admin_page():
 
 
 @admin_bp.route("/api/dashboard", methods=["GET"])
-@admin_required
 def dashboard():
-    """取得儀表板統計資料（需管理員 JWT）"""
+    """取得儀表板統計資料（nginx IP 限制保護）"""
     try:
         from config import config
 
@@ -192,10 +205,9 @@ def dashboard():
 
 
 @admin_bp.route("/api/metrics", methods=["GET"])
-@admin_required
 def metrics():
     """
-    取得系統監控指標（請求數、錯誤率、平均延遲）。需管理員 JWT。
+    取得系統監控指標（請求數、錯誤率、平均延遲）。nginx IP 限制保護。
 
     Query params:
         ?hours=24  (統計區間，預設 24 小時)
@@ -497,6 +509,304 @@ def export_drugs():
             headers={"Content-Disposition": "attachment; filename=drugs_export.csv"},
         )
     except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ============================================
+# 使用者管理 API
+# ============================================
+
+
+@admin_bp.route("/api/users", methods=["GET"])
+def list_users():
+    """取得使用者列表（分頁 + 搜尋）。"""
+    try:
+        from config import config
+
+        page = max(int(request.args.get("page", 1)), 1)
+        per_page = min(max(int(request.args.get("per_page", 20)), 1), 100)
+        search = request.args.get("search", "").strip()
+        offset = (page - 1) * per_page
+
+        conn = get_db_connection(config.DATABASE_PATH)
+        cursor = conn.cursor()
+
+        if search:
+            search_param = f"%{search}%"
+            cursor.execute(
+                "SELECT COUNT(*) FROM users WHERE username LIKE ? OR display_name LIKE ?",
+                (search_param, search_param),
+            )
+            total = cursor.fetchone()[0]
+            cursor.execute(
+                """
+                SELECT id, username, display_name, is_active, is_admin, created_at, updated_at
+                FROM users
+                WHERE username LIKE ? OR display_name LIKE ?
+                ORDER BY id DESC
+                LIMIT ? OFFSET ?
+                """,
+                (search_param, search_param, per_page, offset),
+            )
+        else:
+            cursor.execute("SELECT COUNT(*) FROM users")
+            total = cursor.fetchone()[0]
+            cursor.execute(
+                """
+                SELECT id, username, display_name, is_active, is_admin, created_at, updated_at
+                FROM users
+                ORDER BY id DESC
+                LIMIT ? OFFSET ?
+                """,
+                (per_page, offset),
+            )
+
+        users = [dict(r) for r in cursor.fetchall()]
+        conn.close()
+
+        return jsonify(
+            {
+                "success": True,
+                "users": users,
+                "total": total,
+                "page": page,
+                "per_page": per_page,
+                "total_pages": (total + per_page - 1) // per_page,
+            }
+        )
+    except Exception as e:
+        logger.error(f"✗ 列出使用者失敗: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@admin_bp.route("/api/users", methods=["POST"])
+def create_user():
+    """新增使用者。"""
+    try:
+        from config import config
+
+        data = request.get_json(silent=True) or {}
+        username = (data.get("username") or "").strip().lower()
+        password = data.get("password") or ""
+        display_name = (data.get("display_name") or "").strip()
+        is_active = _parse_bool(data.get("is_active"), True)
+        is_admin = _parse_bool(data.get("is_admin"), False)
+
+        if not username or len(username) < 3:
+            return jsonify({"success": False, "error": "使用者名稱至少 3 個字元"}), 400
+        if len(username) > 32:
+            return jsonify({"success": False, "error": "使用者名稱最多 32 個字元"}), 400
+        if not all(c.isalnum() or c in "_-" for c in username):
+            return (
+                jsonify({"success": False, "error": "使用者名稱只能包含英數字、底線、連字號"}),
+                400,
+            )
+        if len(password) < 8:
+            return jsonify({"success": False, "error": "密碼至少 8 個字元"}), 400
+
+        password_hash = bcrypt.hashpw(
+            password.encode("utf-8"), bcrypt.gensalt()
+        ).decode("utf-8")
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        conn = get_db_connection(config.DATABASE_PATH)
+        conn.execute(
+            """
+            INSERT INTO users (username, password_hash, display_name, is_active, is_admin, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                username,
+                password_hash,
+                display_name or username,
+                int(is_active),
+                int(is_admin),
+                now,
+                now,
+            ),
+        )
+        conn.commit()
+        user_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+        conn.close()
+
+        return jsonify(
+            {
+                "success": True,
+                "user_id": user_id,
+                "message": "使用者已新增",
+            }
+        )
+    except sqlite3.IntegrityError:
+        return jsonify({"success": False, "error": "使用者名稱已被使用"}), 409
+    except Exception as e:
+        logger.error(f"✗ 新增使用者失敗: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@admin_bp.route("/api/users/<int:user_id>", methods=["GET"])
+def get_user_detail(user_id):
+    """取得單一使用者詳細資訊。"""
+    try:
+        from config import config
+
+        conn = get_db_connection(config.DATABASE_PATH)
+        user = conn.execute(
+            """
+            SELECT id, username, display_name, is_active, is_admin, created_at, updated_at
+            FROM users
+            WHERE id = ?
+            """,
+            (user_id,),
+        ).fetchone()
+        if not user:
+            conn.close()
+            return jsonify({"success": False, "error": "使用者不存在"}), 404
+
+        user_data = dict(user)
+
+        # 關聯資訊（若表不存在則回 0 / 空陣列）
+        try:
+            user_data["profile_count"] = conn.execute(
+                "SELECT COUNT(*) FROM profiles WHERE user_id = ?", (user_id,)
+            ).fetchone()[0]
+            profiles = conn.execute(
+                """
+                SELECT id, name, relationship, birth_date, allergies, note,
+                       is_default, created_at, updated_at
+                FROM profiles
+                WHERE user_id = ?
+                ORDER BY is_default DESC, id ASC
+                """,
+                (user_id,),
+            ).fetchall()
+            user_data["profiles"] = [dict(r) for r in profiles]
+        except sqlite3.OperationalError:
+            user_data["profile_count"] = 0
+            user_data["profiles"] = []
+
+        try:
+            medications = conn.execute(
+                """
+                SELECT m.id, m.profile_id, p.name AS profile_name,
+                       m.drug_id, m.name, m.dosage, m.unit, m.frequency,
+                       m.duration_days, m.start_date, m.end_date,
+                       m.stock_qty, m.note, m.is_active,
+                       m.created_at, m.updated_at
+                FROM medications m
+                LEFT JOIN profiles p ON p.id = m.profile_id
+                WHERE m.user_id = ?
+                ORDER BY m.is_active DESC, m.created_at DESC, m.id DESC
+                """,
+                (user_id,),
+            ).fetchall()
+            user_data["medications"] = [dict(r) for r in medications]
+            user_data["medication_count"] = len(user_data["medications"])
+            user_data["active_medication_count"] = sum(
+                1 for m in user_data["medications"] if m.get("is_active")
+            )
+        except sqlite3.OperationalError:
+            user_data["medications"] = []
+            user_data["medication_count"] = 0
+            user_data["active_medication_count"] = 0
+
+        try:
+            user_data["allergy_count"] = conn.execute(
+                "SELECT COUNT(*) FROM user_allergies WHERE user_id = ?", (user_id,)
+            ).fetchone()[0]
+        except sqlite3.OperationalError:
+            user_data["allergy_count"] = 0
+
+        conn.close()
+        return jsonify({"success": True, "user": user_data})
+    except Exception as e:
+        logger.error(f"✗ 取得使用者詳細資訊失敗: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@admin_bp.route("/api/users/<int:user_id>", methods=["PUT"])
+def update_user(user_id):
+    """更新使用者資料（可更新密碼、狀態、管理員權限）。"""
+    try:
+        from config import config
+
+        data = request.get_json(silent=True) or {}
+        conn = get_db_connection(config.DATABASE_PATH)
+        exists = conn.execute("SELECT id FROM users WHERE id = ?", (user_id,)).fetchone()
+        if not exists:
+            conn.close()
+            return jsonify({"success": False, "error": "使用者不存在"}), 404
+
+        updates = []
+        values = []
+
+        if "username" in data:
+            username = (data.get("username") or "").strip().lower()
+            if not username or len(username) < 3:
+                conn.close()
+                return (
+                    jsonify({"success": False, "error": "使用者名稱至少 3 個字元"}),
+                    400,
+                )
+            if len(username) > 32:
+                conn.close()
+                return (
+                    jsonify({"success": False, "error": "使用者名稱最多 32 個字元"}),
+                    400,
+                )
+            if not all(c.isalnum() or c in "_-" for c in username):
+                conn.close()
+                return (
+                    jsonify(
+                        {
+                            "success": False,
+                            "error": "使用者名稱只能包含英數字、底線、連字號",
+                        }
+                    ),
+                    400,
+                )
+            updates.append("username = ?")
+            values.append(username)
+
+        if "display_name" in data:
+            updates.append("display_name = ?")
+            values.append((data.get("display_name") or "").strip())
+
+        if "password" in data and (data.get("password") or ""):
+            raw_password = data.get("password") or ""
+            if len(raw_password) < 8:
+                conn.close()
+                return jsonify({"success": False, "error": "密碼至少 8 個字元"}), 400
+            password_hash = bcrypt.hashpw(
+                raw_password.encode("utf-8"), bcrypt.gensalt()
+            ).decode("utf-8")
+            updates.append("password_hash = ?")
+            values.append(password_hash)
+
+        if "is_active" in data:
+            updates.append("is_active = ?")
+            values.append(int(_parse_bool(data.get("is_active"), True)))
+
+        if "is_admin" in data:
+            updates.append("is_admin = ?")
+            values.append(int(_parse_bool(data.get("is_admin"), False)))
+
+        if not updates:
+            conn.close()
+            return jsonify({"success": False, "error": "無更新欄位"}), 400
+
+        updates.append("updated_at = ?")
+        values.append(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+
+        values.append(user_id)
+        conn.execute(f"UPDATE users SET {', '.join(updates)} WHERE id = ?", values)
+        conn.commit()
+        conn.close()
+
+        return jsonify({"success": True, "message": "使用者已更新"})
+    except sqlite3.IntegrityError:
+        return jsonify({"success": False, "error": "使用者名稱已被使用"}), 409
+    except Exception as e:
+        logger.error(f"✗ 更新使用者失敗: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
 
 
