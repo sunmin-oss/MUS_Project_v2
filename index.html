@@ -3,1666 +3,2317 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>藥知道</title>
-    <meta name="description" content="藥知道 - 為年長者設計的簡潔藥物辨識系統">
-    <meta name="viewport" content="user-scalable=yes, width=device-width">
-    
-    <!-- 用於年長者友好的 CSS -->
+    <meta name="description" content="藥知道 - 智慧藥物管理與辨識系統">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        /* ===== Reset & Base ===== */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary: #5B7553;
+            --primary-light: #7CB342;
+            --primary-bg: #F5F7F2;
+            --card-bg: #FAFCF8;
+            --text: #2C3E2D;
+            --text-secondary: #6B7B6E;
+            --border: #E0E8DC;
+            --danger: #E53E3E;
+            --warning: #ED8936;
+            --success: #38A169;
+            --info: #3182CE;
+            --radius: 16px;
+            --radius-sm: 10px;
+            --shadow: 0 4px 20px rgba(91, 117, 83, 0.08);
+            --shadow-lg: 0 10px 40px rgba(91, 117, 83, 0.12);
+            --font-scale: 1;
+            --tab-height: 64px;
         }
-
+        [data-theme="warm"] {
+            --primary: #8D6E4C;
+            --primary-light: #A0845C;
+            --primary-bg: #FDF8F3;
+            --card-bg: #FFFBF7;
+            --text: #3E2E1C;
+            --text-secondary: #7A6B5D;
+            --border: #E8DDD0;
+        }
+        [data-theme="cool"] {
+            --primary: #4A6FA5;
+            --primary-light: #6B8FC5;
+            --primary-bg: #F3F6FB;
+            --card-bg: #F8FAFD;
+            --text: #1E2D3D;
+            --text-secondary: #5A6B7D;
+            --border: #D0DBE8;
+        }
         body {
-            font-family: 'Microsoft JhengHei', '微軟正黑體', 'Arial', sans-serif;
-            background: #F5F7F2;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+            background: var(--primary-bg);
+            color: var(--text);
             min-height: 100vh;
-            padding: 10px;
-            color: #2C3E2D;
+            font-size: calc(16px * var(--font-scale));
+            -webkit-font-smoothing: antialiased;
         }
-
-        .container {
-            max-width: 500px;
+        /* ===== App Shell ===== */
+        .app-shell {
+            max-width: 480px;
             margin: 0 auto;
-            background: #FAFCF8;
-            border-radius: 24px;
-            box-shadow: 0 10px 40px rgba(91, 117, 83, 0.10);
-            overflow: hidden;
+            min-height: 100vh;
+            background: var(--card-bg);
             position: relative;
+            box-shadow: var(--shadow-lg);
         }
-
-        /* 植物線稿裝飾 */
-        .container::before {
-            content: '';
-            position: absolute;
-            top: 0; right: 0;
-            width: 120px; height: 120px;
-            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120' opacity='0.08'%3E%3Cpath d='M100 10c-20 30-50 40-80 35 10-20 35-40 60-38' fill='%235B7553'/%3E%3Cpath d='M90 30c-15 25-40 35-65 30 8-18 30-35 50-32' fill='%237CB342'/%3E%3Cpath d='M110 50c-25 20-45 25-70 20 12-15 40-28 55-22' fill='%235B7553'/%3E%3C/svg%3E") no-repeat;
-            pointer-events: none;
-            z-index: 0;
+        @media (min-width: 481px) {
+            body { display: flex; justify-content: center; }
         }
-        .container::after {
-            content: '';
-            position: absolute;
-            bottom: 0; left: 0;
-            width: 100px; height: 100px;
-            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' opacity='0.06'%3E%3Cpath d='M10 90c15-25 35-40 60-35-8 18-28 35-48 32' fill='%237CB342'/%3E%3Cpath d='M5 70c20-20 40-30 65-25-10 15-35 28-50 22' fill='%238D6E4C'/%3E%3C/svg%3E") no-repeat;
-            pointer-events: none;
-            z-index: 0;
-        }
-
-        .header {
-            background: linear-gradient(135deg, #5B7553 0%, #7CB342 100%);
-            color: white;
-            padding: 30px 20px;
-            text-align: center;
-            position: relative;
-            z-index: 10;
-        }
-
-        .header h1 {
-            font-size: 36px;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-
-        .header p {
-            font-size: 16px;
-            opacity: 0.9;
-        }
-
-        .content {
-            padding: 30px 20px;
-            min-height: 400px;
-            position: relative;
-            z-index: 1;
-        }
-
-        /* ===== 頁面樣式 ===== */
-        .page {
-            display: none;
-        }
-
-        .page.active {
-            display: block;
-            animation: fadeIn 0.3s ease-in;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-            to {
-                opacity: 1;
-            }
-        }
-
-        /* ===== 主頁 (HOME) ===== */
-        .home-buttons {
+        /* ===== Auth Screen ===== */
+        .auth-screen {
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
-            gap: 20px;
-        }
-
-        .big-button {
-            background: linear-gradient(135deg, #5B7553 0%, #7CB342 100%);
-            color: white;
-            border: none;
-            padding: 25px 20px;
-            border-radius: 18px;
-            font-size: 24px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(91, 117, 83, 0.35);
-            text-decoration: none;
-            display: block;
-            text-align: center;
-            min-height: 80px;
-            display: flex;
             align-items: center;
             justify-content: center;
+            padding: 40px 24px;
+            background: linear-gradient(160deg, var(--primary) 0%, var(--primary-light) 100%);
         }
-
-        .big-button:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 20px rgba(91, 117, 83, 0.5);
-        }
-
-        .big-button:active {
-            transform: translateY(-1px);
-        }
-
-        .big-button.secondary {
-            background: #f0f0f0;
-            color: #333;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        }
-
-        .big-button.secondary:hover {
-            background: #e0e0e0;
-        }
-
-        /* ===== 拍照上傳區 ===== */
-        .upload-area {
-            border: 3px dashed #7CB342;
-            border-radius: 18px;
-            padding: 40px 20px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            background: #F0F5EC;
-        }
-
-        .upload-area:hover {
-            background: #E5EFE0;
-            border-color: #5B7553;
-        }
-
-        .upload-area.dragover {
-            background: #E5EFE0;
-            border-color: #5B7553;
-            transform: scale(1.02);
-        }
-
-        .upload-icon {
-            font-size: 48px;
-            margin-bottom: 15px;
-        }
-
-        .upload-area p {
-            font-size: 20px;
-            color: #333;
-            margin-bottom: 10px;
-        }
-
-        .upload-area small {
-            font-size: 14px;
-            color: #999;
-        }
-
-        #imageInput {
-            display: none;
-        }
-
-        .image-preview {
-            margin-top: 20px;
-            text-align: center;
-        }
-
-        .image-preview img {
-            max-width: 100%;
-            max-height: 300px;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-        }
-
-        /* ===== 結果顯示 ===== */
-        .results-container {
-            margin-top: 20px;
-        }
-
-        .result-item {
-            background: #F0F5EC;
-            border-left: 5px solid #7CB342;
-            padding: 20px;
-            margin-bottom: 15px;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .result-item:hover {
-            background: #E5EFE0;
-            transform: translateX(5px);
-            box-shadow: 0 4px 15px rgba(91, 117, 83, 0.15);
-        }
-
-        .result-title {
-            font-size: 20px;
-            font-weight: bold;
-            color: #2C3E2D;
-            margin-bottom: 8px;
-        }
-
-        .result-info {
-            font-size: 14px;
-            color: #666;
-            line-height: 1.6;
-        }
-
-        .confidence-bar {
-            margin-top: 10px;
-            height: 8px;
-            background: #eee;
-            border-radius: 4px;
-            overflow: hidden;
-        }
-
-        .confidence-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #7CB342 0%, #5B7553 100%);
-            border-radius: 4px;
-        }
-
-        /* ===== 加載動畫 ===== */
-        .loading {
-            text-align: center;
-            padding: 40px 20px;
-        }
-
-        .spinner {
-            border: 5px solid #E5EFE0;
-            border-top: 5px solid #5B7553;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
-        }
-
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-            100% {
-                transform: rotate(360deg);
-            }
-        }
-
-        .loading-text {
-            font-size: 18px;
-            color: #5B7553;
-            font-weight: bold;
-        }
-        /* ===== 進度條樣式 ===== */
-        .progress-container {
-            margin: 20px 0;
-            padding: 0 20px;
-        }
-
-        .progress-bar {
+        .auth-logo { font-size: 64px; margin-bottom: 8px; }
+        .auth-title { font-size: 32px; font-weight: 800; color: #fff; margin-bottom: 4px; }
+        .auth-subtitle { font-size: 14px; color: rgba(255,255,255,0.8); margin-bottom: 32px; }
+        .auth-card {
             width: 100%;
-            height: 8px;
-            background: #e0e0e0;
-            border-radius: 10px;
-            overflow: hidden;
-            margin-top: 10px;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #7CB342 0%, #5B7553 100%);
-            width: 0%;
-            animation: progress 2s ease-in-out infinite;
-        }
-
-        @keyframes progress {
-            0% { width: 10%; }
-            50% { width: 70%; }
-            100% { width: 10%; }
-        }
-
-        .progress-text {
-            font-size: 14px;
-            color: #666;
-            margin-top: 8px;
-            text-align: center;
-        }
-
-        /* ===== 按鈕禁用狀態 ===== */
-        .big-button:disabled,
-        .search-button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            background: #999;
-        }
-
-        .big-button:disabled:hover,
-        .search-button:disabled:hover {
-            transform: none;
-        }
-        /* ===== 進度條樣式 ===== */
-        .progress-container {
-            margin: 20px 0;
-            padding: 0 20px;
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 8px;
-            background: #e0e0e0;
-            border-radius: 10px;
-            overflow: hidden;
-            margin-top: 10px;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #7CB342 0%, #5B7553 100%);
-            width: 0%;
-            animation: progress 2s ease-in-out infinite;
-        }
-
-        @keyframes progress {
-            0% {
-                width: 10%;
-            }
-            50% {
-                width: 70%;
-            }
-            100% {
-                width: 10%;
-            }
-        }
-
-        .progress-text {
-            font-size: 14px;
-            color: #666;
-            margin-top: 8px;
-            text-align: center;
-        }
-
-        /* ===== 按鈕禁用狀態 ===== */
-        .big-button:disabled,
-        .search-button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            background: #999;
-        }
-
-        .big-button:disabled:hover,
-        .search-button:disabled:hover {
-            transform: none;
-        }
-
-        /* ===== 細節頁面 ===== */
-        .detail-info {
-            background: #F0F5EC;
-            padding: 20px;
-            border-radius: 12px;
-            margin-bottom: 15px;
-        }
-
-        .detail-label {
-            font-size: 14px;
-            color: #8D6E4C;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-
-        .detail-value {
-            font-size: 18px;
-            color: #2C3E2D;
-            margin-bottom: 15px;
-            word-break: break-all;
-        }
-
-        /* ===== 警告和錯誤 ===== */
-        .alert {
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            font-size: 16px;
-            text-align: center;
-        }
-
-        .alert.warning {
-            background: #fff3cd;
-            color: #856404;
-            border: 2px solid #ffeaa7;
-        }
-
-        .alert.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 2px solid #f5c6cb;
-        }
-
-        .alert.success {
-            background: #d4edda;
-            color: #155724;
-            border: 2px solid #c3e6cb;
-        }
-
-        /* ===== 搜尋功能 ===== */
-        .search-box {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-
-        .search-input {
-            flex: 1;
-            padding: 15px;
-            font-size: 18px;
-            border: 2px solid #ddd;
-            border-radius: 10px;
-            outline: none;
-            transition: border-color 0.3s;
-        }
-
-        .search-input:focus {
-            border-color: #7CB342;
-        }
-
-        .search-button {
-            padding: 15px 25px;
-            background: #5B7553;
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-size: 18px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: all 0.3s;
-        }
-
-        .search-button:hover {
-            background: #4A6344;
-            transform: translateY(-2px);
-        }
-
-        /* ===== 返回按鈕 ===== */
-        .back-button {
-            background: #8D6E4C;
-            color: white;
-            padding: 15px;
-            border: none;
-            border-radius: 12px;
-            font-size: 16px;
-            cursor: pointer;
-            width: 100%;
-            margin-bottom: 20px;
-            font-weight: bold;
-            transition: all 0.3s;
-        }
-
-        .back-button:hover {
-            background: #7A5F40;
-            transform: translateY(-2px);
-        }
-
-        /* ===== 底部提示 ===== */
-        .footer-hint {
-            text-align: center;
-            font-size: 12px;
-            color: #999;
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 1px solid #eee;
-        }
-
-        /* ===== 響應式設計 ===== */
-        @media (max-width: 480px) {
-            .header h1 {
-                font-size: 28px;
-            }
-
-            .big-button {
-                font-size: 20px;
-                padding: 20px;
-                min-height: 70px;
-            }
-
-            .content {
-                padding: 20px 15px;
-            }
-        }
-
-        /* ===== 設定按鈕 ===== */
-        .settings-toggle {
-            position: absolute;
-            top: 12px;
-            right: 12px;
-            background: rgba(255,255,255,0.2);
-            border: none;
-            color: #fff;
-            font-size: 22px;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            cursor: pointer;
-            transition: background 0.2s;
-            z-index: 10;
-        }
-        .settings-toggle:hover { background: rgba(255,255,255,0.35); }
-
-        /* ===== 設定面板 ===== */
-        .settings-panel {
-            display: none;
-            position: absolute;
-            top: 56px;
-            right: 12px;
+            max-width: 360px;
             background: #fff;
-            color: #333;
-            border-radius: 14px;
-            box-shadow: 0 8px 30px rgba(0,0,0,0.25);
-            padding: 18px;
-            width: 260px;
-            z-index: 100;
-            animation: fadeIn 0.2s;
+            border-radius: var(--radius);
+            padding: 28px 24px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
         }
-        .settings-panel.show { display: block; }
-        .settings-panel h4 { font-size: 15px; margin-bottom: 12px; color: #555; }
-        .settings-section { margin-bottom: 16px; }
-        .settings-section:last-child { margin-bottom: 0; }
-        .settings-label { font-size: 13px; font-weight: 600; color: #666; margin-bottom: 6px; }
-
-        .opt-group { display: flex; gap: 6px; }
-        .opt-btn {
-            flex: 1;
-            padding: 8px 4px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            background: #f8f8f8;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 500;
-            text-align: center;
-            transition: all 0.2s;
-            font-family: inherit;
-            color: #333;
-        }
-        .opt-btn:hover { border-color: #aaa; }
-        .opt-btn.active { border-color: #5B7553; background: #E5EFE0; color: #5B7553; font-weight: 700; }
-
-        .theme-btn {
-            flex: 1;
-            height: 36px;
-            border: 3px solid #ddd;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .theme-btn:hover { transform: scale(1.05); }
-        .theme-btn.active { border-color: #5B7553; box-shadow: 0 0 0 2px rgba(91,117,83,0.3); }
-        .theme-default { background: linear-gradient(135deg, #5B7553, #7CB342); }
-        .theme-warm { background: #fff; border: 2px solid #bbb; }
-        .theme-dark { background: linear-gradient(135deg, #0F0C29, #302B63, #24243E); }
-
-        .admin-entry-btn {
+        .auth-card h2 { text-align: center; margin-bottom: 24px; color: var(--text); font-size: 22px; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-size: 14px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; }
+        .form-input {
             width: 100%;
-            padding: 10px;
-            background: #f0f0f0;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 13px;
-            cursor: pointer;
-            font-family: inherit;
-            font-weight: 500;
-            color: #555;
-            transition: all 0.2s;
-        }
-        .admin-entry-btn:hover { background: #e8e8e8; color: #333; }
-
-        /* ===== 登入對話框 ===== */
-        .login-backdrop {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 200;
-            justify-content: center;
-            align-items: center;
-        }
-        .login-backdrop.show { display: flex; }
-        .login-modal {
-            background: #fff;
-            border-radius: 16px;
-            padding: 28px;
-            width: 320px;
-            text-align: center;
-            animation: fadeIn 0.2s;
-        }
-        .login-modal h3 { font-size: 20px; margin-bottom: 18px; color: #333; }
-        .login-input {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #ddd;
-            border-radius: 10px;
-            font-size: 16px;
-            margin-bottom: 12px;
-            font-family: inherit;
+            padding: 12px 16px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: calc(16px * var(--font-scale));
+            color: var(--text);
+            background: var(--primary-bg);
             transition: border-color 0.2s;
+            outline: none;
         }
-        .login-input:focus { outline: none; border-color: #7CB342; }
-        .login-error { color: #ea4335; font-size: 13px; margin-bottom: 10px; display: none; }
-        .login-actions { display: flex; gap: 10px; }
-        .login-actions button {
-            flex: 1;
-            padding: 12px;
+        .form-input:focus { border-color: var(--primary); }
+        .form-input::placeholder { color: #aaa; }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 24px;
             border: none;
-            border-radius: 10px;
-            font-size: 15px;
+            border-radius: var(--radius-sm);
+            font-size: calc(16px * var(--font-scale));
             font-weight: 600;
             cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+        .btn:active { transform: scale(0.97); }
+        .btn-primary {
+            width: 100%;
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            color: #fff;
+            padding: 14px;
+            font-size: calc(18px * var(--font-scale));
+            border-radius: var(--radius-sm);
+            box-shadow: 0 4px 15px rgba(91,117,83,0.3);
+        }
+        .btn-primary:hover { box-shadow: 0 6px 20px rgba(91,117,83,0.4); }
+        .btn-secondary {
+            background: var(--primary-bg);
+            color: var(--primary);
+            border: 2px solid var(--border);
+        }
+        .btn-danger { background: var(--danger); color: #fff; }
+        .btn-ghost { background: transparent; color: var(--primary); padding: 8px 12px; }
+        .auth-switch { text-align: center; margin-top: 16px; font-size: 14px; color: var(--text-secondary); }
+        .auth-switch a { color: var(--primary); font-weight: 600; cursor: pointer; text-decoration: none; }
+        .auth-error { background: #FEE2E2; color: var(--danger); padding: 10px 14px; border-radius: var(--radius-sm); font-size: 14px; margin-bottom: 12px; display: none; }
+        /* ===== Tab Bar ===== */
+        .tab-bar {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 480px;
+            height: var(--tab-height);
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            padding-bottom: env(safe-area-inset-bottom, 0);
+            z-index: 100;
+        }
+        .tab-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            padding: 8px 0;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: color 0.2s;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+        .tab-item.active { color: var(--primary); }
+        .tab-item .tab-icon { font-size: 24px; }
+        .tab-item .tab-label { font-size: 11px; font-weight: 500; }
+        /* ===== Page Container ===== */
+        .page-container {
+            padding-bottom: calc(var(--tab-height) + 16px);
+            min-height: 100vh;
+        }
+        .page { display: none; }
+        .page.active { display: block; animation: fadeIn 0.25s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        /* ===== Navigation Bar ===== */
+        .nav-bar {
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            color: #fff;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+        .nav-bar h1 { font-size: calc(20px * var(--font-scale)); font-weight: 700; }
+        .nav-bar-btn { background: none; border: none; color: #fff; font-size: 22px; cursor: pointer; padding: 4px 8px; }
+        .nav-back { display: flex; align-items: center; gap: 4px; background: none; border: none; color: #fff; font-size: 16px; cursor: pointer; font-weight: 500; }
+        /* ===== Server Status ===== */
+        .server-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+        .server-badge.online { background: rgba(56,161,105,0.15); color: #38A169; }
+        .server-badge.checking { background: rgba(237,137,54,0.15); color: #ED8936; }
+        .server-badge.offline { background: rgba(229,62,62,0.15); color: #E53E3E; }
+        .server-dot { width: 8px; height: 8px; border-radius: 50%; }
+        .server-badge.online .server-dot { background: #38A169; }
+        .server-badge.checking .server-dot { background: #ED8936; animation: pulse 1.5s infinite; }
+        .server-badge.offline .server-dot { background: #E53E3E; }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+        /* ===== Cards ===== */
+        .card {
+            background: #fff;
+            border-radius: var(--radius);
+            padding: 20px;
+            margin: 12px 16px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+        .card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+        .card-icon { font-size: 28px; }
+        .card-title { font-size: calc(18px * var(--font-scale)); font-weight: 700; color: var(--text); }
+        .card-desc { font-size: calc(14px * var(--font-scale)); color: var(--text-secondary); line-height: 1.6; }
+        /* ===== Disclaimer ===== */
+        .disclaimer {
+            background: #FFF8E1;
+            border: 1px solid #FFE082;
+            border-radius: var(--radius-sm);
+            padding: 12px 16px;
+            margin: 12px 16px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: calc(13px * var(--font-scale));
+            color: #8B6914;
+        }
+        .disclaimer-icon { font-size: 20px; flex-shrink: 0; }
+        /* ===== Action Grid ===== */
+        .action-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            padding: 0 16px;
+            margin-bottom: 16px;
+        }
+        .action-card {
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+        .action-card:hover { border-color: var(--primary); box-shadow: 0 4px 12px rgba(91,117,83,0.1); transform: translateY(-2px); }
+        .action-card:active { transform: scale(0.97); }
+        .action-card .action-icon { font-size: 36px; }
+        .action-card .action-label { font-size: calc(14px * var(--font-scale)); font-weight: 600; color: var(--text); }
+        .action-card.full-width { grid-column: 1 / -1; flex-direction: row; justify-content: center; padding: 16px; }
+        .action-card.full-width .action-icon { font-size: 28px; }
+        /* ===== Medication List ===== */
+        .time-tabs {
+            display: flex;
+            gap: 0;
+            padding: 0 16px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            margin-bottom: 12px;
+        }
+        .time-tabs::-webkit-scrollbar { display: none; }
+        .time-tab {
+            flex-shrink: 0;
+            padding: 8px 16px;
+            border: none;
+            background: none;
+            font-size: calc(14px * var(--font-scale));
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        .time-tab.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 700; }
+        .prescription-chips {
+            display: flex;
+            gap: 8px;
+            padding: 0 16px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            margin-bottom: 12px;
+        }
+        .prescription-chips::-webkit-scrollbar { display: none; }
+        .p-chip {
+            flex-shrink: 0;
+            padding: 6px 14px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            background: #fff;
+            font-size: 13px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+        .p-chip.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+        .med-item {
+            display: flex;
+            align-items: center;
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .med-item:hover { background: var(--primary-bg); }
+        .med-item:active { background: #e8f0e4; }
+        .med-icon { font-size: 28px; margin-right: 12px; }
+        .med-info { flex: 1; min-width: 0; }
+        .med-name { font-size: calc(16px * var(--font-scale)); font-weight: 600; color: var(--text); }
+        .med-dosage { font-size: calc(13px * var(--font-scale)); color: var(--text-secondary); margin-top: 2px; }
+        .med-time-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            background: rgba(91,117,83,0.1);
+            color: var(--primary);
+        }
+        .med-delete { background: none; border: none; color: var(--danger); font-size: 18px; cursor: pointer; padding: 8px; margin-left: 8px; opacity: 0.6; }
+        .med-delete:hover { opacity: 1; }
+        /* ===== Chat ===== */
+        .chat-container { display: flex; flex-direction: column; height: calc(100vh - var(--tab-height)); }
+        .chat-disclaimer {
+            background: #FFF3E0;
+            border-bottom: 1px solid #FFE0B2;
+            padding: 10px 16px;
+            font-size: calc(12px * var(--font-scale));
+            color: #E65100;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .chat-bubble { max-width: 80%; padding: 12px 16px; border-radius: 18px; font-size: calc(15px * var(--font-scale)); line-height: 1.5; word-break: break-word; }
+        .chat-bubble.user { align-self: flex-end; background: var(--primary); color: #fff; border-bottom-right-radius: 6px; }
+        .chat-bubble.ai { align-self: flex-start; background: #F0F2F5; color: var(--text); border-bottom-left-radius: 6px; }
+        .ai-label { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
+        .ai-label::before { content: '✨'; }
+        .typing-indicator { display: flex; gap: 4px; padding: 12px 16px; align-self: flex-start; }
+        .typing-dot { width: 8px; height: 8px; background: #ccc; border-radius: 50%; animation: typingBounce 1.4s infinite; }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typingBounce { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-8px); } }
+        .chat-input-bar {
+            display: flex;
+            gap: 8px;
+            padding: 12px 16px;
+            border-top: 1px solid var(--border);
+            background: #fff;
+            padding-bottom: calc(12px + env(safe-area-inset-bottom, 0));
+        }
+        .chat-input {
+            flex: 1;
+            padding: 10px 16px;
+            border: 2px solid var(--border);
+            border-radius: 24px;
+            font-size: calc(15px * var(--font-scale));
+            outline: none;
+            resize: none;
+            max-height: 100px;
             font-family: inherit;
         }
-        .login-cancel { background: #f0f0f0; color: #555; }
-        .login-submit { background: linear-gradient(135deg, #5B7553, #7CB342); color: #fff; }
-
-        /* ===== 字體大小模式 ===== */
-        body.font-medium { font-size: 18px; }
-        body.font-medium .header h1 { font-size: 40px; }
-        body.font-medium .big-button { font-size: 26px; }
-        body.font-medium .back-button { font-size: 18px; }
-        body.font-medium .upload-area p { font-size: 22px; }
-        body.font-medium .search-input { font-size: 20px; }
-
-        body.font-large { font-size: 22px; }
-        body.font-large .header h1 { font-size: 46px; }
-        body.font-large .big-button { font-size: 30px; padding: 30px; }
-        body.font-large .back-button { font-size: 20px; padding: 18px; }
-        body.font-large .upload-area p { font-size: 26px; }
-        body.font-large .search-input { font-size: 24px; }
-        body.font-large .result-item { font-size: 20px; }
-
-        /* ===== 白色清晰主題 ===== */
-        body.theme-warm-mode { background: #F0F0F0; }
-        body.theme-warm-mode .container { background: #FFFFFF; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
-        body.theme-warm-mode .container::before,
-        body.theme-warm-mode .container::after { display: none; }
-        body.theme-warm-mode .header { background: #FFFFFF; color: #1A1A1A; border-bottom: 2px solid #D0D0D0; }
-        body.theme-warm-mode .header p { color: #555; }
-        body.theme-warm-mode .settings-toggle { color: #333; }
-        body.theme-warm-mode .settings-toggle:hover { background: rgba(0,0,0,0.06); }
-        body.theme-warm-mode .big-button { background: #FFFFFF !important; color: #1A1A1A !important; border: 2px solid #888; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
-        body.theme-warm-mode .big-button:hover { background: #F5F5F5 !important; border-color: #555; box-shadow: 0 2px 10px rgba(0,0,0,0.12); }
-        body.theme-warm-mode .big-button:focus-visible { outline: 3px solid #1A73E8; outline-offset: 2px; }
-        body.theme-warm-mode .big-button.secondary { background: #F5F5F5 !important; color: #1A1A1A !important; border: 2px solid #999; }
-        body.theme-warm-mode .big-button.tertiary { background: #F5F5F5 !important; color: #1A1A1A !important; border: 2px solid #AAA; }
-        body.theme-warm-mode .upload-area { background: #FAFAFA; border: 2px dashed #999; color: #333; }
-        body.theme-warm-mode .upload-area:hover { border-color: #555; background: #F5F5F5; }
-        body.theme-warm-mode .upload-area p { color: #444; }
-        body.theme-warm-mode .back-button { background: #F5F5F5; color: #1A1A1A; border: 2px solid #999; }
-        body.theme-warm-mode .back-button:hover { background: #E8E8E8; border-color: #666; }
-        body.theme-warm-mode .search-input { background: #FFF; color: #1A1A1A; border: 2px solid #999; }
-        body.theme-warm-mode .search-input:focus { border-color: #1A73E8; box-shadow: 0 0 0 2px rgba(26,115,232,0.25); }
-        body.theme-warm-mode .search-btn,
-        body.theme-warm-mode .search-button { background: #1A1A1A !important; color: #FFF !important; border: none; }
-        body.theme-warm-mode .search-btn:hover,
-        body.theme-warm-mode .search-button:hover { background: #333 !important; }
-        body.theme-warm-mode .result-item { background: #FAFAFA; border: 1px solid #DDD; }
-        body.theme-warm-mode .result-item:hover { background: #F0F0F0; border-color: #AAA; }
-        body.theme-warm-mode .footer-hint { color: #666; border-top-color: #DDD; }
-        body.theme-warm-mode .settings-panel { background: #FFF; color: #1A1A1A; border: 1px solid #CCC; }
-        body.theme-warm-mode .settings-label { color: #555; }
-        body.theme-warm-mode .opt-btn { background: #F5F5F5; color: #333; border: 2px solid #CCC; }
-        body.theme-warm-mode .opt-btn.active { border-color: #1A1A1A; background: #FFF; color: #1A1A1A; font-weight: 700; }
-        body.theme-warm-mode .admin-entry-btn { background: #F5F5F5; color: #333; border: 2px solid #CCC; }
-        body.theme-warm-mode .admin-entry-btn:hover { background: #E8E8E8; border-color: #999; }
-
-        /* ===== 深色漸變主題 ===== */
-        body.theme-dark-mode {
-            background: linear-gradient(135deg, #0F0C29 0%, #302B63 40%, #24243E 70%, #0F2027 100%);
-            background-attachment: fixed;
-        }
-        body.theme-dark-mode .container {
-            background: rgba(20, 18, 45, 0.85);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            color: #EAEAEA;
-            border: 1px solid rgba(255,255,255,0.08);
-        }
-        body.theme-dark-mode .container::before,
-        body.theme-dark-mode .container::after { display: none; }
-        body.theme-dark-mode .header {
-            background: linear-gradient(135deg, #1A1640 0%, #302B63 50%, #1B4332 100%);
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-        body.theme-dark-mode .big-button {
-            background: rgba(255,255,255,0.06) !important;
-            color: #F0F0F0 !important;
-            border: 2px solid rgba(255,255,255,0.15);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05);
-            transition: all 0.25s ease;
-        }
-        body.theme-dark-mode .big-button:hover {
-            background: rgba(255,255,255,0.12) !important;
-            border-color: rgba(150,130,255,0.4);
-            box-shadow: 0 6px 25px rgba(48,43,99,0.5), inset 0 1px 0 rgba(255,255,255,0.08);
-            transform: translateY(-2px);
-        }
-        body.theme-dark-mode .big-button.secondary { background: rgba(255,255,255,0.04) !important; color: #ddd !important; border-color: rgba(255,255,255,0.12); }
-        body.theme-dark-mode .upload-area {
-            background: rgba(255,255,255,0.04);
-            border: 2px dashed rgba(255,255,255,0.2);
-            color: #ccc;
-        }
-        body.theme-dark-mode .upload-area:hover {
-            background: rgba(255,255,255,0.08);
-            border-color: rgba(150,130,255,0.4);
-        }
-        body.theme-dark-mode .upload-area p { color: #bbb; }
-        body.theme-dark-mode .back-button {
-            background: rgba(255,255,255,0.08);
-            color: #ddd;
-            border: 1px solid rgba(255,255,255,0.15);
-            transition: all 0.25s ease;
-        }
-        body.theme-dark-mode .back-button:hover {
-            background: rgba(255,255,255,0.14);
-            border-color: rgba(150,130,255,0.35);
-        }
-        body.theme-dark-mode .search-input {
-            background: rgba(255,255,255,0.06);
-            color: #fff;
-            border: 2px solid rgba(255,255,255,0.15);
-        }
-        body.theme-dark-mode .search-input:focus {
-            border-color: rgba(150,130,255,0.5);
-            box-shadow: 0 0 0 3px rgba(150,130,255,0.15);
-        }
-        body.theme-dark-mode .search-button {
-            background: linear-gradient(135deg, #302B63, #4A3F8F) !important;
-            color: #fff !important;
+        .chat-input:focus { border-color: var(--primary); }
+        .chat-send {
+            width: 44px; height: 44px;
+            border-radius: 50%;
             border: none;
-        }
-        body.theme-dark-mode .search-button:hover {
-            background: linear-gradient(135deg, #3D3680, #5A4FA0) !important;
-        }
-        body.theme-dark-mode .footer-hint { color: rgba(255,255,255,0.4); border-top-color: rgba(255,255,255,0.08); }
-        body.theme-dark-mode .result-item {
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.1);
-            transition: all 0.25s ease;
-        }
-        body.theme-dark-mode .result-item:hover {
-            background: rgba(255,255,255,0.1);
-            border-color: rgba(150,130,255,0.3);
-        }
-        body.theme-dark-mode .settings-panel {
-            background: rgba(25, 22, 55, 0.95);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            color: #eee;
-            border: 1px solid rgba(255,255,255,0.1);
-            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-        }
-        body.theme-dark-mode .settings-label { color: rgba(255,255,255,0.6); }
-        body.theme-dark-mode .opt-btn {
-            background: rgba(255,255,255,0.06);
-            color: #ddd;
-            border: 2px solid rgba(255,255,255,0.12);
-            transition: all 0.2s ease;
-        }
-        body.theme-dark-mode .opt-btn:hover { border-color: rgba(150,130,255,0.3); }
-        body.theme-dark-mode .opt-btn.active {
-            border-color: #9682FF;
-            background: rgba(150,130,255,0.12);
-            color: #C4B8FF;
-            font-weight: 700;
-        }
-        body.theme-dark-mode .admin-entry-btn {
-            background: rgba(255,255,255,0.06);
-            color: #bbb;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        body.theme-dark-mode .admin-entry-btn:hover {
-            background: rgba(255,255,255,0.1);
-            color: #ddd;
-            border-color: rgba(255,255,255,0.2);
-        }
-        body.theme-dark-mode .login-modal {
-            background: rgba(25, 22, 55, 0.95);
-            backdrop-filter: blur(16px);
-            color: #eee;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        body.theme-dark-mode .login-modal h3 { color: #eee; }
-        body.theme-dark-mode .login-input {
-            background: rgba(255,255,255,0.06);
+            background: var(--primary);
             color: #fff;
-            border-color: rgba(255,255,255,0.15);
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
         }
-        body.theme-dark-mode .login-cancel { background: rgba(255,255,255,0.08); color: #ccc; }
-        body.theme-dark-mode .login-submit { background: linear-gradient(135deg, #302B63, #4A3F8F); }
+        .chat-send:disabled { opacity: 0.4; cursor: default; }
+        /* ===== Upload Area ===== */
+        .upload-zone {
+            border: 3px dashed var(--primary-light);
+            border-radius: var(--radius);
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            background: var(--primary-bg);
+            transition: all 0.2s;
+            margin: 16px;
+        }
+        .upload-zone:hover { border-color: var(--primary); background: #E5EFE0; }
+        .upload-zone.dragover { border-color: var(--primary); background: #E5EFE0; transform: scale(1.01); }
+        .upload-zone .upload-icon { font-size: 48px; margin-bottom: 12px; }
+        .upload-zone p { font-size: calc(18px * var(--font-scale)); font-weight: 600; color: var(--text); }
+        .upload-zone small { font-size: 13px; color: var(--text-secondary); }
+        .preview-img { max-width: 100%; max-height: 300px; border-radius: var(--radius-sm); margin-top: 16px; box-shadow: var(--shadow); }
+        /* ===== Search ===== */
+        .search-bar {
+            display: flex;
+            gap: 8px;
+            padding: 12px 16px;
+            background: #fff;
+            border-bottom: 1px solid var(--border);
+        }
+        .search-input {
+            flex: 1;
+            padding: 10px 16px;
+            border: 2px solid var(--border);
+            border-radius: 24px;
+            font-size: calc(15px * var(--font-scale));
+            outline: none;
+        }
+        .search-input:focus { border-color: var(--primary); }
+        .search-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 24px;
+            background: var(--primary);
+            color: #fff;
+            font-size: calc(15px * var(--font-scale));
+            font-weight: 600;
+            cursor: pointer;
+        }
+        /* ===== Results / Drug Detail ===== */
+        .result-item {
+            display: flex;
+            align-items: center;
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .result-item:hover { background: var(--primary-bg); }
+        .result-thumb { width: 50px; height: 50px; border-radius: 10px; object-fit: cover; margin-right: 12px; background: var(--primary-bg); display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
+        .result-info { flex: 1; min-width: 0; }
+        .result-name { font-size: calc(16px * var(--font-scale)); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .result-sub { font-size: calc(13px * var(--font-scale)); color: var(--text-secondary); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .result-confidence { padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; background: rgba(56,161,105,0.1); color: var(--success); flex-shrink: 0; }
+        .detail-section { padding: 16px; border-bottom: 1px solid var(--border); }
+        .detail-section-title { font-size: calc(14px * var(--font-scale)); font-weight: 700; color: var(--primary); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .detail-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: calc(15px * var(--font-scale)); }
+        .detail-label { color: var(--text-secondary); flex-shrink: 0; margin-right: 12px; }
+        .detail-value { font-weight: 500; text-align: right; word-break: break-all; }
+        /* ===== Profile / Settings ===== */
+        .profile-header {
+            text-align: center;
+            padding: 24px 16px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            color: #fff;
+        }
+        .profile-avatar { font-size: 56px; margin-bottom: 8px; }
+        .profile-name { font-size: calc(20px * var(--font-scale)); font-weight: 700; }
+        .profile-username { font-size: 14px; opacity: 0.8; margin-top: 4px; }
+        .settings-group { padding: 8px 0; }
+        .settings-group-title { font-size: calc(13px * var(--font-scale)); font-weight: 600; color: var(--text-secondary); padding: 8px 16px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .settings-item {
+            display: flex;
+            align-items: center;
+            padding: 14px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border);
+            transition: background 0.15s;
+        }
+        .settings-item:hover { background: var(--primary-bg); }
+        .settings-item .s-icon { font-size: 22px; margin-right: 14px; width: 32px; text-align: center; }
+        .settings-item .s-label { flex: 1; font-size: calc(16px * var(--font-scale)); font-weight: 500; }
+        .settings-item .s-value { font-size: calc(14px * var(--font-scale)); color: var(--text-secondary); margin-right: 8px; }
+        .settings-item .s-arrow { color: var(--text-secondary); font-size: 14px; }
+        /* Toggle Switch */
+        .toggle { position: relative; width: 50px; height: 28px; cursor: pointer; }
+        .toggle input { display: none; }
+        .toggle-slider {
+            position: absolute; inset: 0;
+            background: #ccc; border-radius: 28px;
+            transition: 0.3s;
+        }
+        .toggle-slider::before {
+            content: '';
+            position: absolute;
+            width: 22px; height: 22px;
+            left: 3px; bottom: 3px;
+            background: #fff;
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+        .toggle input:checked + .toggle-slider { background: var(--primary); }
+        .toggle input:checked + .toggle-slider::before { transform: translateX(22px); }
+        /* Select Picker */
+        .form-select {
+            padding: 8px 12px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: calc(14px * var(--font-scale));
+            background: #fff;
+            color: var(--text);
+            outline: none;
+        }
+        .form-select:focus { border-color: var(--primary); }
+        /* ===== BMI ===== */
+        .bmi-card { text-align: center; padding: 16px; margin: 12px 16px; border-radius: var(--radius); }
+        .bmi-value { font-size: 36px; font-weight: 800; }
+        .bmi-label { font-size: 14px; margin-top: 4px; }
+        .bmi-underweight { background: #EBF8FF; }
+        .bmi-underweight .bmi-value { color: var(--info); }
+        .bmi-normal { background: #F0FFF4; }
+        .bmi-normal .bmi-value { color: var(--success); }
+        .bmi-overweight { background: #FFFAF0; }
+        .bmi-overweight .bmi-value { color: var(--warning); }
+        .bmi-obese { background: #FFF5F5; }
+        .bmi-obese .bmi-value { color: var(--danger); }
+        /* ===== History ===== */
+        .history-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+        }
+        .history-item:hover { background: var(--primary-bg); }
+        .history-thumb { width: 56px; height: 56px; border-radius: 10px; object-fit: cover; background: var(--primary-bg); margin-right: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; overflow: hidden; }
+        .history-thumb img { width: 100%; height: 100%; object-fit: cover; }
+        .history-info { flex: 1; min-width: 0; }
+        .history-name { font-size: calc(15px * var(--font-scale)); font-weight: 600; }
+        .history-time { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+        .history-conf { font-size: 12px; color: var(--success); font-weight: 600; }
+        /* ===== Empty / Loading States ===== */
+        .empty-state { text-align: center; padding: 60px 24px; color: var(--text-secondary); }
+        .empty-state .empty-icon { font-size: 56px; margin-bottom: 16px; }
+        .empty-state .empty-text { font-size: calc(16px * var(--font-scale)); }
+        .loading-overlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.4);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 200;
+        }
+        .loading-card {
+            background: #fff;
+            border-radius: var(--radius);
+            padding: 32px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+        }
+        .spinner {
+            width: 40px; height: 40px;
+            border: 4px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 16px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        /* ===== Toast ===== */
+        .toast {
+            position: fixed;
+            bottom: calc(var(--tab-height) + 20px);
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 24px;
+            border-radius: 24px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #fff;
+            z-index: 300;
+            animation: toastIn 0.3s ease;
+            max-width: 90%;
+            text-align: center;
+        }
+        .toast.success { background: var(--success); }
+        .toast.error { background: var(--danger); }
+        .toast.info { background: var(--info); }
+        @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+        /* ===== Modal ===== */
+        .modal-overlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 250;
+            padding: 24px;
+        }
+        .modal {
+            background: #fff;
+            border-radius: var(--radius);
+            width: 100%;
+            max-width: 360px;
+            padding: 24px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+        }
+        .modal h3 { font-size: calc(18px * var(--font-scale)); margin-bottom: 16px; }
+        .modal-actions { display: flex; gap: 12px; margin-top: 20px; }
+        .modal-actions .btn { flex: 1; }
+        /* ===== Allergy Tags ===== */
+        .allergy-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            background: #FFF5F5;
+            border: 1px solid #FEB2B2;
+            color: var(--danger);
+            font-size: 14px;
+            margin: 4px;
+        }
+        .allergy-tag .remove-allergy { cursor: pointer; font-weight: bold; opacity: 0.6; }
+        .allergy-tag .remove-allergy:hover { opacity: 1; }
+        /* ===== Utility ===== */
+        .hidden { display: none !important; }
+        .text-center { text-align: center; }
+        .p-16 { padding: 16px; }
+        .w-full { width: 100%; }
     </style>
 </head>
 
 <body>
-    <div class="container">
-        <!-- 頁首 -->
-        <div class="header" style="position:relative;">
-            <h1>💊 藥知道</h1>
-            <p>簡單、快速、安全</p>
-            <button class="settings-toggle" onclick="toggleSettings()" title="設定">⚙️</button>
-            <div class="settings-panel" id="settingsPanel">
-                <div class="settings-section">
-                    <div class="settings-label">字體大小</div>
-                    <div class="opt-group">
-                        <button class="opt-btn active" data-font="normal" onclick="setFontSize('normal')">正常</button>
-                        <button class="opt-btn" data-font="medium" onclick="setFontSize('medium')">中</button>
-                        <button class="opt-btn" data-font="large" onclick="setFontSize('large')">大</button>
+    <div class="app-shell" id="appShell">
+
+        <!-- ==================== AUTH SCREENS ==================== -->
+        <div id="authScreen" class="auth-screen">
+            <!-- Login -->
+            <div id="loginForm">
+                <div class="auth-logo">💊</div>
+                <div class="auth-title">藥知道</div>
+                <div class="auth-subtitle">智慧藥物管理與辨識系統</div>
+                <div class="auth-card">
+                    <h2>登入</h2>
+                    <div id="loginError" class="auth-error"></div>
+                    <div class="form-group">
+                        <label>帳號</label>
+                        <input type="text" id="loginUsername" class="form-input" placeholder="請輸入帳號" autocomplete="username">
+                    </div>
+                    <div class="form-group">
+                        <label>密碼</label>
+                        <input type="password" id="loginPassword" class="form-input" placeholder="請輸入密碼" autocomplete="current-password">
+                    </div>
+                    <button class="btn btn-primary" onclick="doLogin()">登入</button>
+                    <div class="auth-switch">
+                        還沒有帳號？<a onclick="showRegister()">立即註冊</a>
                     </div>
                 </div>
-                <div class="settings-section">
-                    <div class="settings-label">顏色主題</div>
-                    <div class="opt-group">
-                        <div class="theme-btn theme-default active" data-theme="default" onclick="setTheme('default')" title="預設"></div>
-                        <div class="theme-btn theme-warm" data-theme="warm" onclick="setTheme('warm')" title="白色"></div>
-                        <div class="theme-btn theme-dark" data-theme="dark" onclick="setTheme('dark')" title="深色高對比"></div>
+            </div>
+            <!-- Register -->
+            <div id="registerForm" class="hidden">
+                <div class="auth-logo">💊</div>
+                <div class="auth-title">藥知道</div>
+                <div class="auth-subtitle">建立您的帳號</div>
+                <div class="auth-card">
+                    <h2>註冊</h2>
+                    <div id="registerError" class="auth-error"></div>
+                    <div class="form-group">
+                        <label>帳號（3~32 字元）</label>
+                        <input type="text" id="regUsername" class="form-input" placeholder="英數字、底線、連字號" autocomplete="username">
+                    </div>
+                    <div class="form-group">
+                        <label>顯示名稱（選填）</label>
+                        <input type="text" id="regDisplayName" class="form-input" placeholder="您的暱稱">
+                    </div>
+                    <div class="form-group">
+                        <label>密碼（至少 8 字元）</label>
+                        <input type="password" id="regPassword" class="form-input" placeholder="請設定密碼" autocomplete="new-password">
+                    </div>
+                    <div class="form-group">
+                        <label>確認密碼</label>
+                        <input type="password" id="regPasswordConfirm" class="form-input" placeholder="再次輸入密碼" autocomplete="new-password">
+                    </div>
+                    <button class="btn btn-primary" onclick="doRegister()">註冊</button>
+                    <div class="auth-switch">
+                        已有帳號？<a onclick="showLogin()">返回登入</a>
                     </div>
                 </div>
-                <div class="settings-section">
-                    <button class="admin-entry-btn" onclick="showLoginModal()">🔒 進入後台管理</button>
+            </div>
+        </div>
+
+        <!-- ==================== MAIN APP ==================== -->
+        <div id="mainApp" class="hidden">
+            <div class="page-container">
+
+                <!-- ========== HOME PAGE ========== -->
+                <div id="pageHome" class="page active">
+                    <div class="nav-bar">
+                        <h1>💊 藥知道</h1>
+                        <div id="serverStatus" class="server-badge checking">
+                            <span class="server-dot"></span>
+                            <span id="serverStatusText">連線中</span>
+                        </div>
+                    </div>
+                    <div class="card" style="margin-top: 16px;">
+                        <div class="card-header">
+                            <span class="card-icon">👋</span>
+                            <div>
+                                <div class="card-title">歡迎回來</div>
+                                <div class="card-desc" id="welcomeUser">您的健康管理好幫手</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="disclaimer">
+                        <span class="disclaimer-icon">⚠️</span>
+                        <span>本系統 AI 辨識結果與建議僅供參考，不構成醫療診斷或處方建議。用藥前請務必諮詢專業醫療人員。</span>
+                    </div>
+                    <div class="action-grid" style="margin-top: 16px;">
+                        <div class="action-card" onclick="navigateTo('recognize')">
+                            <span class="action-icon">📷</span>
+                            <span class="action-label">拍照辨識</span>
+                        </div>
+                        <div class="action-card" onclick="navigateTo('search')">
+                            <span class="action-icon">🔍</span>
+                            <span class="action-label">藥物搜尋</span>
+                        </div>
+                        <div class="action-card" onclick="navigateTo('prescription')">
+                            <span class="action-icon">📄</span>
+                            <span class="action-label">藥單辨識</span>
+                        </div>
+                        <div class="action-card" onclick="navigateTo('history')">
+                            <span class="action-icon">🕐</span>
+                            <span class="action-label">辨識紀錄</span>
+                        </div>
+                        <div class="action-card full-width" onclick="navigateTo('pharmacy')">
+                            <span class="action-icon">📍</span>
+                            <span class="action-label">附近藥局</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ========== RECOGNIZE PAGE ========== -->
+                <div id="pageRecognize" class="page">
+                    <div class="nav-bar">
+                        <button class="nav-back" onclick="goBack()">← 返回</button>
+                        <h1>拍照辨識</h1>
+                        <div style="width:60px"></div>
+                    </div>
+                    <div id="recognizeUpload">
+                        <div class="upload-zone" id="drugUploadZone">
+                            <div class="upload-icon">📷</div>
+                            <p>點擊或拖曳上傳藥物照片</p>
+                            <small>支援 JPG、PNG 格式</small>
+                        </div>
+                        <input type="file" id="drugImageInput" accept="image/*" capture="environment" class="hidden">
+                        <div id="drugPreview" class="hidden text-center p-16">
+                            <img id="drugPreviewImg" class="preview-img" alt="預覽">
+                            <div style="display:flex; gap:12px; justify-content:center; margin-top:16px;">
+                                <button class="btn btn-secondary" onclick="resetDrugPhoto()">重新拍照</button>
+                                <button class="btn btn-primary" style="width:auto;padding:12px 32px;" onclick="uploadDrugImage()">開始辨識</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="recognizeResults" class="hidden"></div>
+                </div>
+
+                <!-- ========== PRESCRIPTION PAGE ========== -->
+                <div id="pagePrescription" class="page">
+                    <div class="nav-bar">
+                        <button class="nav-back" onclick="goBack()">← 返回</button>
+                        <h1>藥單辨識</h1>
+                        <div style="width:60px"></div>
+                    </div>
+                    <div id="prescriptionUpload">
+                        <div class="upload-zone" id="rxUploadZone">
+                            <div class="upload-icon">📄</div>
+                            <p>點擊或拖曳上傳藥單照片</p>
+                            <small>支援處方箋、藥袋、藥單照片</small>
+                        </div>
+                        <input type="file" id="rxImageInput" accept="image/*" capture="environment" class="hidden">
+                        <div id="rxPreview" class="hidden text-center p-16">
+                            <img id="rxPreviewImg" class="preview-img" alt="預覽">
+                            <div style="display:flex; gap:12px; justify-content:center; margin-top:16px;">
+                                <button class="btn btn-secondary" onclick="resetRxPhoto()">重新拍照</button>
+                                <button class="btn btn-primary" style="width:auto;padding:12px 32px;" onclick="uploadRxImage()">開始辨識</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="prescriptionResults" class="hidden"></div>
+                </div>
+
+                <!-- ========== SEARCH PAGE ========== -->
+                <div id="pageSearch" class="page">
+                    <div class="nav-bar">
+                        <button class="nav-back" onclick="goBack()">← 返回</button>
+                        <h1>藥物搜尋</h1>
+                        <div style="width:60px"></div>
+                    </div>
+                    <div class="search-bar">
+                        <input type="text" id="searchInput" class="search-input" placeholder="輸入藥品名稱（中英文皆可）" oninput="debounceSearch()">
+                        <button class="search-btn" onclick="doSearch()">搜尋</button>
+                    </div>
+                    <div id="searchResults"></div>
+                    <div id="searchHistory"></div>
+                </div>
+
+                <!-- ========== DRUG DETAIL PAGE ========== -->
+                <div id="pageDrugDetail" class="page">
+                    <div class="nav-bar">
+                        <button class="nav-back" onclick="goBack()">← 返回</button>
+                        <h1>藥物資訊</h1>
+                        <div style="width:60px"></div>
+                    </div>
+                    <div id="drugDetailContent"></div>
+                </div>
+
+                <!-- ========== RECOGNITION HISTORY PAGE ========== -->
+                <div id="pageHistory" class="page">
+                    <div class="nav-bar">
+                        <button class="nav-back" onclick="goBack()">← 返回</button>
+                        <h1>辨識紀錄</h1>
+                        <button class="nav-bar-btn" onclick="clearHistory()" title="清除全部">🗑️</button>
+                    </div>
+                    <div id="historyList"></div>
+                </div>
+
+                <!-- ========== PHARMACY PAGE ========== -->
+                <div id="pagePharmacy" class="page">
+                    <div class="nav-bar">
+                        <button class="nav-back" onclick="goBack()">← 返回</button>
+                        <h1>附近藥局</h1>
+                        <div style="width:60px"></div>
+                    </div>
+                    <div id="pharmacyContent">
+                        <div class="empty-state">
+                            <div class="empty-icon">📍</div>
+                            <div class="empty-text">正在取得您的位置...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ========== MEDICATIONS PAGE ========== -->
+                <div id="pageMedications" class="page">
+                    <div class="nav-bar">
+                        <h1>💊 用藥清單</h1>
+                        <div style="display:flex;gap:8px;">
+                            <button class="nav-bar-btn" id="medEditBtn" onclick="toggleMedEdit()">編輯</button>
+                            <button class="nav-bar-btn" onclick="showAddMedModal()">＋</button>
+                        </div>
+                    </div>
+                    <div class="prescription-chips" id="prescriptionChips"></div>
+                    <div class="time-tabs">
+                        <button class="time-tab active" data-slot="all" onclick="setTimeSlot('all',this)">全部</button>
+                        <button class="time-tab" data-slot="morning" onclick="setTimeSlot('morning',this)">🌅 早上</button>
+                        <button class="time-tab" data-slot="noon" onclick="setTimeSlot('noon',this)">☀️ 中午</button>
+                        <button class="time-tab" data-slot="evening" onclick="setTimeSlot('evening',this)">🌆 晚上</button>
+                        <button class="time-tab" data-slot="bedtime" onclick="setTimeSlot('bedtime',this)">🌙 睡前</button>
+                    </div>
+                    <div id="medEditToolbar" class="hidden" style="padding:8px 16px;display:flex;align-items:center;gap:12px;background:#FFF8E1;border-bottom:1px solid #FFE082;">
+                        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+                            <input type="checkbox" id="medSelectAll" onchange="toggleSelectAllMeds()"> 全選
+                        </label>
+                        <span id="medSelectedCount" style="flex:1;font-size:13px;color:var(--text-secondary);">已選 0 項</span>
+                        <button class="btn btn-danger" style="padding:6px 16px;font-size:13px;" onclick="deleteSelectedMeds()">刪除</button>
+                    </div>
+                    <div id="medList"></div>
+                </div>
+
+                <!-- ========== CONSULTATION PAGE ========== -->
+                <div id="pageConsultation" class="page">
+                    <div class="nav-bar">
+                        <h1>💬 AI 諮詢</h1>
+                        <div style="width:60px"></div>
+                    </div>
+                    <div class="card" style="margin-top:16px;cursor:pointer;" onclick="navigateTo('chat')">
+                        <div class="card-header">
+                            <span class="card-icon">✨</span>
+                            <div>
+                                <div class="card-title">AI 藥物諮詢</div>
+                                <div class="card-desc">詢問藥物相關問題，獲得即時解答</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="disclaimer">
+                        <span class="disclaimer-icon">⚠️</span>
+                        <span>AI 回覆僅供參考，不構成醫療建議。如有疑慮請諮詢醫師或藥師。</span>
+                    </div>
+                    <div id="consultHistory">
+                        <div class="empty-state" style="padding-top:40px;">
+                            <div class="empty-icon">💬</div>
+                            <div class="empty-text">開始您的第一次 AI 諮詢吧</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ========== AI CHAT PAGE ========== -->
+                <div id="pageChat" class="page">
+                    <div class="chat-container">
+                        <div class="nav-bar">
+                            <button class="nav-back" onclick="goBack()">← 返回</button>
+                            <h1>AI 藥物諮詢</h1>
+                            <div style="width:60px"></div>
+                        </div>
+                        <div class="chat-disclaimer">
+                            <span>⚠️</span>
+                            <span>AI 回覆僅供參考，不構成醫療建議</span>
+                        </div>
+                        <div class="chat-messages" id="chatMessages">
+                            <div class="chat-bubble ai">
+                                您好！我是藥知道 AI 助手 🏥<br>
+                                您可以問我任何藥物相關的問題，例如：<br>
+                                • 這個藥有什麼副作用？<br>
+                                • 兩種藥可以一起吃嗎？<br>
+                                • 忘記吃藥怎麼辦？
+                            </div>
+                            <div class="ai-label">AI 生成</div>
+                        </div>
+                        <div class="chat-input-bar">
+                            <textarea id="chatInput" class="chat-input" rows="1" placeholder="輸入您的問題..." onkeydown="handleChatKeydown(event)" oninput="autoResizeChat()"></textarea>
+                            <button class="chat-send" id="chatSendBtn" onclick="sendChat()">➤</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ========== PROFILE PAGE ========== -->
+                <div id="pageProfile" class="page">
+                    <div class="profile-header">
+                        <div class="profile-avatar">👤</div>
+                        <div class="profile-name" id="profileDisplayName">使用者</div>
+                        <div class="profile-username" id="profileUsername">@username</div>
+                    </div>
+                    <div class="settings-group">
+                        <div class="settings-group-title">帳號</div>
+                        <div class="settings-item" onclick="navigateTo('personalInfo')">
+                            <span class="s-icon">📋</span>
+                            <span class="s-label">個人資訊</span>
+                            <span class="s-arrow">›</span>
+                        </div>
+                    </div>
+                    <div class="settings-group">
+                        <div class="settings-group-title">外觀設定</div>
+                        <div class="settings-item">
+                            <span class="s-icon">🔤</span>
+                            <span class="s-label">字體大小</span>
+                            <select class="form-select" id="fontScaleSelect" onchange="setFontScale(this.value)">
+                                <option value="0.9">小</option>
+                                <option value="1" selected>中</option>
+                                <option value="1.15">大</option>
+                                <option value="1.3">特大</option>
+                            </select>
+                        </div>
+                        <div class="settings-item">
+                            <span class="s-icon">🎨</span>
+                            <span class="s-label">主題色</span>
+                            <select class="form-select" id="themeSelect" onchange="setTheme(this.value)">
+                                <option value="default">自然綠</option>
+                                <option value="warm">暖木棕</option>
+                                <option value="cool">寧靜藍</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="settings-group">
+                        <div class="settings-group-title">安全</div>
+                        <div class="settings-item" onclick="navigateTo('allergies')">
+                            <span class="s-icon">🚫</span>
+                            <span class="s-label">過敏原清單</span>
+                            <span class="s-arrow">›</span>
+                        </div>
+                        <div class="settings-item" onclick="navigateTo('healthProfile')">
+                            <span class="s-icon">❤️</span>
+                            <span class="s-label">健康狀況</span>
+                            <span class="s-arrow">›</span>
+                        </div>
+                    </div>
+                    <div class="settings-group">
+                        <div class="settings-group-title">設定</div>
+                        <div class="settings-item">
+                            <span class="s-icon">🧪</span>
+                            <span class="s-label">Demo 模式</span>
+                            <label class="toggle">
+                                <input type="checkbox" id="demoModeToggle" onchange="toggleDemoMode()">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="settings-group">
+                        <div class="settings-group-title">關於</div>
+                        <div class="settings-item" style="cursor:default;">
+                            <span class="s-icon">ℹ️</span>
+                            <span class="s-label">版本</span>
+                            <span class="s-value">Web 1.0.0</span>
+                        </div>
+                    </div>
+                    <div style="padding:16px;">
+                        <button class="btn btn-danger w-full" onclick="doLogout()">登出</button>
+                    </div>
+                </div>
+
+                <!-- ========== PERSONAL INFO PAGE ========== -->
+                <div id="pagePersonalInfo" class="page">
+                    <div class="nav-bar">
+                        <button class="nav-back" onclick="goBack()">← 返回</button>
+                        <h1>個人資訊</h1>
+                        <button class="nav-bar-btn" onclick="savePersonalInfo()">儲存</button>
+                    </div>
+                    <div style="text-align:center;padding:20px;">
+                        <div style="font-size:56px;">👤</div>
+                        <div style="font-size:16px;font-weight:600;margin-top:4px;" id="piUsername"></div>
+                    </div>
+                    <div id="bmiDisplay" class="bmi-card hidden"></div>
+                    <div style="padding:0 16px 16px;">
+                        <div class="form-group">
+                            <label>身高（cm）</label>
+                            <input type="number" id="piHeight" class="form-input" placeholder="例：170" min="50" max="250" oninput="calcBMI()">
+                        </div>
+                        <div class="form-group">
+                            <label>體重（kg）</label>
+                            <input type="number" id="piWeight" class="form-input" placeholder="例：65" min="20" max="300" oninput="calcBMI()">
+                        </div>
+                        <div class="form-group">
+                            <label>出生年份</label>
+                            <input type="number" id="piBirthYear" class="form-input" placeholder="例：1960" min="1900" max="2024">
+                        </div>
+                        <div class="form-group">
+                            <label>性別</label>
+                            <select id="piGender" class="form-select w-full">
+                                <option value="">未設定</option>
+                                <option value="male">男</option>
+                                <option value="female">女</option>
+                                <option value="other">其他</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>血型</label>
+                            <select id="piBloodType" class="form-select w-full">
+                                <option value="">未設定</option>
+                                <option value="A">A 型</option>
+                                <option value="B">B 型</option>
+                                <option value="AB">AB 型</option>
+                                <option value="O">O 型</option>
+                            </select>
+                        </div>
+                        <div class="disclaimer" style="margin:16px 0 0;">
+                            <span class="disclaimer-icon">🔒</span>
+                            <span>您的個人資訊僅儲存在本裝置，不會上傳至伺服器。</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ========== ALLERGIES PAGE ========== -->
+                <div id="pageAllergies" class="page">
+                    <div class="nav-bar">
+                        <button class="nav-back" onclick="goBack()">← 返回</button>
+                        <h1>過敏原清單</h1>
+                        <button class="nav-bar-btn" onclick="showAddAllergyModal()">＋</button>
+                    </div>
+                    <div id="allergyList" style="padding:16px;"></div>
+                </div>
+
+                <!-- ========== HEALTH PROFILE PAGE ========== -->
+                <div id="pageHealthProfile" class="page">
+                    <div class="nav-bar">
+                        <button class="nav-back" onclick="goBack()">← 返回</button>
+                        <h1>健康狀況</h1>
+                        <div style="width:60px"></div>
+                    </div>
+                    <div style="padding:8px 0;">
+                        <div class="settings-item">
+                            <span class="s-icon">🤰</span>
+                            <span class="s-label">懷孕中</span>
+                            <label class="toggle"><input type="checkbox" data-health="pregnant" onchange="saveHealthProfile()"><span class="toggle-slider"></span></label>
+                        </div>
+                        <div class="settings-item">
+                            <span class="s-icon">🍼</span>
+                            <span class="s-label">哺乳中</span>
+                            <label class="toggle"><input type="checkbox" data-health="breastfeeding" onchange="saveHealthProfile()"><span class="toggle-slider"></span></label>
+                        </div>
+                        <div class="settings-item">
+                            <span class="s-icon">🫘</span>
+                            <span class="s-label">腎功能不全</span>
+                            <label class="toggle"><input type="checkbox" data-health="kidney" onchange="saveHealthProfile()"><span class="toggle-slider"></span></label>
+                        </div>
+                        <div class="settings-item">
+                            <span class="s-icon">🫁</span>
+                            <span class="s-label">肝功能不全</span>
+                            <label class="toggle"><input type="checkbox" data-health="liver" onchange="saveHealthProfile()"><span class="toggle-slider"></span></label>
+                        </div>
+                        <div class="settings-item">
+                            <span class="s-icon">❤️‍🩹</span>
+                            <span class="s-label">心臟病</span>
+                            <label class="toggle"><input type="checkbox" data-health="heart" onchange="saveHealthProfile()"><span class="toggle-slider"></span></label>
+                        </div>
+                        <div class="settings-item">
+                            <span class="s-icon">🩸</span>
+                            <span class="s-label">糖尿病</span>
+                            <label class="toggle"><input type="checkbox" data-health="diabetes" onchange="saveHealthProfile()"><span class="toggle-slider"></span></label>
+                        </div>
+                        <div class="settings-item">
+                            <span class="s-icon">💉</span>
+                            <span class="s-label">高血壓</span>
+                            <label class="toggle"><input type="checkbox" data-health="hypertension" onchange="saveHealthProfile()"><span class="toggle-slider"></span></label>
+                        </div>
+                    </div>
+                    <div class="disclaimer" style="margin:0 16px;">
+                        <span class="disclaimer-icon">ℹ️</span>
+                        <span>設定健康狀況可協助系統進行用藥安全檢查。此資訊僅儲存於本地。</span>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ===== Tab Bar ===== -->
+            <div class="tab-bar">
+                <div class="tab-item active" data-tab="pageHome" onclick="switchTab('pageHome',this)">
+                    <span class="tab-icon">🏠</span>
+                    <span class="tab-label">首頁</span>
+                </div>
+                <div class="tab-item" data-tab="pageMedications" onclick="switchTab('pageMedications',this)">
+                    <span class="tab-icon">💊</span>
+                    <span class="tab-label">用藥</span>
+                </div>
+                <div class="tab-item" data-tab="pageConsultation" onclick="switchTab('pageConsultation',this)">
+                    <span class="tab-icon">💬</span>
+                    <span class="tab-label">諮詢</span>
+                </div>
+                <div class="tab-item" data-tab="pageProfile" onclick="switchTab('pageProfile',this)">
+                    <span class="tab-icon">👤</span>
+                    <span class="tab-label">我的</span>
                 </div>
             </div>
         </div>
 
-        <!-- 主頁 -->
-        <div class="content page active" id="homePage">
-            <div class="home-buttons">
-                <button class="big-button" onclick="goToPage('capturePage')">
-                    📷 拍照辨識藥物
-                </button>
-                <button class="big-button" style="background: linear-gradient(135deg, #8D6E4C 0%, #A0845C 100%);" onclick="goToPage('prescriptionCapturePage')">
-                    📄 拍攝藥單辨識
-                </button>
-                <button class="big-button" style="background: linear-gradient(135deg, #A8D5E2 0%, #7BBFCF 100%); color: #2C3E2D;" onclick="goToPage('searchPage')">
-                    🔍 搜尋藥物名稱
-                </button>
-            </div>
-            <div class="footer-hint">
-                <p>💡 提示：請在光線充足的地方，對準藥物清晰拍照</p>
+        <!-- ===== Loading Overlay ===== -->
+        <div id="loadingOverlay" class="loading-overlay hidden">
+            <div class="loading-card">
+                <div class="spinner"></div>
+                <div id="loadingText">處理中...</div>
             </div>
         </div>
 
-        <!-- 拍照上傳頁 -->
-        <div class="content page" id="capturePage">
-            <button class="back-button" onclick="goToPage('homePage')">← 返回首頁</button>
-
-            <div class="upload-area" id="uploadArea">
-                <div class="upload-icon">📸</div>
-                <p>點擊選擇圖片或拖放</p>
-                <small>支援 JPG, PNG, GIF 等格式</small>
-            </div>
-
-            <div id="imagePreview" class="image-preview" style="display: none;">
-                <img id="previewImage" alt="preview">
-                <button id="uploadBtn" class="big-button" style="margin-top: 20px; background: #7CB342;" onclick="uploadImage()">
-                    ✓ 開始辨識
-                </button>
-                <button class="big-button secondary" style="margin-top: 12px;" onclick="resetAndRephoto()">
-                    ↺ 重新拍照
-                </button>
-            </div>
-
-            <input type="file" id="imageInput" accept="image/*">
-        </div>
-
-        <!-- 藥單拍照上傳頁 -->
-        <div class="content page" id="prescriptionCapturePage">
-            <button class="back-button" onclick="goToPage('homePage')">← 返回首頁</button>
-
-            <div class="upload-area" id="prescriptionUploadArea">
-                <div class="upload-icon">📄</div>
-                <p>點擊上傳藥單照片</p>
-                <small>支援整張醫院藥單/處方箋</small>
-            </div>
-
-            <div id="prescriptionImagePreview" class="image-preview" style="display: none;">
-                <img id="prescriptionPreviewImg" alt="preview">
-                <button id="prescriptionUploadBtn" class="big-button" style="margin-top: 20px; background: #7CB342;" onclick="uploadPrescriptionImage()">
-                    ✓ 開始提取藥物
-                </button>
-                <button class="big-button secondary" style="margin-top: 12px;" onclick="resetPrescriptionPhoto()">
-                    ↺ 重新拍照
-                </button>
-            </div>
-
-            <input type="file" id="prescriptionImageInput" accept="image/*">
-        </div>
-
-        <!-- 辨識結果頁 -->
-        <div class="content page" id="resultPage">
-            <button class="back-button" onclick="goToPage('homePage')">← 返回首頁</button>
-
-            <div id="resultContent"></div>
-        </div>
-
-        <!-- 搜尋頁 -->
-        <div class="content page" id="searchPage">
-            <button class="back-button" onclick="goToPage('homePage')">← 返回首頁</button>
-
-            <div class="search-box">
-                <input type="text" id="searchInput" class="search-input" placeholder="輸入藥物名稱..." 
-                    onkeypress="if(event.key==='Enter') searchDrug()">
-                <button id="searchBtn" class="search-button" onclick="searchDrug()">搜尋</button>
-            </div>
-
-            <div id="searchResults"></div>
-        </div>
-
-        <!-- 藥物詳細頁 -->
-        <div class="content page" id="detailPage">
-            <button class="back-button" onclick="goToPreviousPage()">← 返回</button>
-
-            <div id="detailContent"></div>
-        </div>
-    </div>
-
-    <!-- 管理員登入對話框 -->
-    <div class="login-backdrop" id="loginBackdrop" onclick="if(event.target===this)closeLoginModal()">
-        <div class="login-modal">
-            <h3>🔒 管理員登入</h3>
-            <input type="text" class="login-input" id="loginUser" placeholder="帳號" autocomplete="username">
-            <input type="password" class="login-input" id="loginPass" placeholder="密碼" autocomplete="current-password"
-                onkeydown="if(event.key==='Enter')doLogin()">
-            <div class="login-error" id="loginError">帳號或密碼錯誤</div>
-            <div class="login-actions">
-                <button class="login-cancel" onclick="closeLoginModal()">取消</button>
-                <button class="login-submit" onclick="doLogin()">登入</button>
+        <!-- ===== Add Medication Modal ===== -->
+        <div id="addMedModal" class="modal-overlay hidden">
+            <div class="modal">
+                <h3>新增藥物</h3>
+                <div class="form-group">
+                    <label>藥物名稱 *</label>
+                    <input type="text" id="addMedName" class="form-input" placeholder="例：普拿疼">
+                </div>
+                <div class="form-group">
+                    <label>劑量</label>
+                    <input type="text" id="addMedDosage" class="form-input" placeholder="例：每次 1 顆">
+                </div>
+                <div class="form-group">
+                    <label>頻率</label>
+                    <input type="text" id="addMedFrequency" class="form-input" placeholder="例：每日三次飯後">
+                </div>
+                <div class="form-group">
+                    <label>藥單名稱</label>
+                    <input type="text" id="addMedPrescription" class="form-input" placeholder="例：家醫科處方">
+                </div>
+                <div class="form-group">
+                    <label>備註</label>
+                    <input type="text" id="addMedNote" class="form-input" placeholder="選填">
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-secondary" onclick="closeModal('addMedModal')">取消</button>
+                    <button class="btn btn-primary" style="padding:12px" onclick="addMedication()">新增</button>
+                </div>
             </div>
         </div>
+
+        <!-- ===== Add Allergy Modal ===== -->
+        <div id="addAllergyModal" class="modal-overlay hidden">
+            <div class="modal">
+                <h3>新增過敏原</h3>
+                <div class="form-group">
+                    <label>過敏原名稱</label>
+                    <input type="text" id="addAllergyName" class="form-input" placeholder="例：盤尼西林">
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-secondary" onclick="closeModal('addAllergyModal')">取消</button>
+                    <button class="btn btn-primary" style="padding:12px" onclick="addAllergy()">新增</button>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <script>
-        // ============================================
-        // 全局狀態 (必須在最開始初始化)
-        // ============================================
-        var API_URL = window.location.origin + '/api';
-        var currentPage = 'homePage';
-        var previousPage = 'homePage';
-        var selectedFile = null;
+    // ============================================
+    // 全域狀態
+    // ============================================
+    const API_BASE = window.location.origin;
+    const STATE = {
+        token: localStorage.getItem('mus_token') || '',
+        refreshToken: localStorage.getItem('mus_refresh_token') || '',
+        username: localStorage.getItem('mus_username') || '',
+        displayName: localStorage.getItem('mus_display_name') || '',
+        profileId: localStorage.getItem('mus_profile_id') || '',
+        demoMode: localStorage.getItem('mus_demo_mode') === 'true',
+        pageStack: [],
+        currentTab: 'pageHome',
+        medications: [],
+        currentTimeSlot: 'all',
+        currentPrescription: 'all',
+        searchHistory: JSON.parse(localStorage.getItem('mus_search_history') || '[]'),
+        recognitionHistory: JSON.parse(localStorage.getItem('mus_recognition_history') || '[]'),
+        chatMessages: [],
+        selectedMedIds: new Set(),
+        editMode: false,
+        serverStatus: 'checking',
+        selectedDrugFile: null,
+        selectedRxFile: null,
+        statusInterval: null,
+    };
 
-        // ============================================
-        // 頁面導航
-        // ============================================
-        function goToPage(pageId) {
-            console.log('🔄 切換頁面:', pageId);
-            previousPage = currentPage;
-            currentPage = pageId;
-            
-            document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
-            const targetPage = document.getElementById(pageId);
-            if (targetPage) {
-                targetPage.classList.add('active');
+    // ============================================
+    // 初始化
+    // ============================================
+    document.addEventListener('DOMContentLoaded', () => {
+        if (STATE.token) {
+            showMainApp();
+        }
+        loadSavedSettings();
+        initUploadZones();
+    });
+
+    function loadSavedSettings() {
+        const scale = localStorage.getItem('mus_font_scale');
+        if (scale) { document.documentElement.style.setProperty('--font-scale', scale); document.getElementById('fontScaleSelect').value = scale; }
+        const theme = localStorage.getItem('mus_theme');
+        if (theme && theme !== 'default') { document.documentElement.setAttribute('data-theme', theme); document.getElementById('themeSelect').value = theme; }
+        document.getElementById('demoModeToggle').checked = STATE.demoMode;
+    }
+
+    // ============================================
+    // API 工具
+    // ============================================
+    async function api(path, options = {}) {
+        const url = API_BASE + path;
+        const headers = { ...(options.headers || {}) };
+        if (STATE.token && !options.noAuth) {
+            headers['Authorization'] = 'Bearer ' + STATE.token;
+        }
+        if (options.json) {
+            headers['Content-Type'] = 'application/json';
+            options.body = JSON.stringify(options.json);
+            delete options.json;
+        }
+        const res = await fetch(url, { ...options, headers });
+        if (res.status === 401 && STATE.refreshToken) {
+            const refreshed = await refreshAccessToken();
+            if (refreshed) {
+                headers['Authorization'] = 'Bearer ' + STATE.token;
+                const retryRes = await fetch(url, { ...options, headers });
+                return retryRes;
+            }
+        }
+        return res;
+    }
+
+    async function refreshAccessToken() {
+        try {
+            const res = await fetch(API_BASE + '/api/auth/refresh', {
+                method: 'POST',
+                headers: { 'Authorization': 'Bearer ' + STATE.refreshToken }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                STATE.token = data.access_token;
+                localStorage.setItem('mus_token', data.access_token);
+                return true;
+            }
+        } catch (e) { /* ignore */ }
+        doLogout();
+        return false;
+    }
+
+    // ============================================
+    // 認證
+    // ============================================
+    async function doLogin() {
+        const username = document.getElementById('loginUsername').value.trim();
+        const password = document.getElementById('loginPassword').value;
+        if (!username || !password) { showAuthError('login', '請輸入帳號與密碼'); return; }
+        try {
+            showLoading('登入中...');
+            const res = await fetch(API_BASE + '/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+            const data = await res.json();
+            hideLoading();
+            if (data.success) {
+                STATE.token = data.access_token;
+                STATE.refreshToken = data.refresh_token || '';
+                STATE.username = data.user?.username || username;
+                STATE.displayName = data.user?.display_name || username;
+                STATE.profileId = data.profile_id || '';
+                localStorage.setItem('mus_token', STATE.token);
+                localStorage.setItem('mus_refresh_token', STATE.refreshToken);
+                localStorage.setItem('mus_username', STATE.username);
+                localStorage.setItem('mus_display_name', STATE.displayName);
+                localStorage.setItem('mus_profile_id', STATE.profileId);
+                showMainApp();
             } else {
-                console.error('❌ 頁面不存在:', pageId);
+                showAuthError('login', data.error || '登入失敗');
             }
+        } catch (e) {
+            hideLoading();
+            showAuthError('login', '無法連線到伺服器');
         }
+    }
 
-        function goToPreviousPage() {
-            goToPage(previousPage);
-        }
-
-        // ============================================
-        // 藥單上傳
-        // ============================================
-        var prescriptionFile = null;
-
-        function initPrescriptionUploadArea() {
-            const uploadArea = document.getElementById('prescriptionUploadArea');
-            const imageInput = document.getElementById('prescriptionImageInput');
-
-            if (!uploadArea || !imageInput) return;
-
-            uploadArea.addEventListener('click', () => imageInput.click());
-            
-            uploadArea.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                uploadArea.classList.add('dragover');
+    async function doRegister() {
+        const username = document.getElementById('regUsername').value.trim();
+        const displayName = document.getElementById('regDisplayName').value.trim();
+        const password = document.getElementById('regPassword').value;
+        const confirm = document.getElementById('regPasswordConfirm').value;
+        if (!username || username.length < 3) { showAuthError('register', '帳號至少 3 個字元'); return; }
+        if (!password || password.length < 8) { showAuthError('register', '密碼至少 8 個字元'); return; }
+        if (password !== confirm) { showAuthError('register', '兩次密碼不一致'); return; }
+        try {
+            showLoading('註冊中...');
+            const res = await fetch(API_BASE + '/api/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password, display_name: displayName })
             });
-            uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
-            uploadArea.addEventListener('drop', (e) => {
-                e.preventDefault();
-                uploadArea.classList.remove('dragover');
-                if (e.dataTransfer.files[0]) handlePrescriptionFile(e.dataTransfer.files[0]);
-            });
-
-            imageInput.addEventListener('change', (e) => {
-                if (e.target.files[0]) handlePrescriptionFile(e.target.files[0]);
-            });
-        }
-
-        function handlePrescriptionFile(file) {
-            if (!file.type.startsWith('image/')) {
-                alert('請選擇圖片檔案');
-                return;
-            }
-            prescriptionFile = file;
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                document.getElementById('prescriptionPreviewImg').src = e.target.result;
-                document.getElementById('prescriptionImagePreview').style.display = 'block';
-                document.getElementById('prescriptionUploadArea').style.display = 'none';
-            };
-            reader.readAsDataURL(file);
-        }
-
-        function resetPrescriptionPhoto() {
-            prescriptionFile = null;
-            document.getElementById('prescriptionImageInput').value = '';
-            document.getElementById('prescriptionImagePreview').style.display = 'none';
-            document.getElementById('prescriptionUploadArea').style.display = 'block';
-            goToPage('prescriptionCapturePage');
-        }
-
-        async function uploadPrescriptionImage() {
-            if (!prescriptionFile) {
-                alert('請先選擇圖片');
-                return;
-            }
-
-            const uploadBtn = document.getElementById('prescriptionUploadBtn');
-            if (uploadBtn) uploadBtn.disabled = true;
-
-            showLoading('正在擷取藥單內容...\n請稍候片刻...');
-            goToPage('resultPage');
-
-            try {
-                const formData = new FormData();
-                formData.append('image', prescriptionFile);
-
-                const response = await fetch(`${API_URL}/recognize_prescription`, {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const data = await response.json();
-
-                if (data.success && data.recognized_items && data.recognized_items.length > 0) {
-                    displayResults(data.recognized_items);
-                } else {
-                    showError(data.error || '未能從藥單中識別出任何藥物\n\n請拍清楚藥單上的藥物名稱');
-                }
-            } catch (error) {
-                showError('網路連線失敗\n\n請檢查網路後重試');
-            } finally {
-                if (uploadBtn) uploadBtn.disabled = false;
-            }
-        }
-
-        // ============================================
-        // 檔案上傳
-        // ============================================
-        function initUploadArea() {
-            const uploadArea = document.getElementById('uploadArea');
-            const imageInput = document.getElementById('imageInput');
-            const imagePreview = document.getElementById('imagePreview');
-            const previewImage = document.getElementById('previewImage');
-
-            if (!uploadArea || !imageInput || !imagePreview || !previewImage) {
-                console.error('❌ 上傳區元素未找到');
-                return;
-            }
-
-            // 點擊上傳區
-            uploadArea.addEventListener('click', () => {
-                console.log('📁 點擊上傳區');
-                imageInput.click();
-            });
-
-            // 拖放
-            uploadArea.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                uploadArea.classList.add('dragover');
-            });
-
-            uploadArea.addEventListener('dragleave', () => {
-                uploadArea.classList.remove('dragover');
-            });
-
-            uploadArea.addEventListener('drop', (e) => {
-                e.preventDefault();
-                uploadArea.classList.remove('dragover');
-                if (e.dataTransfer.files[0]) {
-                    handleFileSelect(e.dataTransfer.files[0]);
-                }
-            });
-
-            // 檔案輸入
-            imageInput.addEventListener('change', (e) => {
-                if (e.target.files[0]) {
-                    handleFileSelect(e.target.files[0]);
-                }
-            });
-        }
-
-        function handleFileSelect(file) {
-            if (!file.type.startsWith('image/')) {
-                alert('請選擇圖片檔案');
-                return;
-            }
-
-            selectedFile = file;
-
-            // 顯示預覽
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                previewImage.src = e.target.result;
-                imagePreview.style.display = 'block';
-                uploadArea.style.display = 'none';
-            };
-            reader.readAsDataURL(file);
-        }
-
-        // ============================================
-        // 上傳和辨識
-        // ============================================
-        async function uploadImage() {
-            console.log('📤 開始上傳圖片');
-            
-            if (!selectedFile) {
-                alert('請先選擇圖片');
-                return;
-            }
-
-            // 禁用按鈕
-            const uploadBtn = document.getElementById('uploadBtn');
-            if (uploadBtn) uploadBtn.disabled = true;
-
-            showLoading('正在辨識圖片中...\n請稍候...');
-            goToPage('resultPage');
-
-            try {
-                const formData = new FormData();
-                formData.append('image', selectedFile);
-
-                console.log(`📡 呼叫 API: ${API_URL}/recognize`);
-                const response = await fetch(`${API_URL}/recognize`, {
-                    method: 'POST',
-                    body: formData
-                });
-
-                console.log('✓ API 回應:', response.status);
-                const data = await response.json();
-
-                if (data.success && data.recognized_items && data.recognized_items.length > 0) {
-                    console.log('✓ 辨識成功:', data.recognized_items.length, '項');
-                    displayResults(data.recognized_items);
-                } else {
-                    console.warn('⚠ 未能識別出藥物');
-                    showError('未能識別出藥物\n\n請嘗試：\n1. 更換光線條件\n2. 拍攝更清晰的照片\n3. 靠近藥物');
-                }
-            } catch (error) {
-                console.error('❌ 辨識失敗:', error);
-                showError('網路連線失敗\n\n請檢查網路後重試');
-            } finally {
-                // 重新啟用按鈕
-                if (uploadBtn) uploadBtn.disabled = false;
-            }
-        }
-
-        // ============================================
-        // 搜尋
-        // ============================================
-        async function searchDrug() {
-            console.log('🔍 開始搜尋');
-            
-            const searchInput = document.getElementById('searchInput');
-            if (!searchInput) {
-                console.error('❌ 搜尋框未找到');
-                return;
-            }
-            
-            const query = searchInput.value.trim();
-
-            if (!query || query.length < 2) {
-                alert('請輸入至少 2 個字符');
-                return;
-            }
-
-            // 禁用按鈕和輸入框
-            const searchBtn = document.getElementById('searchBtn');
-            if (searchBtn) searchBtn.disabled = true;
-            searchInput.disabled = true;
-
-            showSearchLoading('搜尋中...');
-
-            try {
-                console.log(`📡 呼叫 API: ${API_URL}/search，查詢: ${query}`);
-                const response = await fetch(`${API_URL}/search`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ query, limit: 10 })
-                });
-
-                console.log('✓ API 回應:', response.status);
-                const data = await response.json();
-
-                if (data.success && data.results && data.results.length > 0) {
-                    console.log('✓ 搜尋成功:', data.results.length, '項');
-                    displaySearchResults(data.results);
-                } else {
-                    console.warn('⚠ 未找到相符結果');
-                    const searchResults = document.getElementById('searchResults');
-                    if (searchResults) {
-                        searchResults.innerHTML = '<div class="alert warning">未找到相符的藥物</div>';
-                    }
-                }
-            } catch (error) {
-                console.error('❌ 搜尋失敗:', error);
-                const searchResults = document.getElementById('searchResults');
-                if (searchResults) {
-                    searchResults.innerHTML = '<div class="alert error">搜尋失敗，請重試</div>';
-                }
-            } finally {
-                // 重新啟用按鈕和輸入框
-                if (searchBtn) searchBtn.disabled = false;
-                searchInput.disabled = false;
-            }
-        }
-
-        // ============================================
-        // 顯示結果
-        // ============================================
-        function displayResults(items) {
-            let html = '<div class="results-container">';
-
-            if (items.length === 0) {
-                html += '<div class="alert warning">未找到相符結果</div>';
+            const data = await res.json();
+            hideLoading();
+            if (data.success) {
+                showToast('註冊成功！請登入', 'success');
+                showLogin();
+                document.getElementById('loginUsername').value = username;
             } else {
-                items.forEach((item, index) => {
-                    const confidence = (item.confidence * 100).toFixed(0);
-                    
-                    // 取得第一張圖片
-                    let imageHtml = '';
-                    if (item.images && item.images.length > 0) {
-                        const firstImage = item.images[0];
-                        const imagePath = firstImage.path.replace(/\\/g, '/');
-                        imageHtml = `<img src="/api/images/${imagePath}" alt="${item.name}" class="drug-image" style="max-width: 150px; max-height: 150px; margin: 10px 0; border-radius: 8px;">`;
-                    }
-
-                    // 處方用法用量
-                    let rxHtml = '';
-                    const rx = item.prescription_info;
-                    if (rx && (rx.frequency || rx.days || rx.dose_per_time)) {
-                        const tags = [];
-                        if (rx.route) tags.push(rx.route);
-                        if (rx.days) tags.push(`${rx.days}天`);
-                        if (rx.frequency) tags.push(rx.frequency);
-                        if (rx.dose_per_time) tags.push(`每次 ${rx.dose_per_time}`);
-                        if (rx.total_quantity) tags.push(rx.total_quantity);
-
-                        rxHtml = `<div style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;">
-                            ${tags.map(t => `<span style="display:inline-block;padding:4px 12px;border-radius:14px;background:#E8F5E9;color:#2E7D32;font-size:14px;">${t}</span>`).join('')}
-                        </div>`;
-                        if (rx.ingredient) {
-                            rxHtml += `<div style="font-size:13px;color:#888;margin-top:4px;">成分：${rx.ingredient}</div>`;
-                        }
-                    }
-                    
-                    html += `
-                        <div class="result-item" onclick="loadAndShowDrugDetail(${item.id || item.drug_id || 'null'}, ${JSON.stringify(item).replace(/"/g, '&quot;')})">
-                            ${imageHtml}
-                            <div class="result-title">${item.name}</div>
-                            <div class="result-info">
-                                <div>匹配度：${confidence}%</div>
-                                ${item.details?.chinese_name ? `<div>中文名稱：${item.details.chinese_name}</div>` : ''}
-                                ${item.details?.shape ? `<div>形狀：${item.details.shape}</div>` : ''}
-                                ${item.details?.color ? `<div>顏色：${item.details.color}</div>` : ''}
-                            </div>
-                            ${rxHtml}
-                            <div class="confidence-bar">
-                                <div class="confidence-fill" style="width: ${confidence}%"></div>
-                            </div>
-                        </div>
-                    `;
-                });
+                showAuthError('register', data.error || '註冊失敗');
             }
-
-            html += `
-                <div style="margin-top: 30px;">
-                    <button class="big-button" style="background: #6c757d; margin-bottom: 15px;" onclick="resetAndRephoto()">
-                        📸 重新拍照
-                    </button>
-                    <button class="big-button secondary" onclick="goToPage('homePage')">
-                        ← 返回首頁
-                    </button>
-                </div>
-            </div>`;
-            document.getElementById('resultContent').innerHTML = html;
+        } catch (e) {
+            hideLoading();
+            showAuthError('register', '無法連線到伺服器');
         }
+    }
 
-        function resetAndRephoto() {
-            console.log('🔄 重新拍照');
-            selectedFile = null;
-            document.getElementById('imageInput').value = '';
-            const imagePreview = document.getElementById('imagePreview');
-            const uploadArea = document.getElementById('uploadArea');
-            if (imagePreview) imagePreview.style.display = 'none';
-            if (uploadArea) uploadArea.style.display = 'block';
-            goToPage('capturePage');
+    function doLogout() {
+        if (STATE.statusInterval) clearInterval(STATE.statusInterval);
+        STATE.token = '';
+        STATE.refreshToken = '';
+        STATE.username = '';
+        STATE.displayName = '';
+        STATE.profileId = '';
+        STATE.statusInterval = null;
+        localStorage.removeItem('mus_token');
+        localStorage.removeItem('mus_refresh_token');
+        localStorage.removeItem('mus_username');
+        localStorage.removeItem('mus_display_name');
+        localStorage.removeItem('mus_profile_id');
+        document.getElementById('authScreen').classList.remove('hidden');
+        document.getElementById('mainApp').classList.add('hidden');
+        showLogin();
+    }
+
+    function showMainApp() {
+        document.getElementById('authScreen').classList.add('hidden');
+        document.getElementById('mainApp').classList.remove('hidden');
+        document.getElementById('welcomeUser').textContent = (STATE.displayName || STATE.username) + '，您的健康管理好幫手';
+        document.getElementById('profileDisplayName').textContent = STATE.displayName || STATE.username;
+        document.getElementById('profileUsername').textContent = '@' + STATE.username;
+        document.getElementById('piUsername').textContent = STATE.username;
+        checkServerStatus();
+        STATE.statusInterval = setInterval(checkServerStatus, 30000);
+        loadMedications();
+        loadPersonalInfo();
+        loadHealthProfile();
+        loadAllergies();
+        renderHistory();
+        renderSearchHistory();
+    }
+
+    function showAuthError(type, msg) {
+        const el = document.getElementById(type === 'login' ? 'loginError' : 'registerError');
+        el.textContent = msg;
+        el.style.display = 'block';
+        setTimeout(() => { el.style.display = 'none'; }, 5000);
+    }
+
+    function showRegister() {
+        document.getElementById('loginForm').classList.add('hidden');
+        document.getElementById('registerForm').classList.remove('hidden');
+    }
+
+    function showLogin() {
+        document.getElementById('registerForm').classList.add('hidden');
+        document.getElementById('loginForm').classList.remove('hidden');
+    }
+
+    // ============================================
+    // 導航
+    // ============================================
+    function switchTab(tabId, el) {
+        document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+        el.classList.add('active');
+        STATE.currentTab = tabId;
+        STATE.pageStack = [];
+        showPage(tabId);
+        if (tabId === 'pageMedications') loadMedications();
+    }
+
+    function navigateTo(page) {
+        const pageMap = {
+            'recognize': 'pageRecognize',
+            'search': 'pageSearch',
+            'prescription': 'pagePrescription',
+            'history': 'pageHistory',
+            'pharmacy': 'pagePharmacy',
+            'chat': 'pageChat',
+            'drugDetail': 'pageDrugDetail',
+            'personalInfo': 'pagePersonalInfo',
+            'allergies': 'pageAllergies',
+            'healthProfile': 'pageHealthProfile',
+        };
+        const pageId = pageMap[page] || page;
+        STATE.pageStack.push(getActivePage());
+        showPage(pageId);
+        if (page === 'pharmacy') loadPharmacies();
+    }
+
+    function goBack() {
+        if (STATE.pageStack.length > 0) {
+            const prev = STATE.pageStack.pop();
+            showPage(prev);
+        } else {
+            showPage(STATE.currentTab);
         }
+    }
 
-        function displaySearchResults(results) {
-            let html = '<div class="results-container">';
+    function showPage(pageId) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        const el = document.getElementById(pageId);
+        if (el) el.classList.add('active');
+        const tabBar = document.querySelector('.tab-bar');
+        const mainTabs = ['pageHome', 'pageMedications', 'pageConsultation', 'pageProfile'];
+        if (pageId === 'pageChat') {
+            tabBar.style.display = 'none';
+        } else {
+            tabBar.style.display = 'flex';
+        }
+    }
 
-            results.forEach(drug => {
-                // 顯示圖片
-                let imageHtml = '';
-                if (drug.images && drug.images.length > 0) {
-                    const firstImage = drug.images[0];
-                    const imagePath = firstImage.path.replace(/\\/g, '/');
-                    imageHtml = `<img src="/api/images/${imagePath}" alt="${drug.chinese_name || drug.name || '藥物圖片'}" class="drug-image" style="max-width: 150px; max-height: 150px; margin: 10px 0; border-radius: 8px;">`;
+    function getActivePage() {
+        const active = document.querySelector('.page.active');
+        return active ? active.id : STATE.currentTab;
+    }
+
+    // ============================================
+    // 伺服器狀態
+    // ============================================
+    async function checkServerStatus() {
+        const badge = document.getElementById('serverStatus');
+        const text = document.getElementById('serverStatusText');
+        badge.className = 'server-badge checking';
+        text.textContent = '連線中';
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000);
+            const res = await fetch(API_BASE + '/api/health', { signal: controller.signal });
+            clearTimeout(timeoutId);
+            if (res.ok) {
+                badge.className = 'server-badge online';
+                text.textContent = '已連線';
+            } else {
+                badge.className = 'server-badge offline';
+                text.textContent = '離線';
+            }
+        } catch {
+            badge.className = 'server-badge offline';
+            text.textContent = '離線';
+        }
+    }
+
+    // ============================================
+    // 上傳區域初始化
+    // ============================================
+    function initUploadZones() {
+        setupUploadZone('drugUploadZone', 'drugImageInput', 'drugPreview', 'drugPreviewImg', 'selectedDrugFile');
+        setupUploadZone('rxUploadZone', 'rxImageInput', 'rxPreview', 'rxPreviewImg', 'selectedRxFile');
+    }
+
+    function setupUploadZone(zoneId, inputId, previewId, imgId, stateKey) {
+        const zone = document.getElementById(zoneId);
+        const input = document.getElementById(inputId);
+        if (!zone || !input) return;
+        zone.addEventListener('click', () => input.click());
+        zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+        zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+        zone.addEventListener('drop', e => {
+            e.preventDefault();
+            zone.classList.remove('dragover');
+            if (e.dataTransfer.files.length) handleUploadFile(e.dataTransfer.files[0], zoneId, previewId, imgId, stateKey);
+        });
+        input.addEventListener('change', () => {
+            if (input.files.length) handleUploadFile(input.files[0], zoneId, previewId, imgId, stateKey);
+        });
+    }
+
+    function handleUploadFile(file, zoneId, previewId, imgId, stateKey) {
+        if (!file.type.startsWith('image/')) { showToast('請選擇圖片檔案', 'error'); return; }
+        STATE[stateKey] = file;
+        const reader = new FileReader();
+        reader.onload = e => {
+            document.getElementById(imgId).src = e.target.result;
+            document.getElementById(zoneId).classList.add('hidden');
+            document.getElementById(previewId).classList.remove('hidden');
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function resetDrugPhoto() {
+        STATE.selectedDrugFile = null;
+        document.getElementById('drugImageInput').value = '';
+        document.getElementById('drugUploadZone').classList.remove('hidden');
+        document.getElementById('drugPreview').classList.add('hidden');
+        document.getElementById('recognizeResults').classList.add('hidden');
+    }
+
+    function resetRxPhoto() {
+        STATE.selectedRxFile = null;
+        document.getElementById('rxImageInput').value = '';
+        document.getElementById('rxUploadZone').classList.remove('hidden');
+        document.getElementById('rxPreview').classList.add('hidden');
+        document.getElementById('prescriptionResults').classList.add('hidden');
+    }
+
+    // ============================================
+    // 藥物辨識
+    // ============================================
+    async function uploadDrugImage() {
+        if (!STATE.selectedDrugFile) return;
+        showLoading('AI 辨識中...');
+        try {
+            const formData = new FormData();
+            formData.append('image', STATE.selectedDrugFile);
+            const res = await api('/api/recognize', { method: 'POST', body: formData });
+            const data = await res.json();
+            hideLoading();
+            if (data.success && data.recognized_items && data.recognized_items.length) {
+                renderRecognitionResults(data.recognized_items, 'recognizeResults');
+                const historyItem = {
+                    id: Date.now(),
+                    name: data.recognized_items[0].name,
+                    confidence: data.recognized_items[0].confidence,
+                    time: new Date().toISOString(),
+                    items: data.recognized_items,
+                };
+                STATE.recognitionHistory.unshift(historyItem);
+                if (STATE.recognitionHistory.length > 50) STATE.recognitionHistory.pop();
+                localStorage.setItem('mus_recognition_history', JSON.stringify(STATE.recognitionHistory));
+            } else {
+                document.getElementById('recognizeResults').innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-text">未能識別出藥物<br>請嘗試拍攝更清晰的照片</div></div>';
+                document.getElementById('recognizeResults').classList.remove('hidden');
+            }
+        } catch (e) {
+            hideLoading();
+            showToast('辨識失敗，請稍後再試', 'error');
+        }
+    }
+
+    async function uploadRxImage() {
+        if (!STATE.selectedRxFile) return;
+        showLoading('藥單辨識中...');
+        try {
+            const formData = new FormData();
+            formData.append('image', STATE.selectedRxFile);
+            const res = await api('/api/recognize_prescription', { method: 'POST', body: formData });
+            const data = await res.json();
+            hideLoading();
+            if (data.success) {
+                let html = '<div style="padding:16px;">';
+                if (data.recognized_drugs && data.recognized_drugs.length) {
+                    html += '<div class="card-title" style="margin-bottom:12px;">辨識到的藥物</div>';
+                    data.recognized_drugs.forEach(name => {
+                        html += '<div class="result-item" onclick="doSearchAndNavigate(\'' + escapeAttr(name) + '\')"><div class="result-thumb">💊</div><div class="result-info"><div class="result-name">' + escapeHtml(name) + '</div></div><span class="s-arrow">›</span></div>';
+                    });
                 }
-                
-                html += `
-                    <div class="result-item" onclick="loadAndShowDrugDetail(${drug.id || drug.drug_id || 'null'}, ${JSON.stringify(drug).replace(/"/g, '&quot;')})">
-                        ${imageHtml}
-                        <div class="result-title">${drug.chinese_name || drug.name || '未知'}</div>
-                        <div class="result-info">
-                            ${drug.english_name ? `<div>English: ${drug.english_name}</div>` : ''}
-                            ${drug.license_number ? `<div>許可證: ${drug.license_number}</div>` : ''}
-                            ${drug.shape ? `<div>形狀：${drug.shape}</div>` : ''}
-                            ${drug.color ? `<div>顏色：${drug.color}</div>` : ''}
-                        </div>
-                    </div>
-                `;
-            });
-
-            html += '</div>';
-            document.getElementById('searchResults').innerHTML = html;
-        }
-
-        async function loadAndShowDrugDetail(drugId, fallbackDrug) {
-            goToPage('detailPage');
-            document.getElementById('detailContent').innerHTML = `
-                <div class="loading" style="text-align: center; padding: 40px 20px;">
-                    <div class="spinner" style="display: inline-block; width: 50px; height: 50px; border: 4px solid #E5EFE0; border-top: 4px solid #5B7553; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-                    <div class="loading-text" style="color: #5B7553; font-weight: bold; margin-top: 20px;">
-                        正在擷取最新藥物資訊<br><small style="font-size:14px; color:#8D6E4C;">(包含健保署/食藥署資料)</small>
-                    </div>
-                </div>
-            `;
-            
-            try {
-                if (drugId) {
-                    const response = await fetch(`${API_URL}/drug/${drugId}`);
-                    const data = await response.json();
-                    if (data.success && data.drug) {
-                        showDrugDetail(data.drug);
-                        return;
-                    }
+                if (data.drug_details && data.drug_details.length) {
+                    html += '<div class="card-title" style="margin:16px 0 12px;">藥物詳細資訊</div>';
+                    data.drug_details.forEach(drug => {
+                        html += '<div class="result-item" onclick="showDrugDetailPage(this.dataset.drug)" data-drug="' + escapeAttr(JSON.stringify(drug)) + '"><div class="result-thumb">💊</div><div class="result-info"><div class="result-name">' + escapeHtml(drug.chinese_name || drug.name) + '</div><div class="result-sub">' + escapeHtml(drug.english_name || '') + '</div></div><span class="s-arrow">›</span></div>';
+                    });
                 }
-                showDrugDetail(fallbackDrug);
-            } catch (e) {
-                showDrugDetail(fallbackDrug);
-            }
-        }
-
-        function showDrugDetail(drug) {
-            let html = '<div>';
-            
-            const details = drug.details || drug;
-            const nhiDetails = drug.nhi_details || {};
-            
-            const displayName = nhiDetails['中文品名'] || details.chinese_name || details.name || drug.name || '藥物詳情';
-            
-            html += `<h2 style="font-size: 24px; margin-bottom: 20px; color: #333;">${displayName}</h2>`;
-
-            if (Object.keys(nhiDetails).length > 0) {
-                html += `
-                <div style="margin-bottom: 15px; padding: 12px; background: #e3f2fd; border-left: 4px solid #1976d2; border-radius: 4px;">
-                    <strong style="color: #1565c0; display: block; margin-bottom: 4px;">ℹ️ 最新資訊來源</strong>
-                    <span style="font-size: 14px; color: #333;">部分資料同步自 <a href="${nhiDetails.source_url || '#'}" target="_blank" style="color:#1976d2;">食藥署/健保署資料庫</a></span>
-                </div>`;
-            }
-
-            // 顯示圖片
-            let allImages = [];
-            if (drug.images && drug.images.length > 0) {
-                allImages = allImages.concat(drug.images.map(img => `/api/images/${img.path.replace(/\\/g, '/')}`));
-            }
-            if (nhiDetails.images && nhiDetails.images.length > 0) {
-                allImages = allImages.concat(nhiDetails.images);
-            }
-
-            if (allImages.length > 0) {
-                html += '<div style="margin-bottom: 20px; text-align: center;">';
-                allImages.forEach(imgSrc => {
-                    html += `<img src="${imgSrc}" alt="${displayName}" style="max-width: 200px; max-height: 200px; margin: 10px; border-radius: 8px; border: 1px solid #ddd; padding: 5px;">`;
-                });
                 html += '</div>';
-            }
-
-            html += `
-                <div class="detail-info">
-                    <div class="detail-label">中文名稱</div>
-                    <div class="detail-value">${nhiDetails['中文品名'] || details.chinese_name || '-'}</div>
-                </div>
-
-                <div class="detail-info">
-                    <div class="detail-label">英文名稱</div>
-                    <div class="detail-value">${nhiDetails['英文品名'] || details.english_name || '-'}</div>
-                </div>
-            `;
-            
-            if (nhiDetails['適應症']) {
-                html += `
-                <div class="detail-info">
-                    <div class="detail-label">適應症</div>
-                    <div class="detail-value">${nhiDetails['適應症']}</div>
-                </div>`;
+                document.getElementById('prescriptionResults').innerHTML = html;
+                document.getElementById('prescriptionResults').classList.remove('hidden');
             } else {
-                html += `
-                <div class="detail-info">
-                    <div class="detail-label">用途</div>
-                    <div class="detail-value">${details.usage || details.indication || '-'}</div>
-                </div>`;
+                document.getElementById('prescriptionResults').innerHTML = '<div class="empty-state"><div class="empty-icon">📄</div><div class="empty-text">未能辨識藥單<br>請嘗試拍攝更清晰的照片</div></div>';
+                document.getElementById('prescriptionResults').classList.remove('hidden');
             }
-
-            if (nhiDetails['主成分略述']) {
-                html += `
-                <div class="detail-info">
-                    <div class="detail-label">主成分</div>
-                    <div class="detail-value">${nhiDetails['主成分略述']}</div>
-                </div>`;
-            }
-
-            html += `
-                <div class="detail-info">
-                    <div class="detail-label">許可證字號</div>
-                    <div class="detail-value">${details.license_number || '-'}</div>
-                </div>
-
-                <div class="detail-info">
-                    <div class="detail-label">形狀</div>
-                    <div class="detail-value">${details.shape || '-'}</div>
-                </div>
-
-                <div class="detail-info">
-                    <div class="detail-label">顏色</div>
-                    <div class="detail-value">${details.color || '-'}</div>
-                </div>
-
-                <div class="detail-info">
-                    <div class="detail-label">劑型</div>
-                    <div class="detail-value">${nhiDetails['藥品類別'] || details.formulation || details.dosage_form || '-'}</div>
-                </div>
-
-                <div class="alert warning" style="margin-top: 20px;">
-                    <strong>⚠️ 重要提醒</strong><br>
-                    此資訊僅供參考。購買、服用或停用任何藥物前，請務必<strong>諮詢您的醫生或藥師</strong>。
-                </div>
-            </div>`;
-
-            document.getElementById('detailContent').innerHTML = html;
+        } catch (e) {
+            hideLoading();
+            showToast('辨識失敗，請稍後再試', 'error');
         }
+    }
 
-        // ============================================
-        // 輔助函式
-        // ============================================
-        function showLoading(message) {
-            const resultContent = document.getElementById('resultContent');
-            if (!resultContent) {
-                console.error('❌ resultContent 未找到');
-                return;
-            }
-            
-            const messageHtml = message.split('\n').map(line => {
-                return `<div>${line}</div>`;
-            }).join('');
-            
-            resultContent.innerHTML = `
-                <div class="loading" style="text-align: center; padding: 40px 20px;">
-                    <div class="spinner" style="display: inline-block; width: 60px; height: 60px; border: 4px solid #E5EFE0; border-top: 4px solid #5B7553; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-                    <div class="progress-container">
-                        <div class="progress-bar">
-                            <div class="progress-fill"></div>
-                        </div>
-                        <div class="progress-text">處理中...</div>
-                    </div>
-                    <div class="loading-text" style="margin-top: 20px; font-size: 18px; color: #333;">
-                        ${messageHtml}
-                    </div>
-                </div>
-            `;
-        }
+    function renderRecognitionResults(items, containerId) {
+        let html = '<div style="padding:8px 0;">';
+        items.forEach(item => {
+            const conf = Math.round((item.confidence || 0) * 100);
+            const drugData = escapeAttr(JSON.stringify(item));
+            html += '<div class="result-item" onclick="showDrugDetailById(' + (item.drug_id || 'null') + ', JSON.parse(this.dataset.drug))" data-drug="' + drugData + '">' +
+                '<div class="result-thumb">💊</div>' +
+                '<div class="result-info">' +
+                '<div class="result-name">' + escapeHtml(item.name) + '</div>' +
+                '<div class="result-sub">' + escapeHtml((item.details && item.details.english_name) || item.reason || '') + '</div>' +
+                '</div>' +
+                '<span class="result-confidence">' + conf + '%</span>' +
+                '</div>';
+        });
+        html += '</div>';
+        const container = document.getElementById(containerId);
+        container.innerHTML = html;
+        container.classList.remove('hidden');
+    }
 
-        function showSearchLoading(message) {
-            const searchResults = document.getElementById('searchResults');
-            if (!searchResults) {
-                console.error('❌ searchResults 未找到');
-                return;
-            }
-            
-            searchResults.innerHTML = `
-                <div class="loading" style="text-align: center; padding: 40px 20px;">
-                    <div class="spinner" style="display: inline-block; width: 50px; height: 50px; border: 4px solid #E5EFE0; border-top: 4px solid #5B7553; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-                    <div class="progress-container">
-                        <div class="progress-bar">
-                            <div class="progress-fill"></div>
-                        </div>
-                        <div class="progress-text">搜尋中...</div>
-                    </div>
-                    <div class="loading-text" style="margin-top: 20px; font-size: 16px; color: #333;">
-                        ${message}
-                    </div>
-                </div>
-            `;
-        }
+    // ============================================
+    // 藥物搜尋
+    // ============================================
+    let searchTimer = null;
+    function debounceSearch() {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => doSearch(), 350);
+    }
 
-        function showError(message) {
-            const resultContent = document.getElementById('resultContent');
-            if (!resultContent) {
-                console.error('❌ resultContent 未找到');
-                return;
-            }
-            
-            const messageHtml = message.split('\n').map(line => {
-                return `<div>${line}</div>`;
-            }).join('<br>');
-            
-            resultContent.innerHTML = `
-                <div class="alert error" style="font-size: 18px; padding: 30px 20px; margin-bottom: 20px;">
-                    ${messageHtml}
-                </div>
-                <button class="big-button" style="margin-top: 20px;" onclick="goToPage('capturePage')">
-                    ↺ 重新拍照
-                </button>
-            `;
-        }
+    async function doSearch() {
+        const query = document.getElementById('searchInput').value.trim();
+        if (!query) { document.getElementById('searchResults').innerHTML = ''; renderSearchHistory(); return; }
+        try {
+            const res = await api('/api/search', {
+                method: 'POST',
+                json: { query: query, limit: 20 }
+            });
+            const data = await res.json();
+            if (data.success && data.results && data.results.length) {
+                STATE.searchHistory = STATE.searchHistory.filter(h => h.query !== query);
+                STATE.searchHistory.unshift({ query: query, time: new Date().toISOString() });
+                if (STATE.searchHistory.length > 20) STATE.searchHistory.pop();
+                localStorage.setItem('mus_search_history', JSON.stringify(STATE.searchHistory));
 
-        // ============================================
-        // 初始化
-        // ============================================
-        function initApp() {
-            console.log('🚀 應用初始化中...');
-            console.log(`📡 API URL: ${API_URL}`);
-            
-            // 初始化上傳區
-            initUploadArea();
-            initPrescriptionUploadArea();
-            
-            // 設置搜尋框的 Enter 鍵事件
-            const searchInput = document.getElementById('searchInput');
-            if (searchInput) {
-                searchInput.addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') {
-                        searchDrug();
-                    }
+                let html = '';
+                data.results.forEach(drug => {
+                    html += '<div class="result-item" onclick="showDrugDetailById(' + drug.id + ')">' +
+                        '<div class="result-thumb">💊</div>' +
+                        '<div class="result-info">' +
+                        '<div class="result-name">' + escapeHtml(drug.chinese_name || drug.name) + '</div>' +
+                        '<div class="result-sub">' + escapeHtml(drug.english_name || '') + '</div>' +
+                        '</div>' +
+                        '<span class="s-arrow" style="color:var(--text-secondary);">›</span>' +
+                        '</div>';
                 });
+                document.getElementById('searchResults').innerHTML = html;
+                document.getElementById('searchHistory').innerHTML = '';
+            } else {
+                document.getElementById('searchResults').innerHTML = '<div class="empty-state" style="padding:40px"><div class="empty-icon">🔍</div><div class="empty-text">未找到相關藥物</div></div>';
             }
-            
-            console.log('✓ 應用已載入，可以開始使用');
+        } catch (e) {
+            showToast('搜尋失敗', 'error');
         }
-        
-        // ============================================
-        // 設定功能
-        // ============================================
-        function toggleSettings() {
-            document.getElementById('settingsPanel').classList.toggle('show');
+    }
+
+    function doSearchAndNavigate(query) {
+        navigateTo('search');
+        document.getElementById('searchInput').value = query;
+        doSearch();
+    }
+
+    function renderSearchHistory() {
+        const container = document.getElementById('searchHistory');
+        if (!STATE.searchHistory.length) {
+            container.innerHTML = '<div class="empty-state" style="padding:40px"><div class="empty-icon">🕐</div><div class="empty-text">尚無搜尋紀錄</div></div>';
+            return;
         }
-        // 點擊外部關閉設定
-        document.addEventListener('click', function(e) {
-            const panel = document.getElementById('settingsPanel');
-            const toggle = document.querySelector('.settings-toggle');
-            if (panel && !panel.contains(e.target) && e.target !== toggle) {
-                panel.classList.remove('show');
+        let html = '<div style="padding:8px 16px;font-size:13px;font-weight:600;color:var(--text-secondary);">搜尋紀錄</div>';
+        STATE.searchHistory.forEach((h, i) => {
+            html += '<div class="result-item" onclick="document.getElementById(\'searchInput\').value=\'' + escapeAttr(h.query) + '\';doSearch();">' +
+                '<span style="margin-right:12px;">🕐</span>' +
+                '<div class="result-info"><div class="result-name">' + escapeHtml(h.query) + '</div><div class="result-sub">' + timeAgo(h.time) + '</div></div>' +
+                '<button class="med-delete" onclick="event.stopPropagation();removeSearchHistory(' + i + ');">✕</button>' +
+                '</div>';
+        });
+        container.innerHTML = html;
+    }
+
+    function removeSearchHistory(index) {
+        STATE.searchHistory.splice(index, 1);
+        localStorage.setItem('mus_search_history', JSON.stringify(STATE.searchHistory));
+        renderSearchHistory();
+    }
+
+    // ============================================
+    // 藥物詳情
+    // ============================================
+    async function showDrugDetailById(drugId, fallback) {
+        if (drugId) {
+            try {
+                const res = await api('/api/drug/' + drugId);
+                const data = await res.json();
+                if (data.success && data.drug) {
+                    showDrugDetailPage(data.drug);
+                    return;
+                }
+            } catch (e) { /* fallback */ }
+        }
+        if (fallback) {
+            showDrugDetailPage(fallback.details || fallback);
+        } else {
+            showToast('無法載入藥物資訊', 'error');
+        }
+    }
+
+    function showDrugDetailPage(drug) {
+        if (typeof drug === 'string') {
+            try { drug = JSON.parse(drug); } catch(e) { return; }
+        }
+        navigateTo('drugDetail');
+        let html = '';
+        html += '<div style="text-align:center;padding:24px;background:var(--primary-bg);">' +
+            '<div style="font-size:48px;">💊</div>' +
+            '<h2 style="margin-top:8px;font-size:calc(20px * var(--font-scale));">' + escapeHtml(drug.chinese_name || drug.name || '') + '</h2>' +
+            '<p style="color:var(--text-secondary);font-size:14px;">' + escapeHtml(drug.english_name || '') + '</p>' +
+            '</div>';
+        const fields = [
+            { label: '許可證字號', key: 'license_number' },
+            { label: '適應症', key: 'indications' },
+            { label: '用法用量', key: 'usage' },
+            { label: '劑型', key: 'dosage_form' },
+            { label: '外觀', key: 'appearance' },
+            { label: '形狀', key: 'shape' },
+            { label: '顏色', key: 'color' },
+            { label: '包裝', key: 'package' },
+            { label: '製造商', key: 'manufacturer' },
+            { label: '申請商', key: 'applicant' },
+            { label: '副作用', key: 'side_effects' },
+            { label: '注意事項', key: 'precautions' },
+            { label: '儲存條件', key: 'storage' },
+        ];
+        let detailHtml = '';
+        fields.forEach(f => {
+            const val = drug[f.key];
+            if (val) {
+                detailHtml += '<div class="detail-row"><span class="detail-label">' + f.label + '</span><span class="detail-value">' + escapeHtml(String(val)) + '</span></div>';
             }
         });
-
-        function setFontSize(size) {
-            document.body.classList.remove('font-medium', 'font-large');
-            if (size === 'medium') document.body.classList.add('font-medium');
-            if (size === 'large') document.body.classList.add('font-large');
-            document.querySelectorAll('.opt-btn[data-font]').forEach(b => b.classList.remove('active'));
-            document.querySelector('.opt-btn[data-font="' + size + '"]').classList.add('active');
-            localStorage.setItem('mus2_font', size);
+        if (detailHtml) {
+            html += '<div class="detail-section"><div class="detail-section-title">藥物資訊</div>' + detailHtml + '</div>';
         }
+        document.getElementById('drugDetailContent').innerHTML = html;
+    }
 
-        function setTheme(theme) {
-            document.body.classList.remove('theme-warm-mode', 'theme-dark-mode');
-            if (theme === 'warm') document.body.classList.add('theme-warm-mode');
-            if (theme === 'dark') document.body.classList.add('theme-dark-mode');
-            document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
-            document.querySelector('.theme-btn[data-theme="' + theme + '"]').classList.add('active');
-            localStorage.setItem('mus2_theme', theme);
+    // ============================================
+    // 辨識紀錄
+    // ============================================
+    function renderHistory() {
+        const container = document.getElementById('historyList');
+        if (!STATE.recognitionHistory.length) {
+            container.innerHTML = '<div class="empty-state"><div class="empty-icon">🕐</div><div class="empty-text">尚無辨識紀錄</div></div>';
+            return;
         }
+        let html = '';
+        STATE.recognitionHistory.forEach((h, i) => {
+            const conf = Math.round((h.confidence || 0) * 100);
+            html += '<div class="history-item" onclick="showHistoryDetail(' + i + ')">' +
+                '<div class="history-thumb">💊</div>' +
+                '<div class="history-info">' +
+                '<div class="history-name">' + escapeHtml(h.name) + '</div>' +
+                '<div class="history-time">' + timeAgo(h.time) + '</div>' +
+                '</div>' +
+                '<span class="history-conf">' + conf + '%</span>' +
+                '</div>';
+        });
+        container.innerHTML = html;
+    }
 
-        // 載入儲存的設定
-        (function loadSavedSettings() {
-            const font = localStorage.getItem('mus2_font');
-            if (font && font !== 'normal') setFontSize(font);
-            const theme = localStorage.getItem('mus2_theme');
-            if (theme && theme !== 'default') setTheme(theme);
-        })();
-
-        // ============================================
-        // 管理員登入
-        // ============================================
-        function showLoginModal() {
-            document.getElementById('settingsPanel').classList.remove('show');
-            document.getElementById('loginBackdrop').classList.add('show');
-            document.getElementById('loginUser').value = '';
-            document.getElementById('loginPass').value = '';
-            document.getElementById('loginError').style.display = 'none';
-            setTimeout(() => document.getElementById('loginUser').focus(), 100);
+    function showHistoryDetail(index) {
+        const h = STATE.recognitionHistory[index];
+        if (h && h.items && h.items.length) {
+            showDrugDetailById(h.items[0].drug_id, h.items[0]);
         }
+    }
 
-        function closeLoginModal() {
-            document.getElementById('loginBackdrop').classList.remove('show');
+    function clearHistory() {
+        if (!confirm('確定要清除所有辨識紀錄嗎？')) return;
+        STATE.recognitionHistory = [];
+        localStorage.removeItem('mus_recognition_history');
+        renderHistory();
+        showToast('已清除紀錄', 'info');
+    }
+
+    // ============================================
+    // 用藥清單
+    // ============================================
+    async function loadMedications() {
+        if (STATE.demoMode) {
+            STATE.medications = getDemoMedications();
+            renderMedications();
+            return;
         }
-
-        function doLogin() {
-            const user = document.getElementById('loginUser').value.trim();
-            const pass = document.getElementById('loginPass').value;
-            if (user === 'admin' && pass === 'admin') {
-                closeLoginModal();
-                window.location.href = '/admin/';
-            } else {
-                document.getElementById('loginError').style.display = 'block';
-                document.getElementById('loginPass').value = '';
-                document.getElementById('loginPass').focus();
+        try {
+            const url = '/api/user/medications' + (STATE.profileId ? '?profile_id=' + STATE.profileId : '');
+            const res = await api(url);
+            const data = await res.json();
+            if (data.success) {
+                STATE.medications = data.medications || [];
+                renderMedications();
             }
+        } catch (e) { /* silent */ }
+    }
+
+    function renderMedications() {
+        renderPrescriptionChips();
+        const filtered = filterMedications();
+        const container = document.getElementById('medList');
+        if (!filtered.length) {
+            container.innerHTML = '<div class="empty-state"><div class="empty-icon">💊</div><div class="empty-text">尚無用藥紀錄<br>點擊右上角 ＋ 新增藥物</div></div>';
+            return;
         }
-        
-        // 在 DOM 加載完成後初始化
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initApp);
+        let html = '';
+        filtered.forEach(med => {
+            const timeLabel = getTimeLabel(med);
+            const checked = STATE.selectedMedIds.has(med.id) ? 'checked' : '';
+            html += '<div class="med-item">';
+            if (STATE.editMode) {
+                html += '<input type="checkbox" ' + checked + ' onchange="toggleMedSelect(' + med.id + ')" style="margin-right:12px;">';
+            }
+            html += '<span class="med-icon">💊</span>' +
+                '<div class="med-info">' +
+                '<div class="med-name">' + escapeHtml(med.name) + '</div>' +
+                '<div class="med-dosage">' + escapeHtml(med.dosage || med.frequency || '') + '</div>' +
+                '</div>' +
+                '<span class="med-time-badge">' + timeLabel + '</span>';
+            if (!STATE.editMode) {
+                html += '<button class="med-delete" onclick="event.stopPropagation();deleteMed(' + med.id + ');">✕</button>';
+            }
+            html += '</div>';
+        });
+        container.innerHTML = html;
+    }
+
+    function renderPrescriptionChips() {
+        const prescriptions = new Set();
+        STATE.medications.forEach(m => { if (m.note || m.prescription_name) prescriptions.add(m.note || m.prescription_name); });
+        const container = document.getElementById('prescriptionChips');
+        let html = '<span class="p-chip ' + (STATE.currentPrescription === 'all' ? 'active' : '') + '" onclick="setPrescriptionFilter(\'all\')">所有藥單</span>';
+        prescriptions.forEach(p => {
+            html += '<span class="p-chip ' + (STATE.currentPrescription === p ? 'active' : '') + '" onclick="setPrescriptionFilter(\'' + escapeAttr(p) + '\')">' + escapeHtml(p) + '</span>';
+        });
+        container.innerHTML = html;
+    }
+
+    function filterMedications() {
+        let meds = STATE.medications;
+        if (STATE.currentPrescription !== 'all') {
+            meds = meds.filter(m => (m.note || m.prescription_name) === STATE.currentPrescription);
+        }
+        if (STATE.currentTimeSlot !== 'all') {
+            meds = meds.filter(m => matchTimeSlot(m, STATE.currentTimeSlot));
+        }
+        return meds;
+    }
+
+    function matchTimeSlot(med, slot) {
+        const freq = ((med.frequency || '') + (med.note || '')).toLowerCase();
+        const map = {
+            morning: ['早', 'morning', 'breakfast'],
+            noon: ['中午', 'noon', 'lunch'],
+            evening: ['晚', 'evening', 'dinner'],
+            bedtime: ['睡前', 'bedtime', 'sleep']
+        };
+        return (map[slot] || []).some(k => freq.includes(k));
+    }
+
+    function getTimeLabel(med) {
+        const freq = (med.frequency || '') + (med.note || '');
+        if (/早/.test(freq)) return '早上';
+        if (/中午|午/.test(freq)) return '中午';
+        if (/晚/.test(freq)) return '晚上';
+        if (/睡前/.test(freq)) return '睡前';
+        return '其他';
+    }
+
+    function setTimeSlot(slot, el) {
+        STATE.currentTimeSlot = slot;
+        document.querySelectorAll('.time-tab').forEach(t => t.classList.remove('active'));
+        el.classList.add('active');
+        renderMedications();
+    }
+
+    function setPrescriptionFilter(p) {
+        STATE.currentPrescription = p;
+        renderMedications();
+    }
+
+    function toggleMedEdit() {
+        STATE.editMode = !STATE.editMode;
+        STATE.selectedMedIds.clear();
+        document.getElementById('medEditBtn').textContent = STATE.editMode ? '完成' : '編輯';
+        const toolbar = document.getElementById('medEditToolbar');
+        if (STATE.editMode) { toolbar.classList.remove('hidden'); toolbar.style.display = 'flex'; }
+        else { toolbar.classList.add('hidden'); }
+        renderMedications();
+    }
+
+    function toggleMedSelect(id) {
+        if (STATE.selectedMedIds.has(id)) STATE.selectedMedIds.delete(id);
+        else STATE.selectedMedIds.add(id);
+        document.getElementById('medSelectedCount').textContent = '已選 ' + STATE.selectedMedIds.size + ' 項';
+    }
+
+    function toggleSelectAllMeds() {
+        const all = document.getElementById('medSelectAll').checked;
+        const filtered = filterMedications();
+        STATE.selectedMedIds.clear();
+        if (all) filtered.forEach(m => STATE.selectedMedIds.add(m.id));
+        document.getElementById('medSelectedCount').textContent = '已選 ' + STATE.selectedMedIds.size + ' 項';
+        renderMedications();
+    }
+
+    async function deleteMed(id) {
+        if (!confirm('確定要刪除此藥物嗎？')) return;
+        if (STATE.demoMode) {
+            STATE.medications = STATE.medications.filter(m => m.id !== id);
+            renderMedications();
+            showToast('已刪除', 'info');
+            return;
+        }
+        try {
+            await api('/api/user/medications/' + id, { method: 'DELETE' });
+            await loadMedications();
+            showToast('已刪除', 'info');
+        } catch (e) {
+            showToast('刪除失敗', 'error');
+        }
+    }
+
+    async function deleteSelectedMeds() {
+        if (!STATE.selectedMedIds.size) return;
+        if (!confirm('確定要刪除 ' + STATE.selectedMedIds.size + ' 項藥物嗎？')) return;
+        for (const id of STATE.selectedMedIds) {
+            try {
+                if (!STATE.demoMode) await api('/api/user/medications/' + id, { method: 'DELETE' });
+                else STATE.medications = STATE.medications.filter(m => m.id !== id);
+            } catch (e) { /* continue */ }
+        }
+        STATE.selectedMedIds.clear();
+        toggleMedEdit();
+        await loadMedications();
+        showToast('已刪除', 'info');
+    }
+
+    function showAddMedModal() { document.getElementById('addMedModal').classList.remove('hidden'); }
+
+    async function addMedication() {
+        const name = document.getElementById('addMedName').value.trim();
+        if (!name) { showToast('請輸入藥物名稱', 'error'); return; }
+        const dosage = document.getElementById('addMedDosage').value.trim();
+        const frequency = document.getElementById('addMedFrequency').value.trim();
+        const prescription = document.getElementById('addMedPrescription').value.trim();
+        const note = document.getElementById('addMedNote').value.trim();
+
+        if (STATE.demoMode) {
+            STATE.medications.push({ id: Date.now(), name: name, dosage: dosage, frequency: frequency, note: prescription || note, is_active: true });
+            renderMedications();
+            closeModal('addMedModal');
+            clearAddMedForm();
+            showToast('已新增藥物', 'success');
+            return;
+        }
+
+        try {
+            const body = {
+                name: name,
+                dosage: dosage,
+                frequency: frequency,
+                note: prescription || note,
+                start_date: new Date().toISOString().split('T')[0],
+            };
+            if (STATE.profileId) body.profile_id = parseInt(STATE.profileId);
+            const res = await api('/api/user/medications', { method: 'POST', json: body });
+            const data = await res.json();
+            if (data.success) {
+                closeModal('addMedModal');
+                clearAddMedForm();
+                await loadMedications();
+                showToast('已新增藥物', 'success');
+            } else {
+                showToast(data.error || '新增失敗', 'error');
+            }
+        } catch (e) {
+            showToast('新增失敗', 'error');
+        }
+    }
+
+    function clearAddMedForm() {
+        ['addMedName','addMedDosage','addMedFrequency','addMedPrescription','addMedNote'].forEach(id => document.getElementById(id).value = '');
+    }
+
+    // ============================================
+    // AI 諮詢
+    // ============================================
+    async function sendChat() {
+        const input = document.getElementById('chatInput');
+        const msg = input.value.trim();
+        if (!msg) return;
+        input.value = '';
+        autoResizeChat();
+
+        STATE.chatMessages.push({ role: 'user', content: msg });
+        appendChatBubble('user', msg);
+
+        const typingEl = document.createElement('div');
+        typingEl.className = 'typing-indicator';
+        typingEl.id = 'typingIndicator';
+        typingEl.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
+        document.getElementById('chatMessages').appendChild(typingEl);
+        scrollChatBottom();
+
+        document.getElementById('chatSendBtn').disabled = true;
+
+        try {
+            let aiResponse;
+            if (STATE.demoMode) {
+                await new Promise(r => setTimeout(r, 1000 + Math.random() * 1500));
+                aiResponse = getDemoAIResponse(msg);
+            } else {
+                const res = await api('/api/consultation/ask', {
+                    method: 'POST',
+                    json: { question: msg }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    aiResponse = data.answer || data.response || '抱歉，暫時無法回答此問題。';
+                } else {
+                    aiResponse = '抱歉，伺服器暫時無法處理您的請求。請稍後再試。';
+                }
+            }
+            STATE.chatMessages.push({ role: 'assistant', content: aiResponse });
+            typingEl.remove();
+            appendChatBubble('ai', aiResponse);
+        } catch (e) {
+            typingEl.remove();
+            appendChatBubble('ai', '抱歉，連線發生問題，請稍後再試。');
+        }
+
+        document.getElementById('chatSendBtn').disabled = false;
+    }
+
+    function appendChatBubble(role, content) {
+        const container = document.getElementById('chatMessages');
+        const bubble = document.createElement('div');
+        bubble.className = 'chat-bubble ' + role;
+        bubble.innerHTML = escapeHtml(content).replace(/\n/g, '<br>');
+        container.appendChild(bubble);
+        if (role === 'ai') {
+            const label = document.createElement('div');
+            label.className = 'ai-label';
+            label.textContent = 'AI 生成';
+            container.appendChild(label);
+        }
+        scrollChatBottom();
+    }
+
+    function scrollChatBottom() {
+        const c = document.getElementById('chatMessages');
+        setTimeout(() => { c.scrollTop = c.scrollHeight; }, 50);
+    }
+
+    function handleChatKeydown(e) {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
+    }
+
+    function autoResizeChat() {
+        const el = document.getElementById('chatInput');
+        el.style.height = 'auto';
+        el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+    }
+
+    // ============================================
+    // 個人資訊
+    // ============================================
+    function loadPersonalInfo() {
+        const info = JSON.parse(localStorage.getItem('mus_personal_info') || '{}');
+        if (info.height) document.getElementById('piHeight').value = info.height;
+        if (info.weight) document.getElementById('piWeight').value = info.weight;
+        if (info.birthYear) document.getElementById('piBirthYear').value = info.birthYear;
+        if (info.gender) document.getElementById('piGender').value = info.gender;
+        if (info.bloodType) document.getElementById('piBloodType').value = info.bloodType;
+        calcBMI();
+    }
+
+    function savePersonalInfo() {
+        const info = {
+            height: document.getElementById('piHeight').value,
+            weight: document.getElementById('piWeight').value,
+            birthYear: document.getElementById('piBirthYear').value,
+            gender: document.getElementById('piGender').value,
+            bloodType: document.getElementById('piBloodType').value,
+        };
+        localStorage.setItem('mus_personal_info', JSON.stringify(info));
+        showToast('已儲存個人資訊', 'success');
+    }
+
+    function calcBMI() {
+        const h = parseFloat(document.getElementById('piHeight').value);
+        const w = parseFloat(document.getElementById('piWeight').value);
+        const display = document.getElementById('bmiDisplay');
+        if (h > 0 && w > 0) {
+            const bmi = w / ((h / 100) ** 2);
+            let cls, label;
+            if (bmi < 18.5) { cls = 'bmi-underweight'; label = '過輕'; }
+            else if (bmi < 24) { cls = 'bmi-normal'; label = '正常'; }
+            else if (bmi < 27) { cls = 'bmi-overweight'; label = '過重'; }
+            else { cls = 'bmi-obese'; label = '肥胖'; }
+            display.className = 'bmi-card ' + cls;
+            display.innerHTML = '<div class="bmi-value">' + bmi.toFixed(1) + '</div><div class="bmi-label">BMI · ' + label + '</div>';
+            display.classList.remove('hidden');
         } else {
-            // 如果腳本在 DOM 加載完成後執行
-            initApp();
+            display.classList.add('hidden');
         }
+    }
+
+    // ============================================
+    // 過敏原
+    // ============================================
+    function loadAllergies() { renderAllergies(); }
+
+    function renderAllergies() {
+        const allergies = JSON.parse(localStorage.getItem('mus_allergies') || '[]');
+        const container = document.getElementById('allergyList');
+        if (!allergies.length) {
+            container.innerHTML = '<div class="empty-state"><div class="empty-icon">🚫</div><div class="empty-text">尚未設定過敏原<br>點擊右上角 ＋ 新增</div></div>';
+            return;
+        }
+        let html = '<div style="display:flex;flex-wrap:wrap;gap:4px;">';
+        allergies.forEach((a, i) => {
+            html += '<span class="allergy-tag">⚠️ ' + escapeHtml(a) + ' <span class="remove-allergy" onclick="removeAllergy(' + i + ')">✕</span></span>';
+        });
+        html += '</div>';
+        container.innerHTML = html;
+    }
+
+    function showAddAllergyModal() { document.getElementById('addAllergyModal').classList.remove('hidden'); }
+
+    function addAllergy() {
+        const name = document.getElementById('addAllergyName').value.trim();
+        if (!name) return;
+        const allergies = JSON.parse(localStorage.getItem('mus_allergies') || '[]');
+        if (allergies.includes(name)) { showToast('此過敏原已存在', 'error'); return; }
+        allergies.push(name);
+        localStorage.setItem('mus_allergies', JSON.stringify(allergies));
+        document.getElementById('addAllergyName').value = '';
+        closeModal('addAllergyModal');
+        renderAllergies();
+        showToast('已新增過敏原', 'success');
+    }
+
+    function removeAllergy(index) {
+        const allergies = JSON.parse(localStorage.getItem('mus_allergies') || '[]');
+        allergies.splice(index, 1);
+        localStorage.setItem('mus_allergies', JSON.stringify(allergies));
+        renderAllergies();
+    }
+
+    // ============================================
+    // 健康狀況
+    // ============================================
+    function loadHealthProfile() {
+        const profile = JSON.parse(localStorage.getItem('mus_health_conditions') || '{}');
+        document.querySelectorAll('[data-health]').forEach(el => {
+            el.checked = !!profile[el.dataset.health];
+        });
+    }
+
+    function saveHealthProfile() {
+        const profile = {};
+        document.querySelectorAll('[data-health]').forEach(el => {
+            profile[el.dataset.health] = el.checked;
+        });
+        localStorage.setItem('mus_health_conditions', JSON.stringify(profile));
+    }
+
+    // ============================================
+    // 附近藥局
+    // ============================================
+    function loadPharmacies() {
+        const container = document.getElementById('pharmacyContent');
+        if (!navigator.geolocation) {
+            container.innerHTML = '<div class="empty-state"><div class="empty-icon">📍</div><div class="empty-text">您的瀏覽器不支援定位功能</div></div>';
+            return;
+        }
+        container.innerHTML = '<div class="empty-state"><div class="empty-icon">📍</div><div class="empty-text">正在取得您的位置...</div></div>';
+        navigator.geolocation.getCurrentPosition(
+            pos => {
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
+                container.innerHTML = '<div style="padding:16px;">' +
+                    '<div class="card" style="margin:0 0 12px;">' +
+                    '<div class="card-desc">💡 點擊下方按鈕在 Google 地圖中搜尋您附近的藥局。</div>' +
+                    '</div>' +
+                    '<a href="https://www.google.com/maps/search/藥局/@' + lat + ',' + lng + ',15z" target="_blank" rel="noopener" class="btn btn-primary" style="margin-top:8px;">' +
+                    '🗺️ 在 Google 地圖中搜尋附近藥局</a>' +
+                    '</div>';
+            },
+            () => {
+                container.innerHTML = '<div class="empty-state"><div class="empty-icon">📍</div><div class="empty-text">無法取得位置<br>請確認已開啟定位權限</div></div>' +
+                    '<div style="padding:0 16px;">' +
+                    '<a href="https://www.google.com/maps/search/藥局/@25.0478,121.5170,15z" target="_blank" rel="noopener" class="btn btn-primary w-full">' +
+                    '🗺️ 在 Google 地圖中搜尋藥局</a></div>';
+            }
+        );
+    }
+
+    // ============================================
+    // 設定功能
+    // ============================================
+    function setFontScale(scale) {
+        document.documentElement.style.setProperty('--font-scale', scale);
+        localStorage.setItem('mus_font_scale', scale);
+    }
+
+    function setTheme(theme) {
+        if (theme === 'default') document.documentElement.removeAttribute('data-theme');
+        else document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('mus_theme', theme);
+    }
+
+    function toggleDemoMode() {
+        STATE.demoMode = document.getElementById('demoModeToggle').checked;
+        localStorage.setItem('mus_demo_mode', STATE.demoMode);
+        if (STATE.demoMode) {
+            STATE.medications = getDemoMedications();
+            renderMedications();
+            showToast('Demo 模式已開啟', 'info');
+        } else {
+            loadMedications();
+            showToast('Demo 模式已關閉', 'info');
+        }
+    }
+
+    // ============================================
+    // Demo 資料
+    // ============================================
+    function getDemoMedications() {
+        return [
+            { id: 1, name: '普拿疼', dosage: '每次 1 顆', frequency: '每日三次飯後', note: '家醫科處方', is_active: true },
+            { id: 2, name: 'Amoxicillin 安莫西林', dosage: '每次 1 顆', frequency: '每日兩次 早晚飯後', note: '家醫科處方', is_active: true },
+            { id: 3, name: '胃乳片', dosage: '每次 2 顆', frequency: '每日三次飯後 中午 晚上', note: '腸胃科處方', is_active: true },
+            { id: 4, name: '安眠藥', dosage: '每次半顆', frequency: '睡前服用', note: '神經科處方', is_active: true },
+            { id: 5, name: '降血壓藥 Amlodipine', dosage: '每次 1 顆', frequency: '每日一次 早上', note: '心臟科處方', is_active: true },
+        ];
+    }
+
+    function getDemoAIResponse(question) {
+        const responses = [
+            '根據您的問題，以下是一些藥物相關建議：\n\n1. 請務必按照醫囑服藥，不要自行調整劑量。\n2. 如果出現不適症狀，請及時就醫。\n3. 不同藥物之間可能存在交互作用，服用多種藥物時請告知您的醫師。\n\n⚠️ 以上僅供參考，具體用藥建議請諮詢您的醫師或藥師。',
+            '這是一個很好的問題！\n\n大多數口服藥物建議在固定時間服用，以維持血中藥物濃度的穩定。如果忘記服藥：\n\n• 離下次用藥時間較遠：盡快補服\n• 離下次用藥時間較近：跳過本次，不要加倍服用\n\n⚠️ 具體做法因藥物而異，建議諮詢藥師。',
+            '關於藥物的副作用，每個人的反應可能不同。常見的注意事項包括：\n\n1. 📋 詳閱藥品說明書\n2. 🚰 多數藥物建議搭配足量溫開水服用\n3. 🍷 服藥期間避免飲酒\n4. 🚗 某些藥物可能影響注意力，應避免駕車\n\n如有異常反應，請立即停藥並就醫。',
+        ];
+        return responses[Math.floor(Math.random() * responses.length)];
+    }
+
+    // ============================================
+    // UI 工具
+    // ============================================
+    function showLoading(msg) {
+        document.getElementById('loadingText').textContent = msg || '處理中...';
+        document.getElementById('loadingOverlay').classList.remove('hidden');
+    }
+
+    function hideLoading() {
+        document.getElementById('loadingOverlay').classList.add('hidden');
+    }
+
+    function showToast(msg, type) {
+        type = type || 'info';
+        const existing = document.querySelector('.toast');
+        if (existing) existing.remove();
+        const toast = document.createElement('div');
+        toast.className = 'toast ' + type;
+        toast.textContent = msg;
+        document.body.appendChild(toast);
+        setTimeout(() => { if (toast.parentNode) toast.remove(); }, 3000);
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).classList.add('hidden');
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        const div = document.createElement('div');
+        div.textContent = String(str);
+        return div.innerHTML;
+    }
+
+    function escapeAttr(str) {
+        if (!str) return '';
+        return String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function timeAgo(dateStr) {
+        const now = Date.now();
+        const t = new Date(dateStr).getTime();
+        const diff = Math.floor((now - t) / 1000);
+        if (diff < 60) return '剛剛';
+        if (diff < 3600) return Math.floor(diff / 60) + ' 分鐘前';
+        if (diff < 86400) return Math.floor(diff / 3600) + ' 小時前';
+        if (diff < 2592000) return Math.floor(diff / 86400) + ' 天前';
+        return new Date(dateStr).toLocaleDateString('zh-TW');
+    }
     </script>
 </body>
 
