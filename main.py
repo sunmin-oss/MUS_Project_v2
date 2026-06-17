@@ -359,6 +359,14 @@ if (
 else:
     recognizer = None
 
+# 應用程式 logging → system_logs (供後台 Log 紀錄頁查詢)
+try:
+    from services import system_log as _system_log
+
+    _system_log.install()
+except Exception as _e:  # pragma: no cover
+    logger.warning("⚠ system_log handler 安裝失敗: %s", _e)
+
 # 動態匯入資料庫模組
 try:
     from drug_database import DrugDatabase

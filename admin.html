@@ -729,6 +729,7 @@
             </li>
             <li><a href="#" data-page="stats"><span class="icon">📈</span><span class="label">API 統計</span></a></li>
             <li><a href="#" data-page="ai-usage"><span class="icon">🤖</span><span class="label">AI 使用</span></a></li>
+            <li><a href="#" data-page="log-explorer"><span class="icon">📜</span><span class="label">Log 紀錄</span></a></li>
             <li><a href="#" data-page="batch"><span class="icon">🔄</span><span class="label">批次更新</span></a></li>
         </ul>
         <div style="position:absolute;bottom:16px;left:0;right:0;text-align:center;">
@@ -1084,6 +1085,57 @@
             </div>
         </div>
 
+        <!-- ========== 7.5 Log 紀錄 ========== -->
+        <div class="page-section" id="page-log-explorer">
+            <div class="page-header">
+                <div>
+                    <h1>Log 紀錄查詢</h1>
+                    <div class="subtitle">統一查詢系統/API/AI/服藥/安全檢查等各類 Log</div>
+                </div>
+                <button class="btn btn-outline" onclick="loadLogExplorer()">重新載入</button>
+            </div>
+
+            <div class="section-card">
+                <div id="logCategoryTabs" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;"></div>
+
+                <div id="logFilters" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:14px;">
+                    <div>
+                        <label style="display:block;font-size:12px;color:#666;">關鍵字</label>
+                        <input id="logFilterKeyword" type="text" placeholder="搜尋訊息..." style="padding:6px 8px;">
+                    </div>
+                    <div>
+                        <label style="display:block;font-size:12px;color:#666;">開始時間</label>
+                        <input id="logFilterStart" type="datetime-local" style="padding:6px 8px;">
+                    </div>
+                    <div>
+                        <label style="display:block;font-size:12px;color:#666;">結束時間</label>
+                        <input id="logFilterEnd" type="datetime-local" style="padding:6px 8px;">
+                    </div>
+                    <div id="logExtraFilters" style="display:flex;gap:10px;align-items:flex-end;"></div>
+                    <div>
+                        <button class="btn btn-primary btn-sm" onclick="queryLogs()">查詢</button>
+                        <button class="btn btn-outline btn-sm" onclick="resetLogFilters()">重設</button>
+                    </div>
+                </div>
+
+                <div style="overflow-x:auto;">
+                    <table class="data-table" id="logExplorerTable">
+                        <thead><tr id="logExplorerHead"></tr></thead>
+                        <tbody id="logExplorerBody"></tbody>
+                    </table>
+                </div>
+
+                <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;">
+                    <div id="logExplorerCount" style="color:#666;font-size:13px;"></div>
+                    <div>
+                        <button class="btn btn-sm btn-outline" onclick="changeLogPage(-1)">上一頁</button>
+                        <span id="logExplorerPage" style="margin:0 10px;">第 1 頁</span>
+                        <button class="btn btn-sm btn-outline" onclick="changeLogPage(1)">下一頁</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- ========== 8. 批次更新 ========== -->
         <div class="page-section" id="page-batch">
             <div class="page-header">
@@ -1327,6 +1379,7 @@
                     settings: () => { loadSettings(); loadLogs(); },
                     stats: loadApiStats,
                     'ai-usage': loadAiStats,
+                    'log-explorer': loadLogExplorer,
                     batch: () => { loadBatchStatus(); startBatchPolling(); },
                 };
                 if (loaders[page]) loaders[page]();
@@ -2180,6 +2233,204 @@
         async function batchResume() {
             const res = await api('/batch-update/resume', { method: 'POST' });
             showToast(res.message, res.success ? 'success' : 'error');
+        }
+
+        // ============================================
+        // Log 紀錄查詢
+        // ============================================
+        const LOG_COLUMNS = {
+            system: [
+                { key: 'created_at', label: '時間', width: '160px' },
+                { key: 'level', label: '等級', width: '70px', render: v => `<span class="badge badge-${({ERROR:'danger',WARNING:'warning',INFO:'info',DEBUG:'secondary'})[v]||'secondary'}">${v||''}</span>` },
+                { key: 'logger', label: 'Logger', width: '140px' },
+                { key: 'message', label: '訊息' },
+                { key: 'exc_info', label: '例外', render: v => v ? `<details><summary>展開</summary><pre style="white-space:pre-wrap;font-size:11px;">${escapeHtml(v)}</pre></details>` : '' }
+            ],
+            api: [
+                { key: 'created_at', label: '時間', width: '160px' },
+                { key: 'method', label: 'Method', width: '70px' },
+                { key: 'endpoint', label: '端點' },
+                { key: 'status_code', label: '狀態', width: '70px', render: v => `<span class="badge badge-${v>=500?'danger':v>=400?'warning':'success'}">${v}</span>` },
+                { key: 'duration_ms', label: '耗時(ms)', width: '90px' },
+                { key: 'query_params', label: '參數' }
+            ],
+            ai_provider: [
+                { key: 'created_at', label: '時間', width: '160px' },
+                { key: 'feature', label: '功能', width: '110px' },
+                { key: 'provider', label: 'Provider', width: '100px' },
+                { key: 'provider_name', label: '實際來源', width: '110px' },
+                { key: 'model', label: 'Model', width: '160px' },
+                { key: 'success', label: '結果', width: '70px', render: v => v ? '<span class="badge badge-success">成功</span>' : '<span class="badge badge-danger">失敗</span>' },
+                { key: 'fallback_used', label: 'Fallback', width: '70px', render: v => v ? '是' : '' },
+                { key: 'latency_ms', label: '耗時(ms)', width: '90px' },
+                { key: 'status_code', label: '狀態', width: '70px' },
+                { key: 'tokens_in', label: 'Tokens(in)', width: '80px' },
+                { key: 'tokens_out', label: 'Tokens(out)', width: '80px' },
+                { key: 'error_type', label: '錯誤類型' }
+            ],
+            adherence: [
+                { key: 'created_at', label: '時間', width: '160px' },
+                { key: 'user_id', label: 'User', width: '70px' },
+                { key: 'medication_id', label: '藥物 ID', width: '90px' },
+                { key: 'status', label: '狀態', width: '100px' },
+                { key: 'taken_at', label: '服用時間', width: '160px' },
+                { key: 'scheduled_date', label: '預定日', width: '110px' },
+                { key: 'note', label: '備註' }
+            ],
+            safety: [
+                { key: 'created_at', label: '時間', width: '160px' },
+                { key: 'user_id', label: 'User', width: '70px' },
+                { key: 'profile_id', label: 'Profile', width: '70px' },
+                { key: 'drug_id', label: '藥物 ID', width: '80px' },
+                { key: 'check_type', label: '檢查類型', width: '120px' },
+                { key: 'result', label: '結果', width: '90px' },
+                { key: 'detail', label: '詳情' }
+            ]
+        };
+
+        const LOG_EXTRA_FILTERS = {
+            system: [
+                { id: 'logExtraLevel', label: '等級', type: 'select', options: ['', 'INFO', 'WARNING', 'ERROR', 'DEBUG'], param: 'level' }
+            ],
+            api: [
+                { id: 'logExtraMethod', label: 'Method', type: 'select', options: ['', 'GET', 'POST', 'PUT', 'DELETE', 'PATCH'], param: 'method' },
+                { id: 'logExtraStatus', label: '狀態碼', type: 'text', param: 'status_code', width: '80px' }
+            ],
+            ai_provider: [
+                { id: 'logExtraFeature', label: '功能', type: 'text', param: 'feature', width: '120px' },
+                { id: 'logExtraSuccess', label: '結果', type: 'select', options: [['',''],['1','成功'],['0','失敗']], param: 'success' }
+            ],
+            adherence: [
+                { id: 'logExtraUser', label: 'User ID', type: 'text', param: 'user_id', width: '80px' }
+            ],
+            safety: [
+                { id: 'logExtraUser', label: 'User ID', type: 'text', param: 'user_id', width: '80px' }
+            ]
+        };
+
+        let _logCategories = [];
+        let _logCurrent = 'system';
+        let _logPage = 1;
+        const _LOG_PAGE_SIZE = 50;
+
+        function escapeHtml(s) {
+            if (s == null) return '';
+            return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        }
+
+        async function loadLogExplorer() {
+            try {
+                const res = await api('/logs/categories');
+                _logCategories = (res && res.success && Array.isArray(res.categories)) ? res.categories : [];
+                renderLogTabs();
+                if (_logCategories.length && !_logCategories.find(c => c.key === _logCurrent)) {
+                    _logCurrent = _logCategories[0].key;
+                }
+                renderLogExtraFilters();
+                _logPage = 1;
+                queryLogs();
+            } catch (e) {
+                showToast('載入 Log 類別失敗: ' + e.message, 'error');
+            }
+        }
+
+        function renderLogTabs() {
+            const bar = document.getElementById('logCategoryTabs');
+            if (!bar) return;
+            bar.innerHTML = _logCategories.map(c => {
+                const active = c.key === _logCurrent;
+                return `<button class="btn btn-sm ${active ? 'btn-primary' : 'btn-outline'}" onclick="switchLogCategory('${c.key}')">${escapeHtml(c.label)} <span style="opacity:.7;">(${c.count})</span></button>`;
+            }).join('');
+        }
+
+        function switchLogCategory(key) {
+            _logCurrent = key;
+            _logPage = 1;
+            renderLogTabs();
+            renderLogExtraFilters();
+            queryLogs();
+        }
+
+        function renderLogExtraFilters() {
+            const box = document.getElementById('logExtraFilters');
+            if (!box) return;
+            const filters = LOG_EXTRA_FILTERS[_logCurrent] || [];
+            box.innerHTML = filters.map(f => {
+                if (f.type === 'select') {
+                    const opts = f.options.map(o => {
+                        const [val, label] = Array.isArray(o) ? o : [o, o || '(全部)'];
+                        return `<option value="${escapeHtml(val)}">${escapeHtml(label)}</option>`;
+                    }).join('');
+                    return `<div><label style="display:block;font-size:12px;color:#666;">${f.label}</label><select id="${f.id}" style="padding:6px 8px;">${opts}</select></div>`;
+                }
+                return `<div><label style="display:block;font-size:12px;color:#666;">${f.label}</label><input id="${f.id}" type="text" style="padding:6px 8px;width:${f.width||'120px'};"></div>`;
+            }).join('');
+        }
+
+        function resetLogFilters() {
+            document.getElementById('logFilterKeyword').value = '';
+            document.getElementById('logFilterStart').value = '';
+            document.getElementById('logFilterEnd').value = '';
+            (LOG_EXTRA_FILTERS[_logCurrent] || []).forEach(f => {
+                const el = document.getElementById(f.id);
+                if (el) el.value = '';
+            });
+            _logPage = 1;
+            queryLogs();
+        }
+
+        function changeLogPage(delta) {
+            const next = _logPage + delta;
+            if (next < 1) return;
+            _logPage = next;
+            queryLogs();
+        }
+
+        async function queryLogs() {
+            const params = new URLSearchParams();
+            params.set('category', _logCurrent);
+            params.set('limit', _LOG_PAGE_SIZE);
+            params.set('offset', (_logPage - 1) * _LOG_PAGE_SIZE);
+            const kw = document.getElementById('logFilterKeyword').value.trim();
+            if (kw) params.set('keyword', kw);
+            const s = document.getElementById('logFilterStart').value;
+            if (s) params.set('start', s.replace('T', ' '));
+            const e = document.getElementById('logFilterEnd').value;
+            if (e) params.set('end', e.replace('T', ' '));
+            (LOG_EXTRA_FILTERS[_logCurrent] || []).forEach(f => {
+                const el = document.getElementById(f.id);
+                if (el && el.value) params.set(f.param, el.value);
+            });
+
+            try {
+                const res = await api('/logs/query?' + params.toString());
+                renderLogTable(res);
+            } catch (err) {
+                showToast('查詢 Log 失敗: ' + err.message, 'error');
+            }
+        }
+
+        function renderLogTable(res) {
+            const cols = LOG_COLUMNS[_logCurrent] || [];
+            const head = document.getElementById('logExplorerHead');
+            head.innerHTML = cols.map(c => `<th${c.width ? ` style="width:${c.width};"` : ''}>${escapeHtml(c.label)}</th>`).join('');
+
+            const body = document.getElementById('logExplorerBody');
+            const items = (res && res.items) || [];
+            if (!items.length) {
+                body.innerHTML = `<tr><td colspan="${cols.length}" style="text-align:center;color:#999;padding:20px;">無資料</td></tr>`;
+            } else {
+                body.innerHTML = items.map(row => {
+                    return '<tr>' + cols.map(c => {
+                        const v = row[c.key];
+                        const cell = c.render ? c.render(v, row) : escapeHtml(v == null ? '' : v);
+                        return `<td>${cell}</td>`;
+                    }).join('') + '</tr>';
+                }).join('');
+            }
+            const total = res && res.total != null ? res.total : items.length;
+            document.getElementById('logExplorerCount').textContent = `共 ${total} 筆，目前顯示第 ${(_logPage - 1) * _LOG_PAGE_SIZE + 1} - ${(_logPage - 1) * _LOG_PAGE_SIZE + items.length} 筆`;
+            document.getElementById('logExplorerPage').textContent = `第 ${_logPage} 頁`;
         }
 
         function startBatchPolling() {
