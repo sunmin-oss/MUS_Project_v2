@@ -235,6 +235,66 @@ final class RealAPIClient: APIClientProtocol {
         return RecognitionResult(requestId: decoded.requestId, items: items)
     }
 
+    
+    private struct PrescriptionResponse: Decodable {
+        let success: Bool
+        let requestId: String?
+        let recognizedDrugs: [String]?
+        let recognizedItems: [PrescriptionItemPayload]?
+        let message: String?
+        let error: String?
+
+    }
+    private struct PrescriptionItemPayload: Decodable {
+        let name: String
+        let confidence: Double
+        let source: String?
+        let drugId: Int?
+        let prescriptionInfo: PrescriptionInfo?
+        let details: PrescriptionDrugInfo?
+    }
+
+    func recognizePrescription(imageData: Data) async throws -> PrescriptionOCRResult {
+        let url = baseURL.appendingPathComponent("api/recognize_prescription")
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        let boundary = "Boundary-\(UUID().uuidString)"
+        req.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        var body = Data()
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"image\"; filename=\"prescription.jpg\"\r\n".data(using: .utf8)!)
+        body.append("Content-Type: image/jpeg\r\n\r\n".data(using: .utf8)!)
+        body.append(imageData)
+        body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
+        req.httpBody = body
+        let (data, resp) = try await session.data(for: req)
+        try validate(resp)
+        if let raw = String(data: data, encoding: .utf8) {
+            print("[OCR DEBUG] raw response: \(raw.prefix(2000))")
+        }
+        let decoded = try decoder.decode(PrescriptionResponse.self, from: data)
+        guard decoded.success else {
+            throw APIError.network(NSError(domain: "", code: 0, userInfo: [NSLocalizedDescriptionKey: decoded.error ?? decoded.message ?? "OCR 辨識失敗"]))
+        }
+        let details = (decoded.recognizedItems ?? []).map {
+            print("[OCR DEBUG] item: \($0.name), prescriptionInfo: \(String(describing: $0.prescriptionInfo)), details: \(String(describing: $0.details))")
+            return PrescriptionDrugDetail(
+                name: $0.name,
+                confidence: $0.confidence,
+                source: $0.source ?? "prescription",
+                drugId: $0.drugId,
+                prescriptionInfo: $0.prescriptionInfo,
+                details: $0.details
+            )
+        }
+        return PrescriptionOCRResult(
+            requestId: decoded.requestId ?? UUID().uuidString,
+            recognizedDrugs: decoded.recognizedDrugs ?? [],
+            drugDetails: details,
+            message: decoded.message ?? ""
+        )
+    }
+
     func fetchDrug(id: Int) async throws -> Drug {
         let url = baseURL.appendingPathComponent("api/drug/\(id)")
         let (data, resp) = try await session.data(from: url)

@@ -103,6 +103,7 @@ struct PrescriptionDraftView: View {
                 )
                 try? await store.add(medication: med, apiClient: env.apiClient)
             }
+            await store.load(profileId: profileId, apiClient: env.apiClient)
             isSaving = false
             showSuccess = true
         }

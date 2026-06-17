@@ -4,6 +4,8 @@ struct MedicationConfirmView: View {
     let medication: Medication
     @ObservedObject var store: MedicationStore
     let profileId: String
+    @EnvironmentObject private var env: AppEnvironment
+    @State private var errorMessage: String?
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -31,56 +33,53 @@ struct MedicationConfirmView: View {
                 VStack(spacing: DesignSpacing.sm) {
                     Button {
                         Task {
-                            await store.recordTaken(medicationId: medication.id, profileId: profileId)
-                            dismiss()
+                            do {
+                                try await store.recordTaken(
+                                    medicationId: medication.id,
+                                    profileId: profileId,
+                                    apiClient: env.apiClient)
+                                dismiss()
+                            } catch { errorMessage = error.localizedDescription }
                         }
                     } label: {
-                        Label(
-                            NSLocalizedString("medications.confirm.taken", comment: ""),
-                            systemImage: "checkmark.circle.fill"
-                        )
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(DesignColors.primary)
-                        .foregroundStyle(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: DesignRadius.md))
+                        SpacedButtonLabel(
+                            text: NSLocalizedString("medications.confirm.taken", comment: ""),
+                            systemImage: "checkmark.circle.fill")
                     }
+                    .buttonStyle(SpacedButtonStyle(filled: true))
 
                     Button {
                         dismiss()
-                        // Re-present after 15 minutes via notification (out of scope here)
                     } label: {
-                        Label(
-                            NSLocalizedString("medications.confirm.snooze", comment: ""),
-                            systemImage: "alarm"
-                        )
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color(UIColor.secondarySystemBackground))
-                        .foregroundStyle(DesignColors.textPrimary)
-                        .clipShape(RoundedRectangle(cornerRadius: DesignRadius.md))
+                        SpacedButtonLabel(
+                            text: NSLocalizedString("medications.confirm.snooze", comment: ""),
+                            systemImage: "alarm")
                     }
+                    .buttonStyle(SpacedButtonStyle(filled: false, tint: DesignColors.textPrimary))
 
-                    Button(role: .destructive) {
+                    Button {
                         Task {
-                            await store.recordSkipped(medicationId: medication.id, profileId: profileId)
-                            dismiss()
+                            do {
+                                try await store.recordSkipped(
+                                    medicationId: medication.id,
+                                    profileId: profileId,
+                                    apiClient: env.apiClient)
+                                dismiss()
+                            } catch { errorMessage = error.localizedDescription }
                         }
                     } label: {
-                        Label(
-                            NSLocalizedString("medications.confirm.skip", comment: ""),
-                            systemImage: "xmark.circle"
-                        )
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color(UIColor.secondarySystemBackground))
-                        .foregroundStyle(.red)
-                        .clipShape(RoundedRectangle(cornerRadius: DesignRadius.md))
+                        SpacedButtonLabel(
+                            text: NSLocalizedString("medications.confirm.skip", comment: ""),
+                            systemImage: "xmark.circle")
                     }
+                    .buttonStyle(SpacedButtonStyle(filled: false, tint: .red))
                 }
                 .padding(.horizontal, DesignSpacing.md)
                 .padding(.bottom, DesignSpacing.lg)
             }
+            .alert("錯誤", isPresented: .constant(errorMessage != nil),
+                   actions: { Button("OK") { errorMessage = nil } },
+                   message: { Text(errorMessage ?? "") })
             .navigationTitle("medications.confirm.title")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

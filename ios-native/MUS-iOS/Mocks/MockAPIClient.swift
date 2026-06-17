@@ -25,6 +25,17 @@ final class MockAPIClient: APIClientProtocol {
         return RecognitionResult(requestId: UUID().uuidString, items: Array(items))
     }
 
+    
+    func recognizePrescription(imageData: Data) async throws -> PrescriptionOCRResult {
+        await delay()
+        return PrescriptionOCRResult(
+            requestId: UUID().uuidString,
+            recognizedDrugs: [],
+            drugDetails: [],
+            message: "Mock: no OCR"
+        )
+    }
+
     func fetchDrug(id: Int) async throws -> Drug {
         await delay()
         guard let drug = MockData.drugs.first(where: { $0.id == id }) else { throw APIError.notFound }

@@ -33,6 +33,7 @@ protocol APIClientProtocol {
 
     // MARK: - Recognition
     func recognizeDrug(imageData: Data) async throws -> RecognitionResult
+    func recognizePrescription(imageData: Data) async throws -> PrescriptionOCRResult
     func fetchDrug(id: Int) async throws -> Drug
     func searchDrugs(query: String, limit: Int) async throws -> [Drug]
 

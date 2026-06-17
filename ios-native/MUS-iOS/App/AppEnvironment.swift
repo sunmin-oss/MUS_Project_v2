@@ -6,6 +6,9 @@ import SwiftUI
 final class AppEnvironment: ObservableObject {
     @Published var apiClient: APIClientProtocol
 
+    /// 共享的藥物 Store（跨頁面同步用，避免重複實例）
+    let medicationStore: MedicationStore
+
     /// Demo 模式：使用 Mock 資料；發佈前可由「我的」分頁切換
     @Published var isDemoMode: Bool {
         didSet {
@@ -26,15 +29,22 @@ final class AppEnvironment: ObservableObject {
         self.isDemoMode = isDemoMode
         self.apiClient = Self.makeClient(isDemoMode: isDemoMode)
         self.selectedProfileId = UserDefaults.standard.string(forKey: "selectedProfileId") ?? "p1"
+        self.medicationStore = MedicationStore()
         // 啟動時 bootstrap RealAPIClient（自動 register-or-login）
         if !isDemoMode {
-            Task { await self.apiClient.bootstrap() }
+            Task {
+                await self.apiClient.bootstrap()
+                if let pid = await AuthStore.shared.profileId(), pid > 0 {
+                    self.selectedProfileId = String(pid)
+                    await self.medicationStore.load(profileId: String(pid), apiClient: self.apiClient)
+                }
+            }
         }
     }
 
     static func makeClient(isDemoMode: Bool) -> APIClientProtocol {
         if isDemoMode { return MockAPIClient() }
-        return RealAPIClient(baseURL: URL(string: "http://100.82.235.49:5000")!)
+        return RealAPIClient(baseURL: URL(string: "http://100.82.235.49:5001")!)
     }
 
     static func makeDefault() -> AppEnvironment {
