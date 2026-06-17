@@ -8,8 +8,13 @@ struct ProfileView: View {
         NavigationStack {
             Form {
                 Section("profile.section.account") {
-                    Label("profile.guest", systemImage: "person.crop.circle")
-                        .font(DesignTypography.body)
+                    if let username = env.currentUsername {
+                        Label(username, systemImage: "person.crop.circle.fill")
+                            .font(DesignTypography.body)
+                    } else {
+                        Label("profile.guest", systemImage: "person.crop.circle")
+                            .font(DesignTypography.body)
+                    }
                 }
 
                 Section("profile.section.appearance") {
@@ -87,6 +92,20 @@ struct ProfileView: View {
                         Text(appVersion).foregroundStyle(DesignColors.textSecondary)
                     }
                     .font(DesignTypography.body)
+                }
+
+                if !env.isDemoMode {
+                    Section {
+                        Button(role: .destructive) {
+                            Task { await env.logout() }
+                        } label: {
+                            HStack {
+                                Spacer()
+                                Label("登出", systemImage: "rectangle.portrait.and.arrow.right")
+                                Spacer()
+                            }
+                        }
+                    }
                 }
             }
             .navigationTitle("tab.profile")

@@ -24,10 +24,10 @@ final class RealAPIClient: APIClientProtocol {
     // MARK: - Bootstrap
 
     func bootstrap() async {
+        // 只驗證已有 token 是否有效，不再自動登入
         if await AuthStore.shared.accessToken() != nil {
-            if (try? await fetchMe()) != nil { return }
+            _ = try? await fetchMe()
         }
-        await ensureAuthenticated()
     }
 
     private func ensureAuthenticated() async {
@@ -87,7 +87,6 @@ final class RealAPIClient: APIClientProtocol {
             "username": username, "password": password, "display_name": displayName
         ])
         let (_, resp) = try await session.data(for: req)
-        if let http = resp as? HTTPURLResponse, http.statusCode == 409 { return }
         try validate(resp)
     }
 
@@ -119,6 +118,7 @@ final class RealAPIClient: APIClientProtocol {
         case 401: throw APIError.unauthorized
         case 403: throw APIError.forbidden
         case 404: throw APIError.notFound
+        case 409: throw APIError.conflict
         default: throw APIError.server(http.statusCode)
         }
     }
