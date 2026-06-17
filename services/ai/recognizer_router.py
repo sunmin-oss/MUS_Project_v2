@@ -1,8 +1,12 @@
 """
-辨識器路由 (Phase 1)
+辨識器路由
 
-封裝主辨識器（Gemini/Google/Claude）與 OpenAI 備援辨識器，
-依錯誤分類決定是否切換 fallback，並提供熔斷冷卻避免反覆失敗。
+封裝多層 Vision Recognizer，依設定順序嘗試：
+    primary  → secondary → fallback
+
+primary/secondary 通常是同品牌（例如兩把 Gemini key），fallback 為跨品牌備援
+（例如 OpenAI）。依錯誤分類決定是否切換下一層；連續失敗到達門檻會開啟熔斷，
+冷卻期內直接走最末層 fallback。
 """
 
 from __future__ import annotations
@@ -10,7 +14,7 @@ from __future__ import annotations
 import logging
 import threading
 import time
-from typing import Any, Callable, Optional
+from typing import Any, Callable, List, Optional, Tuple
 
 from services.ai.errors import classify_exception
 from services.ai import usage_log
@@ -23,35 +27,44 @@ def _provider_brand(target: Any) -> Optional[str]:
     if target is None:
         return None
     name = type(target).__name__.lower()
-    for brand in ("gemini", "google", "claude", "openai"):
-        if brand in name:
-            return brand
-    return None
+    return next((b for b in ("gemini", "google", "claude", "openai") if b in name), None)
 
 
 class RecognizerRouter:
-    """主 / 備援 Vision Recognizer 統一介面。"""
+    """多層 Vision Recognizer 統一介面。"""
 
-    def __init__(self, primary: Any, fallback: Any, settings: Any):
+    def __init__(
+        self,
+        primary: Any,
+        fallback: Any = None,
+        settings: Any = None,
+        secondary: Any = None,
+    ):
         self.primary = primary
+        self.secondary = secondary
         self.fallback = fallback
         self.settings = settings
 
         self._lock = threading.Lock()
         self._fail_count = 0
         self._breaker_open_until = 0.0
-        # 上一次成功使用的 provider（"primary" / "openai_fallback"），供回應標示
         self.last_provider: Optional[str] = None
-        self._primary_brand = _provider_brand(primary)
-        self._fallback_brand = _provider_brand(fallback) or "openai"
+
+        # 依優先順序組裝 chain
+        chain: List[Tuple[str, Any, Optional[str]]] = []
+        if primary is not None:
+            chain.append(("primary", primary, _provider_brand(primary)))
+        if secondary is not None:
+            chain.append(("secondary", secondary, _provider_brand(secondary)))
+        if fallback is not None and bool(
+            getattr(settings, "AI_FALLBACK_ENABLED", True)
+        ):
+            chain.append(
+                ("openai_fallback", fallback, _provider_brand(fallback) or "openai")
+            )
+        self._chain = chain
 
     # ---------- breaker ----------
-
-    @property
-    def fallback_enabled(self) -> bool:
-        return bool(self.fallback) and bool(
-            getattr(self.settings, "AI_FALLBACK_ENABLED", True)
-        )
 
     def _is_breaker_open(self) -> bool:
         return time.time() < self._breaker_open_until
@@ -59,19 +72,24 @@ class RecognizerRouter:
     def _open_breaker(self) -> None:
         cd = int(getattr(self.settings, "AI_FALLBACK_COOLDOWN_SEC", 300))
         self._breaker_open_until = time.time() + cd
-        logger.warning("⚠ 主辨識器熔斷開啟，%ss 內走 fallback", cd)
+        logger.warning("⚠ 主辨識器熔斷開啟，%ss 內走最末層 fallback", cd)
 
-    def _record_success(self) -> None:
+    def _record_success(self, slot_name: str) -> None:
+        # 只有最前段（primary/secondary）成功才完全重置；fallback 成功不撤銷熔斷
         with self._lock:
-            self._fail_count = 0
-            self._breaker_open_until = 0.0
+            if slot_name in ("primary", "secondary"):
+                self._fail_count = 0
+                self._breaker_open_until = 0.0
 
-    def _record_failure(self) -> None:
+    def _record_failure(self, slot_name: str) -> None:
         with self._lock:
-            self._fail_count += 1
-            threshold = int(getattr(self.settings, "AI_FALLBACK_FAIL_THRESHOLD", 3))
-            if self._fail_count >= threshold:
-                self._open_breaker()
+            if slot_name in ("primary", "secondary"):
+                self._fail_count += 1
+                threshold = int(
+                    getattr(self.settings, "AI_FALLBACK_FAIL_THRESHOLD", 3)
+                )
+                if self._fail_count >= threshold:
+                    self._open_breaker()
 
     # ---------- helpers ----------
 
@@ -79,11 +97,26 @@ class RecognizerRouter:
     def _has_method(target: Any, method: str) -> bool:
         return target is not None and callable(getattr(target, method, None))
 
-    def _invoke(self, target: Any, name: str, method: str, *args, **kwargs):
+    def _candidates(self, method: str) -> List[Tuple[str, Any, Optional[str]]]:
+        """回傳支援該 method 的 chain 子集；熔斷時跳過前段。"""
+        supported = [s for s in self._chain if self._has_method(s[1], method)]
+        if self._is_breaker_open() and len(supported) > 1:
+            return supported[-1:]
+        return supported
+
+    def _invoke(
+        self,
+        target: Any,
+        name: str,
+        brand: Optional[str],
+        method: str,
+        *args,
+        **kwargs,
+    ):
         max_retry = max(0, int(getattr(self.settings, "AI_MAX_RETRY", 1)))
         last_exc: Optional[BaseException] = None
-        brand = self._primary_brand if name == "primary" else self._fallback_brand
         fallback_used = name != "primary"
+
         for attempt in range(max_retry + 1):
             t0 = time.time()
             try:
@@ -92,7 +125,8 @@ class RecognizerRouter:
                 latency = (time.time() - t0) * 1000
                 self.last_provider = name
                 logger.info(
-                    "✓ AI provider=%s method=%s latency=%.1fms", name, method, latency
+                    "✓ AI provider=%s brand=%s method=%s latency=%.1fms",
+                    name, brand, method, latency,
                 )
                 usage_log.log_event(
                     feature=method,
@@ -107,26 +141,6 @@ class RecognizerRouter:
                 last_exc = e
                 kind = classify_exception(e)
                 latency = (time.time() - t0) * 1000
-                if kind == "permanent" or attempt >= max_retry:
-                    usage_log.log_event(
-                        feature=method,
-                        provider=name,
-                        provider_name=brand,
-                        success=False,
-                        fallback_used=fallback_used,
-                        latency_ms=latency,
-                        error_type=kind,
-                    )
-                    raise
-                logger.info(
-                    "… provider=%s method=%s 重試 %d/%d (%s): %s",
-                    name,
-                    method,
-                    attempt + 1,
-                    max_retry,
-                    kind,
-                    e,
-                )
                 usage_log.log_event(
                     feature=method,
                     provider=name,
@@ -136,47 +150,37 @@ class RecognizerRouter:
                     latency_ms=latency,
                     error_type=kind,
                 )
-        # 理論上不會到這
+                if kind == "permanent" or attempt >= max_retry:
+                    raise
+                logger.info(
+                    "… provider=%s method=%s 重試 %d/%d (%s): %s",
+                    name, method, attempt + 1, max_retry, kind, e,
+                )
         if last_exc:
             raise last_exc
 
     def _call(self, method: str, *args, **kwargs):
-        primary_supported = self._has_method(self.primary, method)
-        fallback_supported = self._has_method(self.fallback, method)
-
-        # 主不支援 → 直接 fallback
-        if not primary_supported:
-            if fallback_supported and self.fallback_enabled:
-                return self._invoke(
-                    self.fallback, "openai_fallback", method, *args, **kwargs
-                )
+        candidates = self._candidates(method)
+        if not candidates:
             raise AttributeError(f"沒有 provider 提供方法: {method}")
 
-        # 熔斷開啟 → 先試 fallback，失敗再試主（半開）
-        if self._is_breaker_open() and fallback_supported and self.fallback_enabled:
+        for idx, (name, target, brand) in enumerate(candidates):
             try:
-                return self._invoke(
-                    self.fallback, "openai_fallback", method, *args, **kwargs
-                )
+                result = self._invoke(target, name, brand, method, *args, **kwargs)
+                self._record_success(name)
+                return result
             except Exception as e:  # noqa: BLE001
-                logger.warning("⚠ 熔斷期間 fallback 也失敗，回退主路徑試一次: %s", e)
+                kind = classify_exception(e)
+                logger.warning(
+                    "⚠ provider=%s 失敗 (%s) method=%s: %s", name, kind, method, e
+                )
+                self._record_failure(name)
+                if kind == "permanent" or idx == len(candidates) - 1:
+                    raise
 
-        # 嘗試主
-        try:
-            result = self._invoke(self.primary, "primary", method, *args, **kwargs)
-            self._record_success()
-            return result
-        except Exception as e:  # noqa: BLE001
-            kind = classify_exception(e)
-            logger.warning("⚠ 主辨識器失敗 (%s) method=%s: %s", kind, method, e)
-            if kind == "permanent" or not self.fallback_enabled or not fallback_supported:
-                raise
-            self._record_failure()
-            return self._invoke(
-                self.fallback, "openai_fallback", method, *args, **kwargs
-            )
+        raise RuntimeError("RecognizerRouter: 未預期的執行路徑")
 
-    # ---------- 公開介面（與既有 recognizer 同名）----------
+    # ---------- 公開介面 ----------
 
     def recognize(self, *args, **kwargs):
         return self._call("recognize", *args, **kwargs)
@@ -189,42 +193,36 @@ class RecognizerRouter:
 
     def recognize_with_rag(self, image_path, drug_db, *args, **kwargs):
         """
-        RAG 辨識特殊處理：fallback 端通常沒有 RAG，
-        若主辨識器拋暫時性錯誤，自動退化為呼叫 fallback.recognize。
+        RAG 辨識：在 chain 中支援 RAG 的層之間切換；
+        全部失敗或都不支援 RAG，再退化為普通 recognize。
         """
-        if self._has_method(self.primary, "recognize_with_rag") and not self._is_breaker_open():
+        rag_candidates = self._candidates("recognize_with_rag")
+        for idx, (name, target, brand) in enumerate(rag_candidates):
             try:
                 result = self._invoke(
-                    self.primary,
-                    "primary",
-                    "recognize_with_rag",
-                    image_path,
-                    drug_db,
-                    *args,
-                    **kwargs,
+                    target, name, brand, "recognize_with_rag",
+                    image_path, drug_db, *args, **kwargs,
                 )
-                self._record_success()
+                self._record_success(name)
                 return result
             except Exception as e:  # noqa: BLE001
                 kind = classify_exception(e)
-                logger.warning("⚠ 主 RAG 失敗 (%s)：%s", kind, e)
+                logger.warning("⚠ provider=%s RAG 失敗 (%s)：%s", name, kind, e)
+                self._record_failure(name)
                 if kind == "permanent":
                     raise
-                self._record_failure()
+                if idx < len(rag_candidates) - 1:
+                    continue
+                logger.info("… RAG 全部失敗，退化為普通 recognize")
+                break
 
-        # 退化為普通辨識（無 RAG）
-        if self._has_method(self.fallback, "recognize") and self.fallback_enabled:
-            return self._invoke(
-                self.fallback, "openai_fallback", "recognize", image_path
-            )
-        if self._has_method(self.primary, "recognize"):
-            return self._invoke(self.primary, "primary", "recognize", image_path)
+        if any(self._has_method(t, "recognize") for _, t, _ in self._chain):
+            return self._call("recognize", image_path)
         raise RuntimeError("沒有可用的辨識器")
 
-    # ---------- 透傳其他屬性（如 search_by_drug_id 等） ----------
+    # ---------- 透傳其他屬性 ----------
 
     def __getattr__(self, name: str):
-        # 只有當上面顯式定義都找不到才會走到這
         primary = object.__getattribute__(self, "primary")
         if primary is not None and hasattr(primary, name):
             return getattr(primary, name)

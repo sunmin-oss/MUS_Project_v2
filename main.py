@@ -320,12 +320,37 @@ except Exception as e:
     logger.warning(f"⚠ OpenAI Fallback 初始化失敗：{e}")
     fallback_recognizer = None
 
+# Gemini 備用 Key（次序：primary → secondary → fallback）
+secondary_recognizer = None
+try:
+    if (
+        config.API_PROVIDER.lower() == "gemini"
+        and getattr(config, "GEMINI_BACKUP_API_KEY", None)
+    ):
+        from vision_api_gemini import GeminiVisionRecognizer
+
+        secondary_recognizer = GeminiVisionRecognizer(
+            config.GEMINI_BACKUP_API_KEY,
+            getattr(config, "GEMINI_BACKUP_MODEL", config.GEMINI_MODEL),
+        )
+        logger.info(
+            f"✓ Gemini Backup 已初始化 (model={getattr(config, 'GEMINI_BACKUP_MODEL', config.GEMINI_MODEL)})"
+        )
+except Exception as e:
+    logger.warning(f"⚠ Gemini Backup 初始化失敗：{e}")
+    secondary_recognizer = None
+
 # 組裝 Router；沒任何 provider 可用時才設 None
-if primary_recognizer is not None or fallback_recognizer is not None:
+if (
+    primary_recognizer is not None
+    or secondary_recognizer is not None
+    or fallback_recognizer is not None
+):
     from services.ai import RecognizerRouter, usage_log
 
     recognizer = RecognizerRouter(
         primary=primary_recognizer,
+        secondary=secondary_recognizer,
         fallback=fallback_recognizer,
         settings=config,
     )

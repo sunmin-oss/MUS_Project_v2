@@ -44,6 +44,10 @@ class Config:
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
     GEMINI_MODEL = "gemini-2.5-flash"  # 使用目前可用且已驗證的 gemini-2.5-flash 模型
 
+    # Gemini 備用 Key（主配額用盡時先切換同牌備用，避免立刻跳到其他廠牌）
+    GEMINI_BACKUP_API_KEY = os.getenv("GEMINI_BACKUP_API_KEY")
+    GEMINI_BACKUP_MODEL = os.getenv("GEMINI_BACKUP_MODEL", GEMINI_MODEL)
+
     # Google Vision API
     GOOGLE_VISION_API_KEY = os.getenv("GOOGLE_VISION_API_KEY")
     GOOGLE_VISION_API_URL = "https://vision.googleapis.com/v1/images:annotate"
