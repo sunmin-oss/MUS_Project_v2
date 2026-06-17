@@ -141,17 +141,22 @@ struct DrugSearchView: View {
 
                     ScrollView {
                         LazyVStack(spacing: 0) {
-                            ForEach(searchHistory.history, id: \.self) { item in
+                            ForEach(searchHistory.history) { item in
                                 HStack(spacing: DesignSpacing.sm) {
                                     Image(systemName: "clock.arrow.circlepath")
                                         .foregroundStyle(DesignColors.textSecondary)
                                         .font(.system(size: 14))
-                                    Text(item)
-                                        .font(DesignTypography.body)
-                                        .foregroundStyle(DesignColors.textPrimary)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(item.query)
+                                            .font(DesignTypography.body)
+                                            .foregroundStyle(DesignColors.textPrimary)
+                                        Text(item.date.formatted(.relative(presentation: .named)))
+                                            .font(.system(size: 11))
+                                            .foregroundStyle(DesignColors.textSecondary)
+                                    }
                                     Spacer()
                                     Button {
-                                        searchHistory.remove(item)
+                                        searchHistory.remove(item.query)
                                     } label: {
                                         Image(systemName: "xmark")
                                             .font(.system(size: 12))
@@ -162,7 +167,7 @@ struct DrugSearchView: View {
                                 .padding(.vertical, 12)
                                 .contentShape(Rectangle())
                                 .onTapGesture {
-                                    query = item
+                                    query = item.query
                                     triggerSearch()
                                 }
                                 Divider().padding(.leading, 44)
@@ -231,9 +236,9 @@ struct DrugSearchView: View {
                 LocalCache.save(found, forKey: cacheKey)
             }
         } catch {
-            // 嘗試從快取載入
+            // 嘗試從快取載入（3 天內有效）
             let cacheKey = "search_\(trimmed)"
-            if let cached = LocalCache.load([Drug].self, forKey: cacheKey) {
+            if let cached = LocalCache.load([Drug].self, forKey: cacheKey, maxAge: LocalCache.searchResultTTL) {
                 results = cached
             } else {
                 results = []

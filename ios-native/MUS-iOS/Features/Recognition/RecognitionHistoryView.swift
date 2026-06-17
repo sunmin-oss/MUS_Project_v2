@@ -34,6 +34,7 @@ final class RecognitionHistoryStore: ObservableObject {
 
     init() {
         records = LocalCache.load([HistoryRecord].self, forKey: cacheKey) ?? []
+        purgeExpired()
     }
 
     func append(image: UIImage?, result: RecognitionResult) {
@@ -62,6 +63,14 @@ final class RecognitionHistoryStore: ObservableObject {
     func clearAll() {
         records.removeAll()
         LocalCache.remove(forKey: cacheKey)
+    }
+
+    /// 清除超過 30 天的辨識紀錄
+    private func purgeExpired() {
+        let cutoff = Date().addingTimeInterval(-LocalCache.recognitionHistoryTTL)
+        let before = records.count
+        records.removeAll { $0.timestamp < cutoff }
+        if records.count != before { save() }
     }
 
     private func save() {
