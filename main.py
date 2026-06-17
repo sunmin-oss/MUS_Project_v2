@@ -107,12 +107,13 @@ CORS(
 
 # 註冊 Blueprints（P0-3）
 from admin_routes import admin_bp
-from routes import auth_bp, medications_bp, safety_bp
+from routes import auth_bp, medications_bp, safety_bp, consult_bp
 
 app.register_blueprint(admin_bp)
 app.register_blueprint(auth_bp)
 app.register_blueprint(medications_bp)
 app.register_blueprint(safety_bp)
+app.register_blueprint(consult_bp)
 
 # 建立新增資料表（users 等，不影響既有表）
 with app.app_context():
@@ -274,27 +275,61 @@ def disable_cache(response):
     return response
 
 
-# 動態匯入 API 提供商
+# 動態匯入主辨識器提供商
+primary_recognizer = None
 try:
     if config.API_PROVIDER.lower() == "gemini":
         from vision_api_gemini import GeminiVisionRecognizer
 
-        recognizer = GeminiVisionRecognizer(config.GEMINI_API_KEY, config.GEMINI_MODEL)
+        primary_recognizer = GeminiVisionRecognizer(
+            config.GEMINI_API_KEY, config.GEMINI_MODEL
+        )
         logger.info("✓ Google Gemini Vision API 已初始化")
     elif config.API_PROVIDER.lower() == "google":
         from vision_api_google import GoogleVisionRecognizer
 
-        recognizer = GoogleVisionRecognizer(config.GOOGLE_VISION_API_KEY)
+        primary_recognizer = GoogleVisionRecognizer(config.GOOGLE_VISION_API_KEY)
         logger.info("✓ Google Vision API 已初始化")
     elif config.API_PROVIDER.lower() == "claude":
         from vision_api_claude import ClaudeVisionRecognizer
 
-        recognizer = ClaudeVisionRecognizer(config.CLAUDE_API_KEY)
+        primary_recognizer = ClaudeVisionRecognizer(config.CLAUDE_API_KEY)
         logger.info("✓ Claude Vision API 已初始化")
     else:
         raise ValueError(f"未知的 API 提供商: {config.API_PROVIDER}")
 except Exception as e:
-    logger.error(f"✗ 無法初始化視覺 API: {e}")
+    logger.error(f"✗ 無法初始化主視覺 API: {e}")
+    primary_recognizer = None
+
+# Phase 1：OpenAI 備援（無 Key 則不啟用）
+fallback_recognizer = None
+try:
+    if config.OPENAI_FALLBACK_API_KEY:
+        from vision_api_openai import OpenAIVisionRecognizer
+
+        fallback_recognizer = OpenAIVisionRecognizer(
+            api_key=config.OPENAI_FALLBACK_API_KEY,
+            model=config.OPENAI_FALLBACK_MODEL,
+            base_url=config.OPENAI_FALLBACK_BASE_URL,
+            timeout=config.AI_TIMEOUT_SEC,
+        )
+        logger.info(
+            f"✓ OpenAI Fallback Vision 已初始化 (model={config.OPENAI_FALLBACK_MODEL})"
+        )
+except Exception as e:
+    logger.warning(f"⚠ OpenAI Fallback 初始化失敗：{e}")
+    fallback_recognizer = None
+
+# 組裝 Router；沒任何 provider 可用時才設 None
+if primary_recognizer is not None or fallback_recognizer is not None:
+    from services.ai import RecognizerRouter
+
+    recognizer = RecognizerRouter(
+        primary=primary_recognizer,
+        fallback=fallback_recognizer,
+        settings=config,
+    )
+else:
     recognizer = None
 
 # 動態匯入資料庫模組
@@ -535,10 +570,14 @@ def recognize_drug():
                 }
             )
 
+        # Phase 1：標示實際使用的辨識來源（primary/openai_fallback）
+        provider_name = getattr(recognizer, "last_provider", None) or "primary"
         response = {
             "success": True,
             "request_id": filename.split("_")[0],
             "recognized_items": recognized_items,
+            "provider": provider_name,
+            "fallback_used": provider_name != "primary",
             "message": f"辨識完成，找到 {len(recognized_items)} 個匹配結果",
         }
 

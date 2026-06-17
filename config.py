@@ -53,6 +53,32 @@ class Config:
     CLAUDE_API_URL = "https://api.anthropic.com/v1/messages"
     CLAUDE_MODEL = "claude-3-5-sonnet-20241022"
 
+    # ========== OpenAI / ChatGPT 設定 ==========
+    # Key A：辨識備援（Google/Gemini 配額用盡時自動切換）
+    OPENAI_FALLBACK_API_KEY = os.getenv("OPENAI_FALLBACK_API_KEY")
+    OPENAI_FALLBACK_MODEL = os.getenv("OPENAI_FALLBACK_MODEL", "gpt-4o-mini")
+    OPENAI_FALLBACK_BASE_URL = os.getenv(
+        "OPENAI_FALLBACK_BASE_URL", "https://api.openai.com/v1"
+    )
+
+    # Key B：AI 諮詢（與辨識備援完全分流）
+    OPENAI_CONSULT_API_KEY = os.getenv("OPENAI_CONSULT_API_KEY")
+    OPENAI_CONSULT_MODEL = os.getenv("OPENAI_CONSULT_MODEL", "gpt-4o-mini")
+    OPENAI_CONSULT_BASE_URL = os.getenv(
+        "OPENAI_CONSULT_BASE_URL", "https://api.openai.com/v1"
+    )
+
+    # ========== AI 切換策略 ==========
+    AI_FALLBACK_ENABLED = os.getenv("AI_FALLBACK_ENABLED", "true").lower() == "true"
+    AI_FALLBACK_COOLDOWN_SEC = int(os.getenv("AI_FALLBACK_COOLDOWN_SEC", 300))
+    AI_FALLBACK_FAIL_THRESHOLD = int(os.getenv("AI_FALLBACK_FAIL_THRESHOLD", 3))
+    AI_TIMEOUT_SEC = int(os.getenv("AI_TIMEOUT_SEC", 20))
+    AI_MAX_RETRY = int(os.getenv("AI_MAX_RETRY", 1))
+
+    # AI 諮詢成本控管
+    AI_CONSULT_MAX_TOKENS = int(os.getenv("AI_CONSULT_MAX_TOKENS", 800))
+    AI_CONSULT_RATE_PER_MIN = int(os.getenv("AI_CONSULT_RATE_PER_MIN", 20))
+
     # 藥物資料庫設定 (使用絕對路徑確保在任何目錄都能找到)
     _db_path = os.getenv("DATABASE_PATH")
     if _db_path:
