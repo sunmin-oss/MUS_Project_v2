@@ -16,6 +16,7 @@ struct PrescriptionDraftView: View {
     @State private var phase: Phase = .pickImage
     @State private var selectedImage: UIImage?
     @State private var drafts: [DraftItem] = []
+    @State private var prescriptionName: String = ""
     @State private var isSaving = false
     @State private var showSuccess = false
 
@@ -96,6 +97,17 @@ struct PrescriptionDraftView: View {
 
     private var draftListView: some View {
         List {
+            Section {
+                HStack {
+                    Image(systemName: "doc.text")
+                        .foregroundStyle(DesignColors.primary)
+                    TextField("藥單名稱（如：6/17 家醫科）", text: $prescriptionName)
+                        .font(DesignTypography.body)
+                }
+            } header: {
+                Text("藥單標籤")
+            }
+
             ForEach($drafts) { $draft in
                 Section {
                     HStack {
@@ -166,7 +178,12 @@ struct PrescriptionDraftView: View {
         isSaving = true
         let profileId = env.selectedProfileId
         Task {
+            var successCount = 0
+            var lastError: String?
             for draft in drafts where !draft.drugName.trimmingCharacters(in: .whitespaces).isEmpty {
+                let label = prescriptionName.trimmingCharacters(in: .whitespaces).isEmpty
+                    ? "藥單 \(Date().formatted(date: .abbreviated, time: .omitted))"
+                    : prescriptionName.trimmingCharacters(in: .whitespaces)
                 let med = Medication(
                     id: UUID().uuidString,
                     profileId: profileId,
@@ -177,13 +194,24 @@ struct PrescriptionDraftView: View {
                     nextDoseAt: Date().addingTimeInterval(3600),
                     currentStock: 30,
                     reminderTimes: [],
-                    notes: "來自處方箋辨識"
+                    notes: "來自處方箋辨識",
+                    prescriptionLabel: label
                 )
-                try? await store.add(medication: med, apiClient: env.apiClient)
+                do {
+                    try await store.add(medication: med, apiClient: env.apiClient)
+                    successCount += 1
+                } catch {
+                    print("[PrescriptionDraft] 新增失敗: \(draft.drugName) - \(error.localizedDescription)")
+                    lastError = error.localizedDescription
+                }
             }
             await store.load(profileId: profileId, apiClient: env.apiClient)
             isSaving = false
-            showSuccess = true
+            if successCount > 0 {
+                showSuccess = true
+            } else if let err = lastError {
+                phase = .error("新增失敗：\(err)")
+            }
         }
     }
 }

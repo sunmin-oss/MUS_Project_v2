@@ -32,6 +32,7 @@ struct Medication: Identifiable, Codable, Hashable {
     var currentStock: Int
     var reminderTimes: [Date]
     var notes: String
+    var prescriptionLabel: String?
 }
 
 struct ConsultationSummary: Identifiable, Codable, Hashable {

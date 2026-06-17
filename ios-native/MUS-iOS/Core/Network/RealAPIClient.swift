@@ -416,10 +416,24 @@ final class RealAPIClient: APIClientProtocol {
             "frequency": mapFrequency(m.frequency),
             "start_date": dateFormatter.string(from: m.nextDoseAt),
             "stock_qty": m.currentStock,
-            "note": m.notes.isEmpty ? m.mealTiming : "\(m.mealTiming)\n\(m.notes)",
+            "note": buildNote(medication: m),
         ]
         if !schedules.isEmpty { body["schedules"] = schedules }
         return body
+    }
+
+    private func buildNote(medication m: Medication) -> String {
+        var noteContent = ""
+        if let label = m.prescriptionLabel, !label.isEmpty {
+            noteContent = "[RX:\(label)]"
+            if !m.notes.isEmpty { noteContent += " \(m.notes)" }
+        } else {
+            noteContent = m.notes
+        }
+        if noteContent.isEmpty {
+            return m.mealTiming
+        }
+        return "\(m.mealTiming)\n\(noteContent)"
     }
 
     private func mapMedication(_ dto: MedicationDTO) -> Medication {
@@ -439,7 +453,17 @@ final class RealAPIClient: APIClientProtocol {
 
         let noteParts = (dto.note ?? "").split(separator: "\n", maxSplits: 1).map(String.init)
         let mealTiming = noteParts.first ?? ""
-        let notes = noteParts.count > 1 ? noteParts[1] : ""
+        let rawNotes = noteParts.count > 1 ? noteParts[1] : ""
+
+        // Parse prescriptionLabel from notes (format: "[RX:label]rest of notes")
+        var prescriptionLabel: String? = nil
+        var notes = rawNotes
+        if rawNotes.hasPrefix("[RX:") {
+            if let end = rawNotes.range(of: "]") {
+                prescriptionLabel = String(rawNotes[rawNotes.index(rawNotes.startIndex, offsetBy: 4)..<end.lowerBound])
+                notes = String(rawNotes[end.upperBound...]).trimmingCharacters(in: .whitespaces)
+            }
+        }
 
         return Medication(
             id: String(dto.id),
@@ -451,7 +475,8 @@ final class RealAPIClient: APIClientProtocol {
             nextDoseAt: next,
             currentStock: dto.stockQty ?? 0,
             reminderTimes: reminders,
-            notes: notes
+            notes: notes,
+            prescriptionLabel: prescriptionLabel
         )
     }
 

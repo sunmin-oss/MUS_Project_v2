@@ -13,9 +13,74 @@ struct MedicationsListView: View {
     @State private var isEditMode = false
     @State private var selectedIds: Set<String> = []
     @State private var showDeleteConfirm = false
+    @State private var showDeletePrescriptionConfirm = false
+    @State private var prescriptionToDelete: String? = nil
+    @State private var selectedTab: MedTab = .all
+    @State private var selectedPrescription: String? = nil
+
+    enum MedTab: String, CaseIterable {
+        case all = "全部"
+        case morning = "早上"
+        case noon = "中午"
+        case evening = "晚上"
+        case bedtime = "睡前"
+    }
+
+    /// 所有不重複的藥單標籤
+    private var prescriptionLabels: [String] {
+        let profileMeds = store.medications.filter { $0.profileId == env.selectedProfileId }
+        var labels: [String] = []
+        let named = profileMeds.compactMap(\.prescriptionLabel).filter { !$0.isEmpty }
+        labels = Array(Set(named)).sorted()
+        // 若有未分類的藥物，加入「未分類」
+        if profileMeds.contains(where: { ($0.prescriptionLabel ?? "").isEmpty }) {
+            labels.insert("未分類", at: 0)
+        }
+        return labels
+    }
 
     private var filteredMedications: [Medication] {
-        store.medications.filter { $0.profileId == env.selectedProfileId }
+        var meds = store.medications.filter { $0.profileId == env.selectedProfileId }
+
+        // 藥單篩選
+        if let prescription = selectedPrescription {
+            if prescription == "未分類" {
+                meds = meds.filter { ($0.prescriptionLabel ?? "").isEmpty }
+            } else {
+                meds = meds.filter { $0.prescriptionLabel == prescription }
+            }
+        }
+
+        // 時段篩選
+        switch selectedTab {
+        case .all:
+            return meds
+        case .morning:
+            return meds.filter { isMorning($0) }
+        case .noon:
+            return meds.filter { isNoon($0) }
+        case .evening:
+            return meds.filter { isEvening($0) }
+        case .bedtime:
+            return meds.filter { isBedtime($0) }
+        }
+    }
+
+    private func isMorning(_ med: Medication) -> Bool {
+        let text = med.frequency + med.mealTiming
+        return text.contains("早") || text.contains("morning")
+    }
+    private func isNoon(_ med: Medication) -> Bool {
+        let text = med.frequency + med.mealTiming
+        return text.contains("午") || text.contains("中") || text.contains("noon") || text.contains("三餐")
+    }
+    private func isEvening(_ med: Medication) -> Bool {
+        let text = med.frequency + med.mealTiming
+        return text.contains("晚") || text.contains("evening") || text.contains("三餐")
+    }
+    private func isBedtime(_ med: Medication) -> Bool {
+        let text = med.frequency + med.mealTiming
+        return text.contains("睡前") || text.contains("bedtime")
     }
 
     var body: some View {
@@ -24,6 +89,39 @@ struct MedicationsListView: View {
                 if !profiles.isEmpty {
                     ProfileSwitcherView(profiles: profiles)
                         .padding(.top, DesignSpacing.xs)
+                }
+
+                // 藥單選擇器
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        prescriptionChip(nil, label: "所有藥單")
+                        ForEach(prescriptionLabels, id: \.self) { label in
+                            prescriptionChip(label, label: label)
+                                .contextMenu {
+                                    if label != "未分類" {
+                                        Button(role: .destructive) {
+                                            prescriptionToDelete = label
+                                            showDeletePrescriptionConfirm = true
+                                        } label: {
+                                            Label("刪除整張藥單", systemImage: "trash")
+                                        }
+                                    }
+                                }
+                        }
+                    }
+                    .padding(.horizontal, DesignSpacing.md)
+                    .padding(.vertical, DesignSpacing.xs)
+                }
+
+                // 時段分頁標籤
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(MedTab.allCases, id: \.self) { tab in
+                            tabButton(tab)
+                        }
+                    }
+                    .padding(.horizontal, DesignSpacing.md)
+                    .padding(.vertical, DesignSpacing.sm)
                 }
 
                 Group {
@@ -152,6 +250,82 @@ struct MedicationsListView: View {
             } message: {
                 Text("刪除後無法恢復，確定要刪除已選擇的藥物嗎？")
             }
+            .alert("刪除整張藥單", isPresented: $showDeletePrescriptionConfirm) {
+                Button("刪除", role: .destructive) {
+                    deletePrescription()
+                }
+                Button("取消", role: .cancel) {
+                    prescriptionToDelete = nil
+                }
+            } message: {
+                if let name = prescriptionToDelete {
+                    Text("將刪除「\(name)」藥單中的所有藥物，此操作無法恢復。")
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func prescriptionChip(_ value: String?, label: String) -> some View {
+        let isSelected = selectedPrescription == value
+        Button {
+            withAnimation(.easeInOut(duration: 0.2)) { selectedPrescription = value }
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: value == nil ? "list.bullet" : "doc.text")
+                    .font(.system(size: 12))
+                Text(label)
+            }
+            .font(.system(size: 13, weight: isSelected ? .bold : .medium))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .foregroundStyle(isSelected ? .white : DesignColors.primary)
+            .background(
+                Capsule().fill(isSelected ? DesignColors.primary.opacity(0.8) : DesignColors.primary.opacity(0.1))
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private func tabButton(_ tab: MedTab) -> some View {
+        let isSelected = selectedTab == tab
+        let count = tabCount(tab)
+        Button {
+            withAnimation(.easeInOut(duration: 0.2)) { selectedTab = tab }
+        } label: {
+            HStack(spacing: 4) {
+                Text(tab.rawValue)
+                if count > 0 && tab != .all {
+                    Text("\(count)")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(isSelected ? .white : DesignColors.primary)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 1)
+                        .background(
+                            Capsule().fill(isSelected ? Color.white.opacity(0.3) : DesignColors.primary.opacity(0.15))
+                        )
+                }
+            }
+            .font(.system(size: 14, weight: isSelected ? .bold : .medium))
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .foregroundStyle(isSelected ? .white : DesignColors.textSecondary)
+            .background(
+                Capsule().fill(isSelected ? DesignColors.primary : Color(UIColor.secondarySystemBackground))
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func tabCount(_ tab: MedTab) -> Int {
+        let profileMeds = store.medications.filter { $0.profileId == env.selectedProfileId }
+        switch tab {
+        case .all: return profileMeds.count
+        case .morning: return profileMeds.filter { isMorning($0) }.count
+        case .noon: return profileMeds.filter { isNoon($0) }.count
+        case .evening: return profileMeds.filter { isEvening($0) }.count
+        case .bedtime: return profileMeds.filter { isBedtime($0) }.count
         }
     }
 
@@ -274,6 +448,25 @@ struct MedicationsListView: View {
             }
             selectedIds.removeAll()
             isEditMode = false
+            await loadAll()
+        }
+    }
+
+    private func deletePrescription() {
+        guard let label = prescriptionToDelete else { return }
+        let medsToDelete = store.medications.filter { med in
+            med.profileId == env.selectedProfileId &&
+            (label == "未分類" ? (med.prescriptionLabel ?? "").isEmpty : med.prescriptionLabel == label)
+        }
+        Task {
+            for med in medsToDelete {
+                try? await store.delete(id: med.id, apiClient: env.apiClient)
+            }
+            // 如果刪的是目前選取的藥單，重置為所有藥單
+            if selectedPrescription == label {
+                selectedPrescription = nil
+            }
+            prescriptionToDelete = nil
             await loadAll()
         }
     }
