@@ -5,13 +5,27 @@ final class MedicationStore: ObservableObject {
     @Published var medications: [Medication] = []
     @Published var records: [MedicationRecord] = []
 
+    private func cacheKey(_ profileId: String) -> String { "medications_\(profileId)" }
+    private func recordsCacheKey(_ profileId: String) -> String { "med_records_\(profileId)" }
+
     func load(profileId: String, apiClient: APIClientProtocol) async {
+        // 先載入快取作為初始資料
+        if medications.isEmpty, let cached = LocalCache.load([Medication].self, forKey: cacheKey(profileId)) {
+            medications = cached
+        }
+        if records.isEmpty, let cached = LocalCache.load([MedicationRecord].self, forKey: recordsCacheKey(profileId)) {
+            records = cached
+        }
+        // 嘗試從後端更新
         do {
             async let meds = apiClient.fetchMedications(profileId: profileId)
             async let recs = apiClient.fetchMedicationRecords(profileId: profileId)
             (medications, records) = try await (meds, recs)
+            // 成功後更新快取
+            LocalCache.save(medications, forKey: cacheKey(profileId))
+            LocalCache.save(records, forKey: recordsCacheKey(profileId))
         } catch {
-            // keep existing state on error
+            // 失敗時保留快取資料
         }
     }
 

@@ -10,6 +10,7 @@ struct DrugSearchView: View {
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var searchTask: Task<Void, Never>?
+    @StateObject private var searchHistory = SearchHistoryStore()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -23,6 +24,8 @@ struct DrugSearchView: View {
                 errorView(errorMessage)
             } else if results.isEmpty && !query.isEmpty {
                 emptyView
+            } else if results.isEmpty && query.isEmpty {
+                historySection
             } else {
                 resultsList
             }
@@ -103,6 +106,74 @@ struct DrugSearchView: View {
         }
     }
 
+    // MARK: - 搜尋歷史
+
+    private var historySection: some View {
+        Group {
+            if searchHistory.history.isEmpty {
+                VStack(spacing: DesignSpacing.sm) {
+                    Spacer().frame(height: 80)
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 48))
+                        .foregroundStyle(DesignColors.textSecondary)
+                    Text(verbatim: "輸入藥品名稱開始搜尋")
+                        .font(DesignTypography.body)
+                        .foregroundStyle(DesignColors.textSecondary)
+                    Spacer()
+                }
+            } else {
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack {
+                        Text(verbatim: "搜尋紀錄")
+                            .font(DesignTypography.caption)
+                            .foregroundStyle(DesignColors.textSecondary)
+                        Spacer()
+                        Button {
+                            searchHistory.clearAll()
+                        } label: {
+                            Text(verbatim: "全部清除")
+                                .font(DesignTypography.caption)
+                                .foregroundStyle(DesignColors.primary)
+                        }
+                    }
+                    .padding(.horizontal, DesignSpacing.md)
+                    .padding(.vertical, DesignSpacing.sm)
+
+                    ScrollView {
+                        LazyVStack(spacing: 0) {
+                            ForEach(searchHistory.history, id: \.self) { item in
+                                HStack(spacing: DesignSpacing.sm) {
+                                    Image(systemName: "clock.arrow.circlepath")
+                                        .foregroundStyle(DesignColors.textSecondary)
+                                        .font(.system(size: 14))
+                                    Text(item)
+                                        .font(DesignTypography.body)
+                                        .foregroundStyle(DesignColors.textPrimary)
+                                    Spacer()
+                                    Button {
+                                        searchHistory.remove(item)
+                                    } label: {
+                                        Image(systemName: "xmark")
+                                            .font(.system(size: 12))
+                                            .foregroundStyle(DesignColors.textSecondary)
+                                    }
+                                }
+                                .padding(.horizontal, DesignSpacing.md)
+                                .padding(.vertical, 12)
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    query = item
+                                    triggerSearch()
+                                }
+                                Divider().padding(.leading, 44)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     private func errorView(_ message: String) -> some View {
         VStack(spacing: DesignSpacing.sm) {
             Spacer().frame(height: 60)
@@ -154,10 +225,20 @@ struct DrugSearchView: View {
             let found = try await env.apiClient.searchDrugs(query: trimmed, limit: 20)
             if trimmed == query.trimmingCharacters(in: .whitespacesAndNewlines) {
                 results = found
+                searchHistory.add(trimmed)
+                // 快取搜尋結果
+                let cacheKey = "search_\(trimmed)"
+                LocalCache.save(found, forKey: cacheKey)
             }
         } catch {
-            results = []
-            errorMessage = "搜尋失敗，請確認網路或後端連線"
+            // 嘗試從快取載入
+            let cacheKey = "search_\(trimmed)"
+            if let cached = LocalCache.load([Drug].self, forKey: cacheKey) {
+                results = cached
+            } else {
+                results = []
+                errorMessage = "搜尋失敗，請確認網路或後端連線"
+            }
         }
         isLoading = false
     }
