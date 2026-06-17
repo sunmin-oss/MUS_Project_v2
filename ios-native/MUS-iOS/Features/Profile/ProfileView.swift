@@ -89,10 +89,11 @@ struct ProfileView: View {
                 }
 
                 Section("profile.section.settings") {
-                    Toggle(isOn: $env.isDemoMode) {
-                        Label("profile.demo.mode", systemImage: "theatermasks.fill")
-                            .font(DesignTypography.body)
-                    }
+                    // Demo mode toggle hidden: entire project is in demo stage
+                    // Toggle(isOn: $env.isDemoMode) {
+                    //     Label("profile.demo.mode", systemImage: "theatermasks.fill")
+                    //         .font(DesignTypography.body)
+                    // }
                     NavigationLink {
                         Text("profile.coming.soon").font(DesignTypography.body)
                     } label: {

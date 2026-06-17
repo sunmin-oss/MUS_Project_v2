@@ -6,10 +6,13 @@ struct PersonalInfoView: View {
 
     @State private var height: String = ""        // cm
     @State private var weight: String = ""        // kg
-    @State private var birthYear: String = ""     // 出生年份
+    @State private var birthDate: Date = Calendar.current.date(from: DateComponents(year: 1990, month: 1, day: 1))!
+    @State private var hasBirthDate: Bool = false
     @State private var gender: Gender = .unspecified
     @State private var bloodType: BloodType = .unknown
     @State private var showSaved = false
+    @State private var showValidationError = false
+    @State private var validationError: String = ""
 
     enum Gender: String, CaseIterable, Identifiable {
         case male = "male"
@@ -45,6 +48,29 @@ struct PersonalInfoView: View {
     private let store = PersonalInfoStore.shared
 
     var body: some View {
+        formContent
+            .navigationTitle("個人資訊")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("儲存") { save() }
+                        .font(.system(size: 16, weight: .semibold))
+                }
+            }
+            .onAppear { load() }
+            .alert("輸入錯誤", isPresented: $showValidationError) {
+                Button("確定", role: .cancel) {}
+            } message: {
+                Text(validationError)
+            }
+            .overlay {
+                if showSaved {
+                    savedToast
+                }
+            }
+    }
+
+    private var formContent: some View {
         Form {
             Section {
                 HStack {
@@ -72,6 +98,10 @@ struct PersonalInfoView: View {
                         .keyboardType(.decimalPad)
                         .multilineTextAlignment(.trailing)
                         .frame(width: 80)
+                        .onChange(of: height) { newValue in
+                            let filtered = newValue.filter { $0.isNumber || $0 == "." }
+                            if filtered != newValue { height = filtered }
+                        }
                     Text("cm")
                         .font(DesignTypography.caption)
                         .foregroundStyle(DesignColors.textSecondary)
@@ -85,20 +115,24 @@ struct PersonalInfoView: View {
                         .keyboardType(.decimalPad)
                         .multilineTextAlignment(.trailing)
                         .frame(width: 80)
+                        .onChange(of: weight) { newValue in
+                            let filtered = newValue.filter { $0.isNumber || $0 == "." }
+                            if filtered != newValue { weight = filtered }
+                        }
                     Text("kg")
                         .font(DesignTypography.caption)
                         .foregroundStyle(DesignColors.textSecondary)
                 }
 
-                HStack {
-                    Label("出生年份", systemImage: "calendar")
+                DatePicker(
+                    selection: $birthDate,
+                    in: ...Date.now,
+                    displayedComponents: .date
+                ) {
+                    Label("出生日期", systemImage: "calendar")
                         .font(DesignTypography.body)
-                    Spacer()
-                    TextField("例如 1990", text: $birthYear)
-                        .keyboardType(.numberPad)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 80)
                 }
+                .onChange(of: birthDate) { _ in hasBirthDate = true }
 
                 Picker(selection: $gender) {
                     ForEach(Gender.allCases) { g in
@@ -145,20 +179,6 @@ struct PersonalInfoView: View {
                         .font(DesignTypography.caption)
                         .foregroundStyle(DesignColors.textSecondary)
                 }
-            }
-        }
-        .navigationTitle("個人資訊")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .confirmationAction) {
-                Button("儲存") { save() }
-                    .font(.system(size: 16, weight: .semibold))
-            }
-        }
-        .onAppear { load() }
-        .overlay {
-            if showSaved {
-                savedToast
             }
         }
     }
@@ -210,9 +230,19 @@ struct PersonalInfoView: View {
     // MARK: - Persistence
 
     private func save() {
+        if !height.isEmpty {
+            guard let h = Double(height), h >= 50, h <= 250 else {
+                validationError = "身高請輸入 50~250 cm"; showValidationError = true; return
+            }
+        }
+        if !weight.isEmpty {
+            guard let w = Double(weight), w >= 20, w <= 300 else {
+                validationError = "體重請輸入 20~300 kg"; showValidationError = true; return
+            }
+        }
         store.height = Double(height)
         store.weight = Double(weight)
-        store.birthYear = Int(birthYear)
+        store.birthDate = hasBirthDate ? birthDate : nil
         store.gender = gender.rawValue
         store.bloodType = bloodType.rawValue
         store.save()
@@ -227,7 +257,7 @@ struct PersonalInfoView: View {
         store.load()
         if let h = store.height { height = String(format: "%.0f", h) }
         if let w = store.weight { weight = String(format: "%.1f", w) }
-        if let y = store.birthYear { birthYear = String(y) }
+        if let d = store.birthDate { birthDate = d; hasBirthDate = true }
         gender = Gender(rawValue: store.gender ?? "unspecified") ?? .unspecified
         bloodType = BloodType(rawValue: store.bloodType ?? "unknown") ?? .unknown
     }
@@ -244,14 +274,18 @@ final class PersonalInfoStore {
 
     var height: Double?
     var weight: Double?
-    var birthYear: Int?
+    var birthDate: Date?
     var gender: String?
     var bloodType: String?
 
     func save() {
         setOrRemove(height, key: "height")
         setOrRemove(weight, key: "weight")
-        setOrRemove(birthYear, key: "birthYear")
+        if let d = birthDate {
+            defaults.set(d.timeIntervalSince1970, forKey: prefix + "birthDate")
+        } else {
+            defaults.removeObject(forKey: prefix + "birthDate")
+        }
         defaults.set(gender, forKey: prefix + "gender")
         defaults.set(bloodType, forKey: prefix + "bloodType")
     }
@@ -259,7 +293,8 @@ final class PersonalInfoStore {
     func load() {
         height = doubleOrNil("height")
         weight = doubleOrNil("weight")
-        birthYear = intOrNil("birthYear")
+        let ts = defaults.double(forKey: prefix + "birthDate")
+        birthDate = ts == 0 ? nil : Date(timeIntervalSince1970: ts)
         gender = defaults.string(forKey: prefix + "gender")
         bloodType = defaults.string(forKey: prefix + "bloodType")
     }
@@ -269,18 +304,8 @@ final class PersonalInfoStore {
         else { defaults.removeObject(forKey: prefix + key) }
     }
 
-    private func setOrRemove(_ val: Int?, key: String) {
-        if let v = val { defaults.set(v, forKey: prefix + key) }
-        else { defaults.removeObject(forKey: prefix + key) }
-    }
-
     private func doubleOrNil(_ key: String) -> Double? {
         let v = defaults.double(forKey: prefix + key)
-        return v == 0 ? nil : v
-    }
-
-    private func intOrNil(_ key: String) -> Int? {
-        let v = defaults.integer(forKey: prefix + key)
         return v == 0 ? nil : v
     }
 }

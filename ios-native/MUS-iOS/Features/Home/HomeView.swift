@@ -16,11 +16,7 @@ struct HomeView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: DesignSpacing.md) {
-                    if env.isDemoMode {
-                        AlertBanner(level: .minor,
-                                    titleKey: "demo.mode.title",
-                                    messageKey: "demo.mode.message")
-                    }
+                    // Demo mode banner hidden: entire project is in demo stage
 
                     Card {
                         VStack(alignment: .leading, spacing: DesignSpacing.sm) {
