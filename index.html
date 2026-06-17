@@ -965,7 +965,7 @@
         // ============================================
         // 全局狀態 (必須在最開始初始化)
         // ============================================
-        var API_URL = 'http://localhost:5000/api';
+        var API_URL = window.location.origin + '/api';
         var currentPage = 'homePage';
         var previousPage = 'homePage';
         var selectedFile = null;
@@ -1270,6 +1270,25 @@
                         const imagePath = firstImage.path.replace(/\\/g, '/');
                         imageHtml = `<img src="/api/images/${imagePath}" alt="${item.name}" class="drug-image" style="max-width: 150px; max-height: 150px; margin: 10px 0; border-radius: 8px;">`;
                     }
+
+                    // 處方用法用量
+                    let rxHtml = '';
+                    const rx = item.prescription_info;
+                    if (rx && (rx.frequency || rx.days || rx.dose_per_time)) {
+                        const tags = [];
+                        if (rx.route) tags.push(rx.route);
+                        if (rx.days) tags.push(`${rx.days}天`);
+                        if (rx.frequency) tags.push(rx.frequency);
+                        if (rx.dose_per_time) tags.push(`每次 ${rx.dose_per_time}`);
+                        if (rx.total_quantity) tags.push(rx.total_quantity);
+
+                        rxHtml = `<div style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;">
+                            ${tags.map(t => `<span style="display:inline-block;padding:4px 12px;border-radius:14px;background:#E8F5E9;color:#2E7D32;font-size:14px;">${t}</span>`).join('')}
+                        </div>`;
+                        if (rx.ingredient) {
+                            rxHtml += `<div style="font-size:13px;color:#888;margin-top:4px;">成分：${rx.ingredient}</div>`;
+                        }
+                    }
                     
                     html += `
                         <div class="result-item" onclick="loadAndShowDrugDetail(${item.id || item.drug_id || 'null'}, ${JSON.stringify(item).replace(/"/g, '&quot;')})">
@@ -1281,6 +1300,7 @@
                                 ${item.details?.shape ? `<div>形狀：${item.details.shape}</div>` : ''}
                                 ${item.details?.color ? `<div>顏色：${item.details.color}</div>` : ''}
                             </div>
+                            ${rxHtml}
                             <div class="confidence-bar">
                                 <div class="confidence-fill" style="width: ${confidence}%"></div>
                             </div>
