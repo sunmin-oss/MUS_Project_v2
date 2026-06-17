@@ -671,6 +671,23 @@ final class RealAPIClient: APIClientProtocol {
     func fetchConsultations() async throws -> [ConsultationSummary] { throw APIError.unknown }
     func fetchNearbyPharmacies(latitude: Double, longitude: Double, radius: Double) async throws -> [Pharmacy] { throw APIError.unknown }
 
+    // MARK: - AI Consultation
+
+    private struct AIResponse: Decodable {
+        let success: Bool
+        let reply: String?
+        let error: String?
+    }
+
+    func askAI(question: String) async throws -> String {
+        let data = try await authedJSON(method: "POST", path: "api/consultation/ask", body: [
+            "question": question
+        ])
+        let decoded = try decoder.decode(AIResponse.self, from: data)
+        if let reply = decoded.reply { return reply }
+        throw APIError.server(500)
+    }
+
     // MARK: - Helpers
 
     private func resolvedProfileId(from iosId: String) async -> Int {

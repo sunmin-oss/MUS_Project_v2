@@ -35,6 +35,27 @@ struct HomeView: View {
                         }
                     }
 
+                    // AI 資訊免責提示
+                    HStack(alignment: .top, spacing: 8) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 13))
+                            .foregroundStyle(.orange)
+                        Text("本 App 含有 AI 生成內容，可能存在錯誤或不完整資訊。用藥決策請以專業醫療人員建議為準。")
+                            .font(.system(size: 12))
+                            .foregroundStyle(DesignColors.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color.orange.opacity(0.06))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color.orange.opacity(0.2), lineWidth: 0.5)
+                            )
+                    )
+
                     homeBtn("home.action.recognize", icon: "camera.fill", filled: true) {
                         showRecognition = true
                     }
