@@ -1486,9 +1486,64 @@
 
             const u = res.user;
             const profiles = Array.isArray(u.profiles) ? u.profiles : [];
+            const medications = Array.isArray(u.medications) ? u.medications : [];
             const profileHtml = profiles.length
-                ? `<ul style="margin:6px 0 0 18px;">${profiles.map(p => `<li>${p.name || '-'}${p.relationship ? `（${p.relationship}）` : ''}${p.is_default ? ' <span class="badge badge-primary">預設</span>' : ''}</li>`).join('')}</ul>`
+                ? `<div class="table-wrapper" style="margin-top:6px;"><table>
+                    <thead>
+                        <tr>
+                            <th>名稱</th>
+                            <th>關係</th>
+                            <th>生日</th>
+                            <th>過敏</th>
+                            <th>備註</th>
+                            <th>預設</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${profiles.map(p => `
+                            <tr>
+                                <td>${p.name || '-'}</td>
+                                <td>${p.relationship || '-'}</td>
+                                <td>${p.birth_date || '-'}</td>
+                                <td>${p.allergies || '-'}</td>
+                                <td>${p.note || '-'}</td>
+                                <td>${p.is_default ? '<span class="badge badge-primary">是</span>' : '<span class="badge">否</span>'}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table></div>`
                 : '<span style="color:#888;">無 profile</span>';
+
+            const medicationHtml = medications.length
+                ? `<div class="table-wrapper" style="margin-top:6px;"><table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>藥名</th>
+                            <th>對象</th>
+                            <th>劑量</th>
+                            <th>頻率</th>
+                            <th>起訖日期</th>
+                            <th>庫存</th>
+                            <th>狀態</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${medications.map(m => `
+                            <tr>
+                                <td>${m.id}</td>
+                                <td>${m.name || '-'}</td>
+                                <td>${m.profile_name || '-'}</td>
+                                <td>${m.dosage || '-'} ${m.unit || ''}</td>
+                                <td>${m.frequency || '-'}</td>
+                                <td>${m.start_date || '-'} ~ ${m.end_date || '-'}</td>
+                                <td>${m.stock_qty ?? '-'}</td>
+                                <td>${m.is_active ? '<span class="badge badge-success">啟用</span>' : '<span class="badge badge-warning">停用</span>'}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table></div>`
+                : '<span style="color:#888;">無用藥紀錄</span>';
 
             document.getElementById('userInfoContent').innerHTML = `
                 <div><strong>ID：</strong>${u.id}</div>
@@ -1501,8 +1556,10 @@
                 <hr style="border:none;border-top:1px solid #eee;margin:10px 0;">
                 <div><strong>Profile 數：</strong>${u.profile_count ?? 0}</div>
                 <div><strong>用藥筆數：</strong>${u.medication_count ?? 0}</div>
+                <div><strong>啟用中用藥：</strong>${u.active_medication_count ?? 0}</div>
                 <div><strong>過敏紀錄：</strong>${u.allergy_count ?? 0}</div>
-                <div style="margin-top:6px;"><strong>Profiles：</strong>${profileHtml}</div>
+                <div style="margin-top:10px;"><strong>個人資訊（Profiles）</strong>${profileHtml}</div>
+                <div style="margin-top:12px;"><strong>所有用藥清單</strong>${medicationHtml}</div>
             `;
         }
 

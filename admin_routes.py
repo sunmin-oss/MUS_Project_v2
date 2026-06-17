@@ -671,7 +671,8 @@ def get_user_detail(user_id):
             ).fetchone()[0]
             profiles = conn.execute(
                 """
-                SELECT id, name, relationship, is_default, created_at
+                SELECT id, name, relationship, birth_date, allergies, note,
+                       is_default, created_at, updated_at
                 FROM profiles
                 WHERE user_id = ?
                 ORDER BY is_default DESC, id ASC
@@ -684,11 +685,29 @@ def get_user_detail(user_id):
             user_data["profiles"] = []
 
         try:
-            user_data["medication_count"] = conn.execute(
-                "SELECT COUNT(*) FROM medications WHERE user_id = ?", (user_id,)
-            ).fetchone()[0]
+            medications = conn.execute(
+                """
+                SELECT m.id, m.profile_id, p.name AS profile_name,
+                       m.drug_id, m.name, m.dosage, m.unit, m.frequency,
+                       m.duration_days, m.start_date, m.end_date,
+                       m.stock_qty, m.note, m.is_active,
+                       m.created_at, m.updated_at
+                FROM medications m
+                LEFT JOIN profiles p ON p.id = m.profile_id
+                WHERE m.user_id = ?
+                ORDER BY m.is_active DESC, m.created_at DESC, m.id DESC
+                """,
+                (user_id,),
+            ).fetchall()
+            user_data["medications"] = [dict(r) for r in medications]
+            user_data["medication_count"] = len(user_data["medications"])
+            user_data["active_medication_count"] = sum(
+                1 for m in user_data["medications"] if m.get("is_active")
+            )
         except sqlite3.OperationalError:
+            user_data["medications"] = []
             user_data["medication_count"] = 0
+            user_data["active_medication_count"] = 0
 
         try:
             user_data["allergy_count"] = conn.execute(
