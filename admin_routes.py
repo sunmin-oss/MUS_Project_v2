@@ -91,9 +91,8 @@ def admin_page():
 
 
 @admin_bp.route("/api/dashboard", methods=["GET"])
-@admin_required
 def dashboard():
-    """取得儀表板統計資料（需管理員 JWT）"""
+    """取得儀表板統計資料（nginx IP 限制保護）"""
     try:
         from config import config
 
@@ -192,10 +191,9 @@ def dashboard():
 
 
 @admin_bp.route("/api/metrics", methods=["GET"])
-@admin_required
 def metrics():
     """
-    取得系統監控指標（請求數、錯誤率、平均延遲）。需管理員 JWT。
+    取得系統監控指標（請求數、錯誤率、平均延遲）。nginx IP 限制保護。
 
     Query params:
         ?hours=24  (統計區間，預設 24 小時)
