@@ -322,13 +322,15 @@ except Exception as e:
 
 # 組裝 Router；沒任何 provider 可用時才設 None
 if primary_recognizer is not None or fallback_recognizer is not None:
-    from services.ai import RecognizerRouter
+    from services.ai import RecognizerRouter, usage_log
 
     recognizer = RecognizerRouter(
         primary=primary_recognizer,
         fallback=fallback_recognizer,
         settings=config,
     )
+    # Phase 2：啟動 ai_provider_logs 背景寫入
+    usage_log.start_writer()
 else:
     recognizer = None
 

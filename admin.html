@@ -728,6 +728,7 @@
             <li><a href="#" data-page="settings"><span class="icon">⚙️</span><span class="label">系統設定</span></a>
             </li>
             <li><a href="#" data-page="stats"><span class="icon">📈</span><span class="label">API 統計</span></a></li>
+            <li><a href="#" data-page="ai-usage"><span class="icon">🤖</span><span class="label">AI 使用</span></a></li>
             <li><a href="#" data-page="batch"><span class="icon">🔄</span><span class="label">批次更新</span></a></li>
         </ul>
         <div style="position:absolute;bottom:16px;left:0;right:0;text-align:center;">
@@ -1007,6 +1008,72 @@
             </div>
         </div>
 
+        <!-- ========== 8. AI 使用 ========== -->
+        <div class="page-section" id="page-ai-usage">
+            <div class="page-header">
+                <div>
+                    <h1>AI 使用狀況</h1>
+                    <div class="subtitle">辨識主/備援切換與 AI 諮詢使用統計</div>
+                </div>
+                <div class="btn-group">
+                    <select class="form-control" id="aiStatsRange" onchange="loadAiStats()" style="width:auto;">
+                        <option value="1">近 1 天</option>
+                        <option value="7" selected>近 7 天</option>
+                        <option value="30">近 30 天</option>
+                    </select>
+                    <button class="btn btn-outline" onclick="loadAiStats()">🔄 重新整理</button>
+                </div>
+            </div>
+            <div class="stat-grid" id="aiStatCards"></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+                <div class="card">
+                    <div class="card-header"><h3>依 Provider 拆分</h3></div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead><tr><th>Provider</th><th>品牌</th><th>呼叫數</th><th>成功率</th><th>平均延遲</th></tr></thead>
+                            <tbody id="aiByProvider"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><h3>依功能拆分</h3></div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead><tr><th>功能</th><th>呼叫數</th><th>成功率</th><th>備援使用</th><th>平均延遲</th></tr></thead>
+                            <tbody id="aiByFeature"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header"><h3>每日呈現</h3></div>
+                <div id="aiDailyChart" style="display:flex;align-items:flex-end;gap:8px;height:160px;padding:10px 0;"></div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <h3>最近 50 筆呼叫</h3>
+                    <button class="btn btn-sm btn-outline" onclick="loadAiLogs()">重新載入</button>
+                </div>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>時間</th>
+                                <th>功能</th>
+                                <th>Provider</th>
+                                <th>狀態</th>
+                                <th>延遲</th>
+                                <th>HTTP</th>
+                                <th>錯誤</th>
+                                <th>tokens 輸入/輸出</th>
+                            </tr>
+                        </thead>
+                        <tbody id="aiLogsBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
         <!-- ========== 8. 批次更新 ========== -->
         <div class="page-section" id="page-batch">
             <div class="page-header">
@@ -1249,6 +1316,7 @@
                     uploads: loadUploads,
                     settings: () => { loadSettings(); loadLogs(); },
                     stats: loadApiStats,
+                    'ai-usage': loadAiStats,
                     batch: () => { loadBatchStatus(); startBatchPolling(); },
                 };
                 if (loaders[page]) loaders[page]();
@@ -1928,6 +1996,110 @@
                     <td>${e.query}</td>
                     <td>${e.count}</td>
                 </tr>`).join('') || '<tr><td colspan="2" style="text-align:center;color:#999;">尚無搜尋記錄</td></tr>';
+        }
+
+        // ============================================
+        // 7b. AI 使用統計 (Phase 2)
+        // ============================================
+        async function loadAiStats() {
+            const days = document.getElementById('aiStatsRange').value || 7;
+            const data = await api(`/ai-stats?days=${days}`);
+            if (!data.success) return showToast('載入 AI 統計失敗', 'error');
+            const s = data.stats;
+
+            const pct = (n) => `${(n * 100).toFixed(1)}%`;
+            const ms = (v) => v ? `${Math.round(v)} ms` : '-';
+
+            document.getElementById('aiStatCards').innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-icon blue">🤖</div>
+                    <div><div class="stat-value">${s.total}</div><div class="stat-label">總呼叫數</div></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon green">✅</div>
+                    <div><div class="stat-value">${pct(s.success_rate)}</div><div class="stat-label">成功率 (${s.success}/${s.total})</div></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon yellow">↪️</div>
+                    <div><div class="stat-value">${pct(s.fallback_rate)}</div><div class="stat-label">備援使用率 (${s.fallback})</div></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon purple">⏱️</div>
+                    <div><div class="stat-value">${ms(s.avg_latency_ms)}</div><div class="stat-label">平均延遲</div></div>
+                </div>
+            `;
+
+            document.getElementById('aiByProvider').innerHTML =
+                (s.by_provider || []).map(p => {
+                    const sr = p.calls ? (p.success / p.calls) : 0;
+                    return `<tr>
+                        <td><code>${p.provider}</code></td>
+                        <td>${p.provider_name || '-'}</td>
+                        <td>${p.calls}</td>
+                        <td>${pct(sr)}</td>
+                        <td>${ms(p.avg_latency)}</td>
+                    </tr>`;
+                }).join('') || '<tr><td colspan="5" style="text-align:center;color:#999;">尚無資料</td></tr>';
+
+            document.getElementById('aiByFeature').innerHTML =
+                (s.by_feature || []).map(f => {
+                    const sr = f.calls ? (f.success / f.calls) : 0;
+                    const fb = f.calls ? ((f.fallback || 0) / f.calls) : 0;
+                    return `<tr>
+                        <td><code>${f.feature}</code></td>
+                        <td>${f.calls}</td>
+                        <td>${pct(sr)}</td>
+                        <td>${pct(fb)}</td>
+                        <td>${ms(f.avg_latency)}</td>
+                    </tr>`;
+                }).join('') || '<tr><td colspan="5" style="text-align:center;color:#999;">尚無資料</td></tr>';
+
+            const chart = document.getElementById('aiDailyChart');
+            if (!s.daily || s.daily.length === 0) {
+                chart.innerHTML = '<div style="margin:auto;color:#999;">尚無每日資料</div>';
+            } else {
+                const maxCount = Math.max(...s.daily.map(d => d.calls), 1);
+                chart.innerHTML = s.daily.map(d => {
+                    const h = Math.max((d.calls / maxCount) * 130, 4);
+                    const fbH = d.calls ? ((d.fallback || 0) / d.calls) * h : 0;
+                    return `<div style="flex:1;text-align:center;">
+                        <div style="font-size:11px;color:#333;margin-bottom:4px;">${d.calls}</div>
+                        <div style="position:relative;height:${h}px;background:linear-gradient(180deg,#1976d2,#0d47a1);border-radius:4px 4px 0 0;">
+                            <div style="position:absolute;bottom:0;left:0;right:0;height:${fbH}px;background:linear-gradient(180deg,#f9a825,#ef6c00);border-radius:4px 4px 0 0;" title="備援"></div>
+                        </div>
+                        <div style="font-size:10px;color:#888;margin-top:4px;">${(d.day || '').slice(5)}</div>
+                    </div>`;
+                }).join('');
+            }
+
+            await loadAiLogs();
+        }
+
+        async function loadAiLogs() {
+            const data = await api('/ai-logs?limit=50');
+            const tbody = document.getElementById('aiLogsBody');
+            if (!data.success) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#c00;">載入失敗</td></tr>'; return; }
+            const items = data.items || [];
+            if (items.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#999;">尚無紀錄</td></tr>';
+                return;
+            }
+            tbody.innerHTML = items.map(r => {
+                const ok = r.success ? '<span style="color:#2e7d32;">✓</span>' : '<span style="color:#c62828;">✗</span>';
+                const fb = r.fallback_used ? ' <span style="background:#fff3e0;color:#ef6c00;padding:1px 6px;border-radius:8px;font-size:11px;">fallback</span>' : '';
+                const tIn = r.tokens_in == null ? '-' : r.tokens_in;
+                const tOut = r.tokens_out == null ? '-' : r.tokens_out;
+                return `<tr>
+                    <td>${(r.created_at || '').replace('T', ' ')}</td>
+                    <td><code>${r.feature}</code></td>
+                    <td><code>${r.provider}</code> ${r.provider_name || ''}${fb}</td>
+                    <td>${ok}</td>
+                    <td>${r.latency_ms == null ? '-' : Math.round(r.latency_ms) + ' ms'}</td>
+                    <td>${r.status_code || '-'}</td>
+                    <td>${r.error_type || '-'}</td>
+                    <td>${tIn} / ${tOut}</td>
+                </tr>`;
+            }).join('');
         }
 
         // ============================================

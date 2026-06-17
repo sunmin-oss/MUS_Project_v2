@@ -7,10 +7,12 @@ AI 服務模組
 from services.ai.errors import classify_exception, ProviderError
 from services.ai.recognizer_router import RecognizerRouter
 from services.ai.consult_client import ConsultClient
+from services.ai import usage_log
 
 __all__ = [
     "classify_exception",
     "ProviderError",
     "RecognizerRouter",
     "ConsultClient",
+    "usage_log",
 ]

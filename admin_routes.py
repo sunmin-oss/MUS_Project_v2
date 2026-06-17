@@ -1168,6 +1168,52 @@ def api_stats():
 
 
 # ============================================
+# AI Provider 使用統計（Phase 2）
+# ============================================
+
+
+@admin_bp.route("/api/ai-stats", methods=["GET"])
+def ai_stats():
+    """AI 主備援與諮詢端點的使用情況彙總。"""
+    try:
+        from services.ai import usage_log
+
+        days = int(request.args.get("days", 7) or 7)
+        return jsonify({"success": True, "stats": usage_log.query_summary(days=days)})
+    except Exception as e:
+        logger.error("ai-stats 失敗: %s", e, exc_info=True)
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@admin_bp.route("/api/ai-logs", methods=["GET"])
+def ai_logs():
+    """AI 呼叫詳細紀錄（分頁，可依 feature/provider/success 過濾）。"""
+    try:
+        from services.ai import usage_log
+
+        feature = request.args.get("feature") or None
+        provider = request.args.get("provider") or None
+        success_param = request.args.get("success")
+        success = None
+        if success_param is not None:
+            success = success_param.lower() in ("1", "true", "yes")
+        limit = int(request.args.get("limit", 50) or 50)
+        offset = int(request.args.get("offset", 0) or 0)
+
+        data = usage_log.query_recent(
+            limit=limit,
+            offset=offset,
+            feature=feature,
+            provider=provider,
+            success=success,
+        )
+        return jsonify({"success": True, **data})
+    except Exception as e:
+        logger.error("ai-logs 失敗: %s", e, exc_info=True)
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ============================================
 # 批次更新 API
 # ============================================
 

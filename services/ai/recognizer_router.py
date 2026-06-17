@@ -13,8 +13,20 @@ import time
 from typing import Any, Callable, Optional
 
 from services.ai.errors import classify_exception
+from services.ai import usage_log
 
 logger = logging.getLogger(__name__)
+
+
+def _provider_brand(target: Any) -> Optional[str]:
+    """從辨識器類別名稱推斷品牌（gemini/google/claude/openai）。"""
+    if target is None:
+        return None
+    name = type(target).__name__.lower()
+    for brand in ("gemini", "google", "claude", "openai"):
+        if brand in name:
+            return brand
+    return None
 
 
 class RecognizerRouter:
@@ -30,6 +42,8 @@ class RecognizerRouter:
         self._breaker_open_until = 0.0
         # 上一次成功使用的 provider（"primary" / "openai_fallback"），供回應標示
         self.last_provider: Optional[str] = None
+        self._primary_brand = _provider_brand(primary)
+        self._fallback_brand = _provider_brand(fallback) or "openai"
 
     # ---------- breaker ----------
 
@@ -68,6 +82,8 @@ class RecognizerRouter:
     def _invoke(self, target: Any, name: str, method: str, *args, **kwargs):
         max_retry = max(0, int(getattr(self.settings, "AI_MAX_RETRY", 1)))
         last_exc: Optional[BaseException] = None
+        brand = self._primary_brand if name == "primary" else self._fallback_brand
+        fallback_used = name != "primary"
         for attempt in range(max_retry + 1):
             t0 = time.time()
             try:
@@ -78,11 +94,29 @@ class RecognizerRouter:
                 logger.info(
                     "✓ AI provider=%s method=%s latency=%.1fms", name, method, latency
                 )
+                usage_log.log_event(
+                    feature=method,
+                    provider=name,
+                    provider_name=brand,
+                    success=True,
+                    fallback_used=fallback_used,
+                    latency_ms=latency,
+                )
                 return result
             except Exception as e:  # noqa: BLE001
                 last_exc = e
                 kind = classify_exception(e)
+                latency = (time.time() - t0) * 1000
                 if kind == "permanent" or attempt >= max_retry:
+                    usage_log.log_event(
+                        feature=method,
+                        provider=name,
+                        provider_name=brand,
+                        success=False,
+                        fallback_used=fallback_used,
+                        latency_ms=latency,
+                        error_type=kind,
+                    )
                     raise
                 logger.info(
                     "… provider=%s method=%s 重試 %d/%d (%s): %s",
@@ -92,6 +126,15 @@ class RecognizerRouter:
                     max_retry,
                     kind,
                     e,
+                )
+                usage_log.log_event(
+                    feature=method,
+                    provider=name,
+                    provider_name=brand,
+                    success=False,
+                    fallback_used=fallback_used,
+                    latency_ms=latency,
+                    error_type=kind,
                 )
         # 理論上不會到這
         if last_exc:

@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Optional
 import requests
 
 from services.ai.errors import ProviderError
+from services.ai import usage_log
 
 logger = logging.getLogger(__name__)
 
@@ -73,8 +74,24 @@ class ConsultClient:
                 url, headers=headers, json=payload, timeout=self.timeout
             )
         except requests.exceptions.Timeout as e:
+            usage_log.log_event(
+                feature="consult",
+                provider="openai_consult",
+                provider_name="openai",
+                success=False,
+                latency_ms=(time.time() - t0) * 1000,
+                error_type="retryable",
+            )
             raise ProviderError("OpenAI 諮詢逾時", kind="retryable", original=e) from e
         except requests.exceptions.ConnectionError as e:
+            usage_log.log_event(
+                feature="consult",
+                provider="openai_consult",
+                provider_name="openai",
+                success=False,
+                latency_ms=(time.time() - t0) * 1000,
+                error_type="retryable",
+            )
             raise ProviderError(
                 "OpenAI 諮詢連線失敗", kind="retryable", original=e
             ) from e
@@ -96,6 +113,15 @@ class ConsultClient:
                 latency,
                 kind,
             )
+            usage_log.log_event(
+                feature="consult",
+                provider="openai_consult",
+                provider_name="openai",
+                success=False,
+                latency_ms=latency,
+                status_code=resp.status_code,
+                error_type=kind,
+            )
             raise ProviderError(
                 f"OpenAI 諮詢錯誤 {resp.status_code}: {body}",
                 kind=kind,
@@ -106,6 +132,15 @@ class ConsultClient:
         try:
             answer = data["choices"][0]["message"]["content"] or ""
         except (KeyError, IndexError, TypeError) as e:
+            usage_log.log_event(
+                feature="consult",
+                provider="openai_consult",
+                provider_name="openai",
+                success=False,
+                latency_ms=latency,
+                status_code=resp.status_code,
+                error_type="retryable",
+            )
             raise ProviderError(
                 "OpenAI 諮詢回應格式異常", kind="retryable", original=e
             ) from e
@@ -116,5 +151,15 @@ class ConsultClient:
             latency,
             usage.get("prompt_tokens"),
             usage.get("completion_tokens"),
+        )
+        usage_log.log_event(
+            feature="consult",
+            provider="openai_consult",
+            provider_name="openai",
+            success=True,
+            latency_ms=latency,
+            status_code=resp.status_code,
+            tokens_in=int(usage.get("prompt_tokens") or 0) or None,
+            tokens_out=int(usage.get("completion_tokens") or 0) or None,
         )
         return {"answer": answer, "model": self.model, "usage": usage}
