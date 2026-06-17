@@ -180,6 +180,11 @@
             color: #7c3aed;
         }
 
+        .stat-icon.yellow {
+            background: #fff7db;
+            color: #b7791f;
+        }
+
         .stat-icon.red {
             background: #fce8e8;
             color: #ea4335;
@@ -406,6 +411,35 @@
             font-size: 13px;
             color: #555;
             word-break: break-all;
+        }
+
+        .upload-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        .upload-tab {
+            border: 1px solid #d7dee8;
+            background: #fff;
+            color: #2f3b52;
+            border-radius: 999px;
+            padding: 6px 12px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .upload-tab:hover {
+            background: #f4f7fb;
+        }
+
+        .upload-tab.active {
+            background: #2b6cb0;
+            border-color: #2b6cb0;
+            color: #fff;
+            box-shadow: 0 4px 10px rgba(43, 108, 176, 0.2);
         }
 
         .lightbox-backdrop {
@@ -864,6 +898,11 @@
             </div>
             <div class="stat-grid" id="uploadStats"></div>
             <div class="card">
+                <div class="upload-tabs">
+                    <button class="upload-tab active" id="uploadTab-all" onclick="setUploadCategory('all')">全部</button>
+                    <button class="upload-tab" id="uploadTab-drug" onclick="setUploadCategory('drug')">💊 藥物辨識</button>
+                    <button class="upload-tab" id="uploadTab-prescription" onclick="setUploadCategory('prescription')">📄 藥單辨識</button>
+                </div>
                 <div class="table-wrapper">
                     <table>
                         <thead>
@@ -1185,6 +1224,8 @@
         let currentDrugSearch = '';
         let currentUserPage = 1;
         let currentUserSearch = '';
+        let currentUploadCategory = 'all';
+        let uploadFilesCache = [];
 
         // ============================================
         // 頁面導航
@@ -1682,6 +1723,11 @@
             const data = await api('/uploads');
             if (!data.success) return showToast('載入失敗', 'error');
 
+            uploadFilesCache = Array.isArray(data.files) ? data.files : [];
+            const drugCount = uploadFilesCache.filter(f => f.mode === 'drug').length;
+            const prescriptionCount = uploadFilesCache.filter(f => f.mode === 'prescription').length;
+            const unknownCount = uploadFilesCache.filter(f => f.mode !== 'drug' && f.mode !== 'prescription').length;
+
             document.getElementById('uploadStats').innerHTML = `
                 <div class="stat-card">
                     <div class="stat-icon blue">📄</div>
@@ -1691,7 +1737,35 @@
                     <div class="stat-icon orange">💾</div>
                     <div><div class="stat-value">${data.total_size_mb} MB</div><div class="stat-label">總大小</div></div>
                 </div>
+                <div class="stat-card">
+                    <div class="stat-icon green">💊</div>
+                    <div><div class="stat-value">${drugCount}</div><div class="stat-label">藥物辨識</div></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon purple">📄</div>
+                    <div><div class="stat-value">${prescriptionCount}</div><div class="stat-label">藥單辨識</div></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon yellow">❓</div>
+                    <div><div class="stat-value">${unknownCount}</div><div class="stat-label">未知類型</div></div>
+                </div>
             `;
+
+            renderUploadsTable();
+        }
+
+        function setUploadCategory(category) {
+            currentUploadCategory = category;
+            document.querySelectorAll('.upload-tab').forEach(btn => btn.classList.remove('active'));
+            const activeBtn = document.getElementById(`uploadTab-${category}`);
+            if (activeBtn) activeBtn.classList.add('active');
+            renderUploadsTable();
+        }
+
+        function renderUploadsTable() {
+            const filteredFiles = currentUploadCategory === 'all'
+                ? uploadFilesCache
+                : uploadFilesCache.filter(f => f.mode === currentUploadCategory);
 
             const tbody = document.getElementById('uploadTableBody');
             const empty = document.getElementById('uploadsEmpty');
@@ -1701,12 +1775,20 @@
                 prescription: { text: '📄 藥單辨識', cls: 'badge-success' },
                 unknown: { text: '❓ 未知', cls: 'badge-warning' }
             };
-            if (data.files.length === 0) {
+
+            if (filteredFiles.length === 0) {
                 tbody.innerHTML = '';
+                if (currentUploadCategory === 'all') {
+                    empty.textContent = '目前沒有上傳檔案';
+                } else if (currentUploadCategory === 'drug') {
+                    empty.textContent = '目前沒有藥物辨識檔案';
+                } else {
+                    empty.textContent = '目前沒有藥單辨識檔案';
+                }
                 empty.style.display = 'block';
             } else {
                 empty.style.display = 'none';
-                tbody.innerHTML = data.files.map(f => {
+                tbody.innerHTML = filteredFiles.map(f => {
                     const ext = f.name.substring(f.name.lastIndexOf('.')).toLowerCase();
                     const isImage = imgExts.includes(ext);
                     const imgUrl = `/api/images/${encodeURIComponent(f.name)}`;
