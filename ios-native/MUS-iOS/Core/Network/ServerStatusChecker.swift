@@ -32,8 +32,16 @@ final class ServerStatusChecker: ObservableObject {
         req.timeoutInterval = 5
         Task {
             do {
+                print("[ServerStatus] Checking \(url.absoluteString)...")
                 let (data, resp) = try await URLSession.shared.data(for: req)
-                guard let http = resp as? HTTPURLResponse, http.statusCode == 200 else {
+                guard let http = resp as? HTTPURLResponse else {
+                    print("[ServerStatus] No HTTP response")
+                    isOnline = false
+                    visionAvailable = false
+                    return
+                }
+                print("[ServerStatus] HTTP \(http.statusCode)")
+                guard http.statusCode == 200 else {
                     isOnline = false
                     visionAvailable = false
                     return
@@ -46,7 +54,9 @@ final class ServerStatusChecker: ObservableObject {
                     isOnline = true
                     visionAvailable = false
                 }
+                print("[ServerStatus] Online=\(isOnline), Vision=\(visionAvailable)")
             } catch {
+                print("[ServerStatus] Error: \(error.localizedDescription)")
                 isOnline = false
                 visionAvailable = false
             }
