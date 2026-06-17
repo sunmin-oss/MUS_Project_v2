@@ -8,9 +8,25 @@ struct ProfileView: View {
         NavigationStack {
             Form {
                 Section("profile.section.account") {
-                    if let username = env.currentUsername {
-                        Label(username, systemImage: "person.crop.circle.fill")
-                            .font(DesignTypography.body)
+                    if env.currentUsername != nil {
+                        NavigationLink {
+                            PersonalInfoView()
+                        } label: {
+                            HStack {
+                                Image(systemName: "person.crop.circle.fill")
+                                    .font(.system(size: 36))
+                                    .foregroundStyle(DesignColors.primary)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(env.currentUsername ?? "")
+                                        .font(.system(size: 16, weight: .semibold))
+                                    Text("點擊編輯個人資訊")
+                                        .font(DesignTypography.caption)
+                                        .foregroundStyle(DesignColors.textSecondary)
+                                }
+                                .padding(.leading, 6)
+                            }
+                            .padding(.vertical, 4)
+                        }
                     } else {
                         Label("profile.guest", systemImage: "person.crop.circle")
                             .font(DesignTypography.body)
