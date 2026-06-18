@@ -1056,8 +1056,9 @@
                 </div>
             </div>
             <div class="card">
-                <div class="card-header"><h3>每日呈現</h3></div>
-                <div id="aiDailyChart" style="display:flex;align-items:flex-end;gap:8px;height:160px;padding:10px 0;"></div>
+                <div class="card-header"><h3>每日呈現（依 API 拆分）</h3></div>
+                <div id="aiDailyLegend" style="display:flex;flex-wrap:wrap;gap:12px;padding:4px 12px 8px;font-size:12px;color:#444;"></div>
+                <div id="aiDailyChart" style="display:flex;flex-direction:column;gap:6px;padding:6px 10px 12px;"></div>
             </div>
             <div class="card">
                 <div class="card-header">
@@ -2148,19 +2149,62 @@
                 }).join('') || '<tr><td colspan="5" style="text-align:center;color:#999;">尚無資料</td></tr>';
 
             const chart = document.getElementById('aiDailyChart');
+            const legendEl = document.getElementById('aiDailyLegend');
             if (!s.daily || s.daily.length === 0) {
-                chart.innerHTML = '<div style="margin:auto;color:#999;">尚無每日資料</div>';
+                chart.innerHTML = '<div style="color:#999;padding:20px;text-align:center;">尚無每日資料</div>';
+                if (legendEl) legendEl.innerHTML = '';
             } else {
+                // feature 中文標籤
+                const FEATURE_LABELS = {
+                    'consult': 'AI 諮詢（聊天）',
+                    'recognize': '藥物辨識',
+                    'recognize_with_rag': '藥物辨識（RAG）',
+                    'recognize_prescription': '藥單 OCR',
+                    'recognize_drug': '藥物辨識',
+                    'drug_search': '藥物搜尋'
+                };
+                // 固定色票，feature → color
+                const PALETTE = ['#1976d2','#f57c00','#388e3c','#7b1fa2','#c62828','#0097a7','#5d4037','#455a64'];
+
+                // 由 daily_by_feature 建立 day → {feature: calls}
+                const dbf = s.daily_by_feature || [];
+                const byDay = {};
+                const featureSet = new Set();
+                dbf.forEach(r => {
+                    if (!byDay[r.day]) byDay[r.day] = {};
+                    byDay[r.day][r.feature] = (byDay[r.day][r.feature] || 0) + (r.calls || 0);
+                    featureSet.add(r.feature);
+                });
+                // 若 backend 未回 daily_by_feature，退回單色顯示
+                const features = featureSet.size ? Array.from(featureSet) : ['_total'];
+                const colorOf = {};
+                features.forEach((f, i) => { colorOf[f] = PALETTE[i % PALETTE.length]; });
+
+                // legend
+                if (legendEl) {
+                    legendEl.innerHTML = features.map(f => {
+                        const label = FEATURE_LABELS[f] || f;
+                        return `<span style="display:inline-flex;align-items:center;gap:6px;">
+                            <span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:${colorOf[f]};"></span>
+                            ${label}
+                        </span>`;
+                    }).join('');
+                }
+
                 const maxCount = Math.max(...s.daily.map(d => d.calls), 1);
+
                 chart.innerHTML = s.daily.map(d => {
-                    const h = Math.max((d.calls / maxCount) * 130, 4);
-                    const fbH = d.calls ? ((d.fallback || 0) / d.calls) * h : 0;
-                    return `<div style="flex:1;text-align:center;">
-                        <div style="font-size:11px;color:#333;margin-bottom:4px;">${d.calls}</div>
-                        <div style="position:relative;height:${h}px;background:linear-gradient(180deg,#1976d2,#0d47a1);border-radius:4px 4px 0 0;">
-                            <div style="position:absolute;bottom:0;left:0;right:0;height:${fbH}px;background:linear-gradient(180deg,#f9a825,#ef6c00);border-radius:4px 4px 0 0;" title="備援"></div>
-                        </div>
-                        <div style="font-size:10px;color:#888;margin-top:4px;">${(d.day || '').slice(5)}</div>
+                    const dayCounts = byDay[d.day] || { _total: d.calls };
+                    const segs = features.map(f => {
+                        const v = dayCounts[f] || 0;
+                        if (!v) return '';
+                        const w = (v / maxCount) * 100;
+                        return `<div title="${FEATURE_LABELS[f] || f}：${v}" style="width:${w}%;background:${colorOf[f]};height:100%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;">${v}</div>`;
+                    }).join('');
+                    return `<div style="display:flex;align-items:center;gap:10px;">
+                        <div style="width:48px;font-size:11px;color:#666;text-align:right;">${(d.day || '').slice(5)}</div>
+                        <div style="flex:1;height:22px;background:#f1f3f5;border-radius:4px;overflow:hidden;display:flex;">${segs}</div>
+                        <div style="width:48px;font-size:11px;color:#333;text-align:left;">共 ${d.calls}</div>
                     </div>`;
                 }).join('');
             }

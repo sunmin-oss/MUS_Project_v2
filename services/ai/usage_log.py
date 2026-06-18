@@ -271,6 +271,22 @@ def query_summary(days: int = 7) -> Dict[str, Any]:
             ).fetchall()
         ]
 
+        # 每日依 feature 拆分（供 stacked 圖表用）
+        daily_by_feature = [
+            dict(r)
+            for r in conn.execute(
+                f"""
+                SELECT date(created_at) AS day,
+                       feature,
+                       COUNT(*) AS calls
+                FROM ai_provider_logs {where}
+                GROUP BY day, feature
+                ORDER BY day ASC
+                """,
+                (arg,),
+            ).fetchall()
+        ]
+
         # 錯誤類型 Top
         errors = [
             dict(r)
@@ -301,6 +317,7 @@ def query_summary(days: int = 7) -> Dict[str, Any]:
         "by_provider": by_provider,
         "by_feature": by_feature,
         "daily": daily,
+        "daily_by_feature": daily_by_feature,
         "errors": errors,
     }
 
