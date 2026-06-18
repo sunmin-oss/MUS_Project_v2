@@ -727,11 +727,17 @@ def recognize_prescription():
         prescription_details = (
             getattr(recognizer, "_last_prescription_details", None) or []
         )
-        logger.info(f"📄 OCR 結果: {len(drug_names)} 個藥名, {len(prescription_details)} 筆結構化資料")
+        logger.info(
+            f"📄 OCR 結果: {len(drug_names)} 個藥名, {len(prescription_details)} 筆結構化資料"
+        )
         if prescription_details:
-            logger.info(f"📄 結構化資料範例: {json.dumps(prescription_details[0], ensure_ascii=False)[:200]}")
+            logger.info(
+                f"📄 結構化資料 keys: {list(prescription_details[0].keys())}"
+            )
         else:
-            logger.warning(f"⚠ prescription_details 為空！")
+            logger.warning(
+                f"⚠ prescription_details 為空！_last_prescription_details={getattr(recognizer, '_last_prescription_details', 'NOT_SET')}"
+            )
 
         for idx, name in enumerate(drug_names):
             detail = {
@@ -950,6 +956,12 @@ def get_drug_detail(drug_id):
             elif drug.get("english_name"):
                 search_name = drug.get("english_name")
 
+            # 清理搜尋名稱：去掉引號包裹的廠牌前綴（如 "優良"愛克痰顆粒 → 愛克痰顆粒）
+            import re
+            search_name = re.sub(r'^["\u201c\u201d\u300c\u300d「」]+[^"\u201c\u201d\u300c\u300d「」]*["\u201c\u201d\u300c\u300d「」]+\s*', '', search_name)
+            # 去掉殘留引號
+            search_name = search_name.strip('""\u201c\u201d ')
+
             if search_name and drug_db:
                 # 1. 先查快取（7 天內有效）
                 cached = drug_db.get_nhi_cache(int(drug_id))
@@ -960,7 +972,7 @@ def get_drug_detail(drug_id):
                     # 2. 快取未命中，啟動爬蟲
                     logger.info(f"🕸️ 快取未命中，從 NHI/TFDA 爬取: {search_name}")
                     import asyncio
-                    from nhi_crawler import scrape_nhi_drug_info
+                    from scripts.nhi_crawler import scrape_nhi_drug_info
 
                     try:
                         loop = asyncio.get_event_loop()

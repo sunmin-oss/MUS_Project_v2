@@ -60,6 +60,9 @@ class RecognizerRouter:
         self._fail_count = 0
         self._breaker_open_until = 0.0
         self.last_provider: Optional[str] = None
+        self._last_target: Any = None
+        # 透出底層 recognizer 結構化藥單資料給 main.py 讀取
+        self._last_prescription_details: Optional[list] = None
 
         # 依優先順序組裝 chain
         chain: List[Tuple[str, Any, Optional[str]]] = []
@@ -136,6 +139,7 @@ class RecognizerRouter:
                 result = fn(*args, **kwargs)
                 latency = (time.time() - t0) * 1000
                 self.last_provider = name
+                self._last_target = target
                 logger.info(
                     "✓ AI provider=%s brand=%s method=%s latency=%.1fms",
                     name, brand, method, latency,
@@ -200,7 +204,12 @@ class RecognizerRouter:
         return self._call("recognize", *args, **kwargs)
 
     def recognize_prescription(self, *args, **kwargs):
-        return self._call("recognize_prescription", *args, **kwargs)
+        result = self._call("recognize_prescription", *args, **kwargs)
+        # 將底層 recognizer 保存的結構化藥單資料向上透出
+        self._last_prescription_details = getattr(
+            self._last_target, "_last_prescription_details", None
+        )
+        return result
 
     def search_by_text(self, *args, **kwargs):
         return self._call("search_by_text", *args, **kwargs)

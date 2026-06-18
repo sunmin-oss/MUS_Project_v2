@@ -811,6 +811,104 @@ def update_user(user_id):
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+@admin_bp.route("/api/users/<int:user_id>", methods=["DELETE"])
+def delete_user(user_id):
+    """刪除使用者並級聯清除其所有關聯資料。
+
+    Query params:
+        confirm=USERNAME  必填，需與該使用者的 username 一致以防誤刪
+    """
+    try:
+        from config import config
+
+        conn = get_db_connection(config.DATABASE_PATH)
+        row = conn.execute(
+            "SELECT id, username, is_admin FROM users WHERE id = ?", (user_id,)
+        ).fetchone()
+        if not row:
+            conn.close()
+            return jsonify({"success": False, "error": "使用者不存在"}), 404
+
+        username = row["username"] if isinstance(row, sqlite3.Row) else row[1]
+        is_admin = bool(row["is_admin"] if isinstance(row, sqlite3.Row) else row[2])
+
+        confirm = (request.args.get("confirm") or "").strip().lower()
+        if confirm != (username or "").lower():
+            conn.close()
+            return (
+                jsonify(
+                    {
+                        "success": False,
+                        "error": "需於 confirm 參數帶入正確的使用者名稱以確認刪除",
+                    }
+                ),
+                400,
+            )
+
+        # 阻止刪除最後一位管理員
+        if is_admin:
+            other_admins = conn.execute(
+                "SELECT COUNT(*) FROM users WHERE is_admin = 1 AND id != ?", (user_id,)
+            ).fetchone()[0]
+            if other_admins == 0:
+                conn.close()
+                return (
+                    jsonify(
+                        {"success": False, "error": "無法刪除系統最後一位管理員"}
+                    ),
+                    400,
+                )
+
+        # 級聯刪除（依當前已知的關聯表）
+        related_tables = (
+            "adherence_logs",
+            "safety_check_logs",
+            "medications",
+            "user_allergies",
+            "push_tokens",
+            "profiles",
+        )
+        deleted_counts = {}
+        try:
+            for tbl in related_tables:
+                cur = conn.execute(f"DELETE FROM {tbl} WHERE user_id = ?", (user_id,))
+                deleted_counts[tbl] = cur.rowcount
+            cur = conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
+            deleted_counts["users"] = cur.rowcount
+            conn.commit()
+        except sqlite3.OperationalError as e:
+            # 某些表可能不存在；回滾並重試逐張
+            conn.rollback()
+            for tbl in related_tables:
+                try:
+                    cur = conn.execute(
+                        f"DELETE FROM {tbl} WHERE user_id = ?", (user_id,)
+                    )
+                    deleted_counts[tbl] = cur.rowcount
+                except sqlite3.OperationalError:
+                    deleted_counts[tbl] = "skipped"
+            cur = conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
+            deleted_counts["users"] = cur.rowcount
+            conn.commit()
+            logger.warning("刪除使用者時部份表略過: %s", e)
+
+        conn.close()
+        logger.warning(
+            "管理員刪除使用者 id=%s username=%s 關聯刪除=%s",
+            user_id, username, deleted_counts,
+        )
+        return jsonify(
+            {
+                "success": True,
+                "message": f"使用者 {username} 已刪除",
+                "deleted": deleted_counts,
+            }
+        )
+    except Exception as e:
+        logger.error(f"✗ 刪除使用者失敗: {e}", exc_info=True)
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 # ============================================
 # NHI 快取管理 API
 # ============================================
@@ -922,7 +1020,7 @@ def refresh_cache(drug_id):
 
         # 重新爬取
         import asyncio
-        from nhi_crawler import scrape_nhi_drug_info
+        from scripts.nhi_crawler import scrape_nhi_drug_info
 
         try:
             loop = asyncio.get_event_loop()
@@ -1114,24 +1212,58 @@ def get_logs():
 
 @admin_bp.route("/api/stats", methods=["GET"])
 def api_stats():
-    """取得 API 使用統計"""
+    """取得 API 使用統計（可透過 ?days=N 指定日期範圍，預設 7 天）"""
     try:
         from config import config
+
+        try:
+            days = int(request.args.get("days", 7) or 7)
+        except (TypeError, ValueError):
+            days = 7
+        days = max(1, min(days, 90))
 
         conn = get_db_connection(config.DATABASE_PATH)
         cursor = conn.cursor()
 
-        stats = {"daily": [], "top_searches": [], "endpoints": [], "errors": 0}
+        stats = {"daily": [], "top_searches": [], "endpoints": [], "errors": 0, "days": days}
 
         try:
-            # 每日請求數（最近 7 天）
-            cursor.execute("""
+            since = f"-{days} days"
+            # 每日請求數
+            cursor.execute(
+                """
                 SELECT date(created_at) as day, COUNT(*) as count
                 FROM api_logs
-                WHERE created_at >= datetime('now', '-7 days')
+                WHERE created_at >= datetime('now', ?)
                 GROUP BY day ORDER BY day
-            """)
+                """,
+                (since,),
+            )
             stats["daily"] = [{"date": r[0], "count": r[1]} for r in cursor.fetchall()]
+
+            # 每日請求依分類拆分（OCR 藥物辨識 / 備用辨識 / 聊天 API / 其他）
+            cursor.execute(
+                """
+                SELECT date(created_at) as day,
+                       CASE
+                         WHEN endpoint = '/api/recognize'                THEN 'ocr'
+                         WHEN endpoint LIKE '/api/recognize_prescription%' THEN 'fallback'
+                         WHEN endpoint LIKE '/api/consult%'              THEN 'chat'
+                         WHEN endpoint LIKE '/api/consultation%'         THEN 'chat'
+                         ELSE 'other'
+                       END AS category,
+                       COUNT(*) as count
+                FROM api_logs
+                WHERE created_at >= datetime('now', ?)
+                GROUP BY day, category
+                ORDER BY day
+                """,
+                (since,),
+            )
+            stats["daily_by_category"] = [
+                {"date": r[0], "category": r[1], "count": r[2]}
+                for r in cursor.fetchall()
+            ]
 
             # 熱門搜尋關鍵字
             cursor.execute("""
