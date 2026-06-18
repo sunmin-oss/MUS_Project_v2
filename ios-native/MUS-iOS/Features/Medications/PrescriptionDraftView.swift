@@ -180,10 +180,11 @@ struct PrescriptionDraftView: View {
         Task {
             var successCount = 0
             var lastError: String?
+            let label = prescriptionName.trimmingCharacters(in: .whitespaces).isEmpty
+                ? "藥單 \(Date().formatted(date: .abbreviated, time: .omitted))"
+                : prescriptionName.trimmingCharacters(in: .whitespaces)
+
             for draft in drafts where !draft.drugName.trimmingCharacters(in: .whitespaces).isEmpty {
-                let label = prescriptionName.trimmingCharacters(in: .whitespaces).isEmpty
-                    ? "藥單 \(Date().formatted(date: .abbreviated, time: .omitted))"
-                    : prescriptionName.trimmingCharacters(in: .whitespaces)
                 let med = Medication(
                     id: UUID().uuidString,
                     profileId: profileId,
@@ -208,6 +209,10 @@ struct PrescriptionDraftView: View {
             await store.load(profileId: profileId, apiClient: env.apiClient)
             isSaving = false
             if successCount > 0 {
+                // 儲存藥單圖片到本地
+                if let img = selectedImage {
+                    PrescriptionImageStore.save(image: img, forLabel: label)
+                }
                 showSuccess = true
             } else if let err = lastError {
                 phase = .error("新增失敗：\(err)")
