@@ -58,15 +58,11 @@
         }
         /* ===== App Shell ===== */
         .app-shell {
-            max-width: 480px;
+            max-width: 100%;
             margin: 0 auto;
             min-height: 100vh;
             background: var(--card-bg);
             position: relative;
-            box-shadow: var(--shadow-lg);
-        }
-        @media (min-width: 481px) {
-            body { display: flex; justify-content: center; }
         }
         /* ===== Auth Screen ===== */
         .auth-screen {
@@ -144,10 +140,8 @@
         .tab-bar {
             position: fixed;
             bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
+            left: 0;
             width: 100%;
-            max-width: 480px;
             height: var(--tab-height);
             background: rgba(255,255,255,0.95);
             backdrop-filter: blur(20px);
@@ -179,6 +173,13 @@
         .page-container {
             padding-bottom: calc(var(--tab-height) + 16px);
             min-height: 100vh;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        @media (min-width: 768px) {
+            .page-container { padding-left: 24px; padding-right: 24px; }
+            .nav-bar { padding: 16px 24px; }
+            .auth-card { max-width: 420px; }
         }
         .page { display: none; }
         .page.active { display: block; animation: fadeIn 0.25s ease; }
@@ -194,6 +195,8 @@
             position: sticky;
             top: 0;
             z-index: 50;
+            max-width: 1200px;
+            margin: 0 auto;
         }
         .nav-bar h1 { font-size: calc(20px * var(--font-scale)); font-weight: 700; }
         .nav-bar-btn { background: none; border: none; color: #fff; font-size: 22px; cursor: pointer; padding: 4px 8px; }
@@ -238,10 +241,11 @@
         /* ===== Action Grid ===== */
         .action-grid {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
             gap: 12px;
             padding: 0 16px;
             margin-bottom: 16px;
+            max-width: 1200px;
         }
         .action-card {
             background: #fff;

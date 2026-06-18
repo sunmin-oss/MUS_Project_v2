@@ -1,4 +1,5 @@
 import Foundation
+import MapKit
 
 /// 真實 API 實作（URLSession + Codable）
 /// 串接 sprint5 後端：Auth + Medications + Safety + Recognition + Search
@@ -669,7 +670,37 @@ final class RealAPIClient: APIClientProtocol {
     // MARK: - Not implemented
 
     func fetchConsultations() async throws -> [ConsultationSummary] { throw APIError.unknown }
-    func fetchNearbyPharmacies(latitude: Double, longitude: Double, radius: Double) async throws -> [Pharmacy] { throw APIError.unknown }
+
+    func fetchNearbyPharmacies(latitude: Double, longitude: Double, radius: Double) async throws -> [Pharmacy] {
+        let request = MKLocalSearch.Request()
+        request.naturalLanguageQuery = "藥局"
+        request.region = MKCoordinateRegion(
+            center: CLLocationCoordinate2D(latitude: latitude, longitude: longitude),
+            latitudinalMeters: radius * 2,
+            longitudinalMeters: radius * 2
+        )
+        let search = MKLocalSearch(request: request)
+        let response = try await search.start()
+        return response.mapItems.compactMap { item -> Pharmacy? in
+            guard let name = item.name,
+                  let location = item.placemark.location else { return nil }
+            let address = [
+                item.placemark.subAdministrativeArea,
+                item.placemark.locality,
+                item.placemark.thoroughfare,
+                item.placemark.subThoroughfare
+            ].compactMap { $0 }.joined()
+            return Pharmacy(
+                id: "\(location.coordinate.latitude),\(location.coordinate.longitude)",
+                name: name,
+                address: address.isEmpty ? (item.placemark.title ?? "") : address,
+                latitude: location.coordinate.latitude,
+                longitude: location.coordinate.longitude,
+                isNHIContracted: true,
+                is24h: false
+            )
+        }
+    }
 
     // MARK: - AI Consultation
 

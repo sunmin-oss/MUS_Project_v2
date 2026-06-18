@@ -403,7 +403,8 @@ def get_file_size_mb(file) -> float:
 def index():
     """提供前端主頁"""
     try:
-        return send_from_directory(os.path.dirname(__file__), "index.html")
+        frontend_dir = os.path.join(os.path.dirname(__file__), "frontend")
+        return send_from_directory(frontend_dir, "index.html")
     except FileNotFoundError:
         logger.error("✗ index.html 檔案不存在")
         return jsonify({"success": False, "error": "前端檔案不存在"}), 500

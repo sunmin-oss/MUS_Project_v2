@@ -96,7 +96,8 @@ def _parse_bool(value, default=False):
 @admin_bp.route("/", methods=["GET"])
 def admin_page():
     """提供管理員前端頁面"""
-    return send_from_directory(os.path.dirname(__file__), "admin.html")
+    frontend_dir = os.path.join(os.path.dirname(__file__), "frontend")
+    return send_from_directory(frontend_dir, "admin.html")
 
 
 # ============================================
