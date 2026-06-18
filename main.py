@@ -578,6 +578,73 @@ def favicon():
     return "", 204
 
 
+@app.route("/api/debug_prescription", methods=["POST"])
+def debug_prescription():
+    """臨時 debug endpoint，測試藥單 OCR 並回傳 Gemini 原始回應"""
+    try:
+        if recognizer is None or not hasattr(recognizer, "recognize_prescription"):
+            return jsonify({"error": "recognizer 不支持 prescription"}), 503
+
+        if "image" not in request.files:
+            return jsonify({"error": "no image"}), 400
+
+        file = request.files["image"]
+        filename = "debug_" + str(uuid.uuid4()) + "_" + secure_filename(file.filename)
+        filepath = os.path.join(config.UPLOAD_FOLDER, filename)
+        file.save(filepath)
+
+        # 直接呼叫 Gemini API 並取得原始回應
+        import base64
+        from pathlib import Path
+
+        image_file = Path(filepath)
+        with open(image_file, "rb") as f:
+            image_data = f.read()
+
+        suffix = image_file.suffix.lower()
+        mime_map = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png"}
+        mime_type = mime_map.get(suffix, "image/jpeg")
+        image_b64 = base64.standard_b64encode(image_data).decode("utf-8")
+
+        import requests as req_lib
+        api_url = f"{recognizer.base_url}/{recognizer.model_name}:generateContent?key={recognizer.api_key}"
+        payload = {
+            "contents": [{
+                "parts": [
+                    {"text": "請分析這張藥單照片，提取藥物名稱，回傳 JSON 陣列 [{\"chinese_name\":\"...\"}]。只回傳 JSON。"},
+                    {"inline_data": {"mime_type": mime_type, "data": image_b64}}
+                ]
+            }]
+        }
+        response = req_lib.post(api_url, json=payload, headers={"Content-Type": "application/json"}, timeout=30)
+
+        # 清理暫存
+        os.remove(filepath)
+
+        result = {
+            "gemini_status": response.status_code,
+            "gemini_response_keys": list(response.json().keys()) if response.status_code == 200 else None,
+        }
+
+        if response.status_code == 200:
+            data = response.json()
+            if "candidates" in data and data["candidates"]:
+                parts = data["candidates"][0].get("content", {}).get("parts", [])
+                result["parts_count"] = len(parts)
+                result["parts_info"] = [
+                    {"has_thought": part.get("thought", False), "text_preview": part.get("text", "")[:200]}
+                    for part in parts
+                ]
+            else:
+                result["raw_response_preview"] = str(response.json())[:500]
+        else:
+            result["error_response"] = response.text[:500]
+
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/recognize_prescription", methods=["POST"])
 def recognize_prescription():
     """

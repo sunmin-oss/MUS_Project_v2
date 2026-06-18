@@ -423,11 +423,17 @@ struct MedicationsListView: View {
     private func loadAll() async {
         isLoading = true
         defer { isLoading = false }
+        // 先載入快取的 profiles
+        if profiles.isEmpty, let cached = LocalCache.load([Profile].self, forKey: "profiles") {
+            profiles = cached
+        }
         do {
             profiles = try await env.apiClient.fetchProfiles()
+            LocalCache.save(profiles, forKey: "profiles")
             await store.load(profileId: env.selectedProfileId, apiClient: env.apiClient)
         } catch {
-            // silently ignore — store keeps its previous state
+            // 失敗時保留快取資料
+            await store.load(profileId: env.selectedProfileId, apiClient: env.apiClient)
         }
     }
 

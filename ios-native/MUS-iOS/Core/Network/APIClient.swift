@@ -6,6 +6,7 @@ enum APIError: LocalizedError {
     case unauthorized
     case forbidden
     case notFound
+    case conflict
     case server(Int)
     case decoding(Error)
     case network(Error)
@@ -17,6 +18,7 @@ enum APIError: LocalizedError {
         case .unauthorized: return "請重新登入"
         case .forbidden: return "權限不足"
         case .notFound: return "資源不存在"
+        case .conflict: return "資源已存在"
         case .server(let code): return "伺服器錯誤（\(code)）"
         case .decoding: return "資料格式錯誤"
         case .network(let err): return "網路錯誤：\(err.localizedDescription)"

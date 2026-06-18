@@ -3,6 +3,12 @@ venv/
 env/
 .venv/
 
+# 舊 Capacitor 專案（已被 ios-native/ 取代）
+ios/
+
+# 藥物測試圖片（本地測試用，不上傳）
+藥物測試資料/
+
 # IDE
 .vscode/
 .idea/

@@ -8,8 +8,29 @@ struct ProfileView: View {
         NavigationStack {
             Form {
                 Section("profile.section.account") {
-                    Label("profile.guest", systemImage: "person.crop.circle")
-                        .font(DesignTypography.body)
+                    if env.currentUsername != nil {
+                        NavigationLink {
+                            PersonalInfoView()
+                        } label: {
+                            HStack {
+                                Image(systemName: "person.crop.circle.fill")
+                                    .font(.system(size: 36))
+                                    .foregroundStyle(DesignColors.primary)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(env.currentUsername ?? "")
+                                        .font(.system(size: 16, weight: .semibold))
+                                    Text("點擊編輯個人資訊")
+                                        .font(DesignTypography.caption)
+                                        .foregroundStyle(DesignColors.textSecondary)
+                                }
+                                .padding(.leading, 6)
+                            }
+                            .padding(.vertical, 4)
+                        }
+                    } else {
+                        Label("profile.guest", systemImage: "person.crop.circle")
+                            .font(DesignTypography.body)
+                    }
                 }
 
                 Section("profile.section.appearance") {
@@ -68,10 +89,11 @@ struct ProfileView: View {
                 }
 
                 Section("profile.section.settings") {
-                    Toggle(isOn: $env.isDemoMode) {
-                        Label("profile.demo.mode", systemImage: "theatermasks.fill")
-                            .font(DesignTypography.body)
-                    }
+                    // Demo mode toggle hidden: entire project is in demo stage
+                    // Toggle(isOn: $env.isDemoMode) {
+                    //     Label("profile.demo.mode", systemImage: "theatermasks.fill")
+                    //         .font(DesignTypography.body)
+                    // }
                     NavigationLink {
                         Text("profile.coming.soon").font(DesignTypography.body)
                     } label: {
@@ -87,6 +109,20 @@ struct ProfileView: View {
                         Text(appVersion).foregroundStyle(DesignColors.textSecondary)
                     }
                     .font(DesignTypography.body)
+                }
+
+                if !env.isDemoMode {
+                    Section {
+                        Button(role: .destructive) {
+                            Task { await env.logout() }
+                        } label: {
+                            HStack {
+                                Spacer()
+                                Label("登出", systemImage: "rectangle.portrait.and.arrow.right")
+                                Spacer()
+                            }
+                        }
+                    }
                 }
             }
             .navigationTitle("tab.profile")
