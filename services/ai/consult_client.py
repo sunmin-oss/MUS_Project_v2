@@ -26,6 +26,24 @@ DEFAULT_SYSTEM_PROMPT = (
 )
 
 
+def _infer_brand(base_url: str, model: str) -> str:
+    u = (base_url or "").lower()
+    m = (model or "").lower()
+    if "groq" in u:
+        return "groq"
+    if "openrouter" in u:
+        return "openrouter"
+    if "anthropic" in u or "claude" in m:
+        return "anthropic"
+    if "azure" in u:
+        return "azure-openai"
+    if "googleapis" in u or "gemini" in m:
+        return "google"
+    if "llama" in m:
+        return "llama"
+    return "openai"
+
+
 class ConsultClient:
     def __init__(
         self,
@@ -42,6 +60,7 @@ class ConsultClient:
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
         self.max_tokens = max_tokens
+        self.brand = _infer_brand(self.base_url, self.model)
 
     def chat(
         self,

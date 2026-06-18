@@ -87,6 +87,7 @@ def _normalize_messages(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
 
 
 @consult_bp.route("/consult", methods=["POST"])
+@consult_bp.route("/consultation/ask", methods=["POST"])
 def consult():
     client = _get_client()
     if client is None:
