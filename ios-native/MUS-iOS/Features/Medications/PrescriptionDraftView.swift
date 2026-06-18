@@ -25,6 +25,8 @@ struct PrescriptionDraftView: View {
         var drugName: String
         var dosage: String
         var frequency: String
+        var days: Int?
+        var totalQuantity: String?
     }
 
     var body: some View {
@@ -160,12 +162,14 @@ struct PrescriptionDraftView: View {
                 DraftItem(
                     drugName: detail.name,
                     dosage: detail.prescriptionInfo?.dosePerTime ?? "1 顆",
-                    frequency: detail.prescriptionInfo?.frequency ?? ""
+                    frequency: detail.prescriptionInfo?.frequency ?? "",
+                    days: detail.prescriptionInfo?.days,
+                    totalQuantity: detail.prescriptionInfo?.totalQuantity
                 )
             }
             if drafts.isEmpty && !result.recognizedDrugs.isEmpty {
                 drafts = result.recognizedDrugs.map { name in
-                    DraftItem(drugName: name, dosage: "", frequency: "")
+                    DraftItem(drugName: name, dosage: "", frequency: "", days: nil, totalQuantity: nil)
                 }
             }
             phase = drafts.isEmpty ? .error("未能辨識出任何藥物，請重新拍攝清晰的藥單照片") : .draft
@@ -185,15 +189,17 @@ struct PrescriptionDraftView: View {
                 : prescriptionName.trimmingCharacters(in: .whitespaces)
 
             for draft in drafts where !draft.drugName.trimmingCharacters(in: .whitespaces).isEmpty {
+                let (parsedFreq, parsedMeal) = Self.parseFrequencyAndMeal(draft.frequency)
+                let stock = Self.computeStock(totalQuantity: draft.totalQuantity, days: draft.days, frequency: draft.frequency, dosage: draft.dosage)
                 let med = Medication(
                     id: UUID().uuidString,
                     profileId: profileId,
                     drugName: draft.drugName,
                     dosage: draft.dosage,
-                    frequency: draft.frequency,
-                    mealTiming: "飯後",
+                    frequency: parsedFreq,
+                    mealTiming: parsedMeal,
                     nextDoseAt: Date().addingTimeInterval(3600),
-                    currentStock: 30,
+                    currentStock: stock,
                     reminderTimes: [],
                     notes: "來自處方箋辨識",
                     prescriptionLabel: label
@@ -218,5 +224,75 @@ struct PrescriptionDraftView: View {
                 phase = .error("新增失敗：\(err)")
             }
         }
+    }
+
+    /// 解析 OCR frequency (如「三餐餐後」「每天睡前」「早晚餐後」) → (displayFrequency, mealTiming)
+    static func parseFrequencyAndMeal(_ raw: String) -> (String, String) {
+        let s = raw.lowercased()
+        var freq = "每日 1 次"
+        var meal = ""
+
+        // 判斷次數
+        if s.contains("三餐") || s.contains("tid") || s.contains("3次") {
+            freq = "每日 3 次"
+        } else if s.contains("早晚") || s.contains("bid") || s.contains("2次") || s.contains("兩次") {
+            freq = "每日 2 次"
+        } else if s.contains("四次") || s.contains("qid") || s.contains("4次") {
+            freq = "每日 4 次"
+        }
+
+        // 判斷用餐時間
+        if s.contains("餐後") || s.contains("飯後") {
+            meal = "飯後"
+        } else if s.contains("餐前") || s.contains("飯前") {
+            meal = "飯前"
+        } else if s.contains("睡前") {
+            meal = "睡前"
+            if !s.contains("三餐") && !s.contains("早晚") && !s.contains("四次") {
+                freq = "每日 1 次"
+            }
+        } else if s.contains("空腹") {
+            meal = "空腹"
+        }
+
+        if meal.isEmpty { meal = "飯後" }
+        return (freq, meal)
+    }
+
+    /// 從 totalQuantity 或 days*frequency*dose 計算庫存數量
+    static func computeStock(totalQuantity: String?, days: Int?, frequency: String, dosage: String) -> Int {
+        // 優先從 totalQuantity 解析數字 (e.g. "共 9 TAB" → 9)
+        if let tq = totalQuantity {
+            let digits = tq.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()
+            if let num = Double(digits), num > 0 {
+                return Int(ceil(num))
+            }
+            // 嘗試解析帶小數 (e.g. "共 4.5 TAB")
+            let pattern = #"(\d+\.?\d*)"#
+            if let range = tq.range(of: pattern, options: .regularExpression),
+               let num = Double(tq[range]), num > 0 {
+                return Int(ceil(num))
+            }
+        }
+
+        // fallback: days * timesPerDay * dosePerTime
+        let timesPerDay: Int
+        let s = frequency.lowercased()
+        if s.contains("三餐") || s.contains("tid") || s.contains("3") { timesPerDay = 3 }
+        else if s.contains("早晚") || s.contains("bid") || s.contains("2") { timesPerDay = 2 }
+        else if s.contains("四") || s.contains("qid") || s.contains("4") { timesPerDay = 4 }
+        else { timesPerDay = 1 }
+
+        let dose: Double
+        let dosePattern = #"(\d+\.?\d*)"#
+        if let range = dosage.range(of: dosePattern, options: .regularExpression),
+           let d = Double(dosage[range]) {
+            dose = d
+        } else {
+            dose = 1.0
+        }
+
+        let d = days ?? 7
+        return Int(ceil(Double(d) * Double(timesPerDay) * dose))
     }
 }

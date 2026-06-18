@@ -714,9 +714,16 @@ def recognize_prescription():
         drug_details = []
 
         # 取得 Gemini 結構化資料（含許可證字號）
+        # 優先使用 _last_prescription_details (side-channel)
+        # 若為空則嘗試直接從 recognizer 的內部狀態取得
         prescription_details = (
             getattr(recognizer, "_last_prescription_details", None) or []
         )
+        logger.info(f"📄 OCR 結果: {len(drug_names)} 個藥名, {len(prescription_details)} 筆結構化資料")
+        if prescription_details:
+            logger.info(f"📄 結構化資料範例: {json.dumps(prescription_details[0], ensure_ascii=False)[:200]}")
+        else:
+            logger.warning(f"⚠ prescription_details 為空！")
 
         for idx, name in enumerate(drug_names):
             detail = {
@@ -728,7 +735,7 @@ def recognize_prescription():
                 "prescription_info": None,
             }
 
-            # 附加處方資訊（用法用量）
+            # 附加處方資訊（用法用量）— 用 index 對齊
             if idx < len(prescription_details):
                 item = prescription_details[idx]
                 detail["prescription_info"] = {
@@ -739,6 +746,8 @@ def recognize_prescription():
                     "total_quantity": item.get("total_quantity", ""),
                     "ingredient": item.get("ingredient", ""),
                 }
+            else:
+                logger.warning(f"⚠ idx={idx} 超出 prescription_details 長度 {len(prescription_details)}")
 
             if drug_db:
                 try:
@@ -792,6 +801,7 @@ def recognize_prescription():
         response = {
             "success": True,
             "request_id": filename.split("_")[0],
+            "image_filename": filename,
             "recognized_drugs": drug_names,
             "recognized_items": drug_details,  # 保持與 recognize_drug 一致的格式
             "message": f"辨識完成，找到 {len(drug_names)} 種藥物",
@@ -973,6 +983,31 @@ def get_drug_detail(drug_id):
     except Exception as e:
         logger.error(f"✗ 詳細查詢錯誤: {e}")
         return jsonify({"success": False, "error": "查詢失敗"}), 500
+
+
+@app.route("/api/prescription-image/<filename>", methods=["DELETE"])
+def delete_prescription_image(filename):
+    """刪除處方箋圖片"""
+    try:
+        # 驗證檔名安全性
+        if ".." in filename or "/" in filename or "\\" in filename:
+            return jsonify({"success": False, "error": "不安全的檔名"}), 400
+
+        # 只允許刪除 prescription_ 開頭的檔案
+        if not filename.startswith("prescription_"):
+            return jsonify({"success": False, "error": "只能刪除處方箋圖片"}), 400
+
+        filepath = os.path.join(config.UPLOAD_FOLDER, filename)
+        if os.path.exists(filepath) and os.path.isfile(filepath):
+            os.remove(filepath)
+            logger.info(f"✓ 已刪除處方箋圖片: {filename}")
+            return jsonify({"success": True, "message": "圖片已刪除"}), 200
+        else:
+            return jsonify({"success": True, "message": "圖片不存在，無需刪除"}), 200
+
+    except Exception as e:
+        logger.error(f"✗ 刪除處方箋圖片失敗: {e}")
+        return jsonify({"success": False, "error": "刪除失敗"}), 500
 
 
 @app.route("/api/images/<path:filepath>", methods=["GET"])

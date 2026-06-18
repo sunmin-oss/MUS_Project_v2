@@ -719,15 +719,20 @@ class GeminiVisionRecognizer:
             # 同時保留結構化資料供後續比對使用
             if parsed and isinstance(parsed[0], dict):
                 self._last_prescription_details = parsed
+                logger.info(f"📄 藥單 OCR: 結構化資料已儲存 ({len(parsed)} 筆), keys: {list(parsed[0].keys())}")
                 # 回傳中文名為主，英文名為輔的名稱列表
                 names = []
                 for item in parsed:
                     name = item.get("chinese_name", "") or item.get("english_name", "")
                     if name:
                         names.append(name)
+                    else:
+                        # 保留空位以對齊 index
+                        names.append(f"未知藥物_{len(names)+1}")
                 return names
 
             self._last_prescription_details = None
+            logger.warning(f"⚠ 藥單 OCR: parsed 非 dict 列表, type={type(parsed[0]) if parsed else 'empty'}")
             return parsed
 
         except Exception as e:

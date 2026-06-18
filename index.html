@@ -1204,6 +1204,7 @@
         currentPrescription: 'all',
         searchHistory: JSON.parse(localStorage.getItem('mus_search_history') || '[]'),
         recognitionHistory: JSON.parse(localStorage.getItem('mus_recognition_history') || '[]'),
+        prescriptionImages: JSON.parse(localStorage.getItem('mus_prescription_images') || '{}'),
         chatMessages: [],
         selectedMedIds: new Set(),
         editMode: false,
@@ -1575,6 +1576,12 @@
             const data = await res.json();
             hideLoading();
             if (data.success) {
+                // 儲存處方箋圖片檔名對應
+                if (data.image_filename && data.recognized_drugs && data.recognized_drugs.length) {
+                    const prescriptionName = data.recognized_drugs.join('、').substring(0, 20) + ' 藥單';
+                    STATE.prescriptionImages[prescriptionName] = data.image_filename;
+                    localStorage.setItem('mus_prescription_images', JSON.stringify(STATE.prescriptionImages));
+                }
                 let html = '<div style="padding:16px;">';
                 if (data.recognized_drugs && data.recognized_drugs.length) {
                     html += '<div class="card-title" style="margin-bottom:12px;">辨識到的藥物</div>';
@@ -1823,6 +1830,13 @@
             return;
         }
         let html = '';
+        // 編輯模式下顯示刪除整張藥單按鈕
+        if (STATE.editMode && STATE.currentPrescription !== 'all') {
+            html += '<div style="padding:12px 16px;background:#FFF3F3;border-bottom:1px solid #FFCDD2;display:flex;align-items:center;justify-content:space-between;">' +
+                '<span style="font-size:14px;color:#C62828;font-weight:600;">📄 ' + escapeHtml(STATE.currentPrescription) + '</span>' +
+                '<button class="btn btn-danger" style="padding:6px 14px;font-size:13px;" onclick="deletePrescription(\'' + escapeAttr(STATE.currentPrescription) + '\')">🗑 刪除整張藥單</button>' +
+                '</div>';
+        }
         filtered.forEach(med => {
             const timeLabel = getTimeLabel(med);
             const checked = STATE.selectedMedIds.has(med.id) ? 'checked' : '';
@@ -1943,6 +1957,16 @@
     async function deleteSelectedMeds() {
         if (!STATE.selectedMedIds.size) return;
         if (!confirm('確定要刪除 ' + STATE.selectedMedIds.size + ' 項藥物嗎？')) return;
+
+        // 檢查是否刪除了某個藥單的所有藥物
+        const prescriptionsToCheck = new Set();
+        for (const id of STATE.selectedMedIds) {
+            const med = STATE.medications.find(m => m.id === id);
+            if (med && (med.note || med.prescription_name)) {
+                prescriptionsToCheck.add(med.note || med.prescription_name);
+            }
+        }
+
         for (const id of STATE.selectedMedIds) {
             try {
                 if (!STATE.demoMode) await api('/api/user/medications/' + id, { method: 'DELETE' });
@@ -1950,9 +1974,56 @@
             } catch (e) { /* continue */ }
         }
         STATE.selectedMedIds.clear();
+
+        // 如果某藥單的所有藥物都被刪除，同步刪除圖片
+        if (!STATE.demoMode) await loadMedications();
+        for (const pName of prescriptionsToCheck) {
+            const remaining = STATE.medications.filter(m => (m.note || m.prescription_name) === pName);
+            if (remaining.length === 0) {
+                await deletePrescriptionImage(pName);
+            }
+        }
+
+        toggleMedEdit();
+        if (STATE.demoMode) renderMedications();
+        showToast('已刪除', 'info');
+    }
+
+    async function deletePrescription(prescriptionName) {
+        if (!confirm('⚠️ 確定要刪除整張藥單「' + prescriptionName + '」嗎？\n\n這將會刪除此藥單中的所有藥物及其原始圖片，且無法復原。')) return;
+
+        // 找出此藥單的所有藥物
+        const medsToDelete = STATE.medications.filter(m => (m.note || m.prescription_name) === prescriptionName);
+
+        for (const med of medsToDelete) {
+            try {
+                if (!STATE.demoMode) await api('/api/user/medications/' + med.id, { method: 'DELETE' });
+                else STATE.medications = STATE.medications.filter(m => m.id !== med.id);
+            } catch (e) { /* continue */ }
+        }
+
+        // 刪除對應的處方箋圖片
+        await deletePrescriptionImage(prescriptionName);
+
+        // 重置篩選器
+        STATE.currentPrescription = 'all';
         toggleMedEdit();
         await loadMedications();
-        showToast('已刪除', 'info');
+        showToast('藥單已刪除', 'info');
+    }
+
+    async function deletePrescriptionImage(prescriptionName) {
+        // 嘗試在 prescriptionImages 中找到對應的圖片檔名
+        const imageFilename = STATE.prescriptionImages[prescriptionName];
+        if (imageFilename) {
+            try {
+                if (!STATE.demoMode) {
+                    await api('/api/prescription-image/' + encodeURIComponent(imageFilename), { method: 'DELETE' });
+                }
+            } catch (e) { /* silent */ }
+            delete STATE.prescriptionImages[prescriptionName];
+            localStorage.setItem('mus_prescription_images', JSON.stringify(STATE.prescriptionImages));
+        }
     }
 
     function showAddMedModal() { document.getElementById('addMedModal').classList.remove('hidden'); }

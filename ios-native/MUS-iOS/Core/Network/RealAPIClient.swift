@@ -675,7 +675,7 @@ final class RealAPIClient: APIClientProtocol {
 
     private struct AIResponse: Decodable {
         let success: Bool
-        let reply: String?
+        let answer: String?
         let error: String?
     }
 
@@ -684,7 +684,7 @@ final class RealAPIClient: APIClientProtocol {
             "question": question
         ])
         let decoded = try decoder.decode(AIResponse.self, from: data)
-        if let reply = decoded.reply { return reply }
+        if let answer = decoded.answer { return answer }
         throw APIError.server(500)
     }
 

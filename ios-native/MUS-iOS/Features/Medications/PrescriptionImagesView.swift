@@ -2,7 +2,11 @@ import SwiftUI
 
 /// 顯示已儲存的藥單圖片列表
 struct PrescriptionImagesView: View {
+    @EnvironmentObject private var env: AppEnvironment
+    @EnvironmentObject private var store: MedicationStore
     @State private var entries: [(label: String, image: UIImage)] = []
+    @State private var entryToDelete: String? = nil
+    @State private var showDeleteAlert = false
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -16,6 +20,18 @@ struct PrescriptionImagesView: View {
             }
             .onAppear {
                 entries = PrescriptionImageStore.allEntries()
+            }
+            .alert("刪除整張藥單", isPresented: $showDeleteAlert) {
+                Button("刪除", role: .destructive) {
+                    deleteEntryAndMedications()
+                }
+                Button("取消", role: .cancel) {
+                    entryToDelete = nil
+                }
+            } message: {
+                if let label = entryToDelete {
+                    Text("將刪除「\(label)」藥單圖片及其關聯的所有藥物，此操作無法恢復。")
+                }
             }
     }
 
@@ -79,8 +95,36 @@ struct PrescriptionImagesView: View {
                         .font(DesignTypography.caption)
                         .foregroundStyle(DesignColors.textSecondary)
                 }
+
+                Spacer()
+
+                Button {
+                    entryToDelete = entry.label
+                    showDeleteAlert = true
+                } label: {
+                    Image(systemName: "trash")
+                        .foregroundStyle(.red)
+                }
+                .buttonStyle(.plain)
             }
             .padding(.vertical, 4)
+        }
+    }
+
+    private func deleteEntryAndMedications() {
+        guard let label = entryToDelete else { return }
+        // 刪除關聯的所有藥物
+        let medsToDelete = store.medications.filter { med in
+            med.profileId == env.selectedProfileId && med.prescriptionLabel == label
+        }
+        Task {
+            for med in medsToDelete {
+                try? await store.delete(id: med.id, apiClient: env.apiClient)
+            }
+            // 刪除本地圖片
+            PrescriptionImageStore.remove(forLabel: label)
+            entries.removeAll { $0.label == label }
+            entryToDelete = nil
         }
     }
 }

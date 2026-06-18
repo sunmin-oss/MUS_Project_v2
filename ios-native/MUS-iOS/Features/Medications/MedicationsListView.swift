@@ -232,10 +232,14 @@ struct MedicationsListView: View {
                 AddMedicationView(store: store, editingMedication: editingMedication)
             }
             .refreshable { await loadAll() }
-            .sheet(isPresented: $showPrescriptionImages) {
+            .sheet(isPresented: $showPrescriptionImages, onDismiss: {
+                Task { await loadAll() }
+            }) {
                 NavigationStack {
                     PrescriptionImagesView()
                 }
+                .environmentObject(env)
+                .environmentObject(store)
             }
             .sheet(item: $confirmingMedication, onDismiss: {
                 Task { await loadAll() }
@@ -279,23 +283,40 @@ struct MedicationsListView: View {
     @ViewBuilder
     private func prescriptionChip(_ value: String?, label: String) -> some View {
         let isSelected = selectedPrescription == value
-        Button {
-            withAnimation(.easeInOut(duration: 0.2)) { selectedPrescription = value }
-        } label: {
-            HStack(spacing: 4) {
-                Image(systemName: value == nil ? "list.bullet" : "doc.text")
-                    .font(.system(size: 12))
-                Text(label)
+        HStack(spacing: 0) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) { selectedPrescription = value }
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: value == nil ? "list.bullet" : "doc.text")
+                        .font(.system(size: 12))
+                    Text(label)
+                }
+                .font(.system(size: 13, weight: isSelected ? .bold : .medium))
+                .padding(.leading, 12)
+                .padding(.trailing, isEditMode && value != nil && value != "未分類" ? 4 : 12)
+                .padding(.vertical, 6)
+                .foregroundStyle(isSelected ? .white : DesignColors.primary)
             }
-            .font(.system(size: 13, weight: isSelected ? .bold : .medium))
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .foregroundStyle(isSelected ? .white : DesignColors.primary)
-            .background(
-                Capsule().fill(isSelected ? DesignColors.primary.opacity(0.8) : DesignColors.primary.opacity(0.1))
-            )
+            .buttonStyle(.plain)
+
+            if isEditMode, let val = value, val != "未分類" {
+                Button {
+                    prescriptionToDelete = val
+                    showDeletePrescriptionConfirm = true
+                } label: {
+                    Image(systemName: "trash")
+                        .font(.system(size: 11))
+                        .foregroundStyle(isSelected ? .white.opacity(0.9) : .red)
+                        .padding(.trailing, 10)
+                        .padding(.vertical, 6)
+                }
+                .buttonStyle(.plain)
+            }
         }
-        .buttonStyle(.plain)
+        .background(
+            Capsule().fill(isSelected ? DesignColors.primary.opacity(0.8) : DesignColors.primary.opacity(0.1))
+        )
     }
 
     @ViewBuilder
@@ -342,52 +363,53 @@ struct MedicationsListView: View {
 
     @ViewBuilder
     private func medicationRow(_ med: Medication) -> some View {
-        Card {
-            VStack(alignment: .leading, spacing: DesignSpacing.sm) {
-                HStack {
-                    Text(med.drugName)
-                        .font(DesignTypography.title2)
-                    Spacer()
-                    todayBadge(todayTakenCount(for: med.id))
-                    stockBadge(med.currentStock)
-                }
-                Text("\(med.dosage) ・ \(med.frequency) ・ \(med.mealTiming)")
-                    .font(DesignTypography.body)
-                    .foregroundStyle(DesignColors.textSecondary)
-                HStack {
-                    Image(systemName: "clock")
-                        .font(.caption)
-                        .foregroundStyle(DesignColors.textSecondary)
-                    Text("下次服藥：" + med.nextDoseAt.formatted(date: .omitted, time: .shortened))
-                        .font(DesignTypography.caption)
-                        .foregroundStyle(DesignColors.textSecondary)
-                    Spacer()
-                    Button {
-                        let taken = todayTakenCount(for: med.id)
-                        let limit = dailyLimit(for: med)
-                        if taken >= limit {
-                            overdoseMedication = med
-                            showOverdoseAlert = true
-                        } else {
-                            confirmingMedication = med
-                        }
-                    } label: {
-                        Label("確認服藥", systemImage: "checkmark.circle.fill")
-                            .font(DesignTypography.caption)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 5)
-                            .background(DesignColors.primary.opacity(0.12))
-                            .foregroundStyle(DesignColors.primary)
-                            .clipShape(Capsule())
+        NavigationLink {
+            MedicationDetailView(store: store, medication: med)
+        } label: {
+            Card {
+                VStack(alignment: .leading, spacing: DesignSpacing.sm) {
+                    HStack {
+                        Text(med.drugName)
+                            .font(DesignTypography.title2)
+                        Spacer()
+                        todayBadge(todayTakenCount(for: med.id))
+                        stockBadge(med.currentStock)
                     }
-                    .buttonStyle(.plain)
+                    Text("\(med.dosage) ・ \(med.frequency) ・ \(med.mealTiming)")
+                        .font(DesignTypography.body)
+                        .foregroundStyle(DesignColors.textSecondary)
+                    HStack {
+                        Image(systemName: "clock")
+                            .font(.caption)
+                            .foregroundStyle(DesignColors.textSecondary)
+                        Text("下次服藥：" + med.nextDoseAt.formatted(date: .omitted, time: .shortened))
+                            .font(DesignTypography.caption)
+                            .foregroundStyle(DesignColors.textSecondary)
+                        Spacer()
+                        Button {
+                            let taken = todayTakenCount(for: med.id)
+                            let limit = dailyLimit(for: med)
+                            if taken >= limit {
+                                overdoseMedication = med
+                                showOverdoseAlert = true
+                            } else {
+                                confirmingMedication = med
+                            }
+                        } label: {
+                            Label("確認服藥", systemImage: "checkmark.circle.fill")
+                                .font(DesignTypography.caption)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 5)
+                                .background(DesignColors.primary.opacity(0.12))
+                                .foregroundStyle(DesignColors.primary)
+                                .clipShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
             }
         }
-        .onTapGesture {
-            editingMedication = med
-            showAddSheet = true
-        }
+        .buttonStyle(.plain)
     }
 
     @ViewBuilder
@@ -459,9 +481,22 @@ struct MedicationsListView: View {
 
     private func batchDelete() {
         let ids = selectedIds
+        // 找出即將被刪除的藥物所屬的藥單標籤
+        let deletingMeds = store.medications.filter { ids.contains($0.id) }
+        let affectedLabels = Set(deletingMeds.compactMap(\.prescriptionLabel).filter { !$0.isEmpty })
+
         Task {
             for id in ids {
                 try? await store.delete(id: id, apiClient: env.apiClient)
+            }
+            // 檢查每個受影響的藥單：如果該藥單下所有藥物都被刪除了，同步刪除圖片
+            for label in affectedLabels {
+                let remaining = store.medications.filter {
+                    $0.profileId == env.selectedProfileId && $0.prescriptionLabel == label
+                }
+                if remaining.isEmpty {
+                    PrescriptionImageStore.remove(forLabel: label)
+                }
             }
             selectedIds.removeAll()
             isEditMode = false
@@ -478,6 +513,10 @@ struct MedicationsListView: View {
         Task {
             for med in medsToDelete {
                 try? await store.delete(id: med.id, apiClient: env.apiClient)
+            }
+            // 同步刪除本地藥單圖片
+            if label != "未分類" {
+                PrescriptionImageStore.remove(forLabel: label)
             }
             // 如果刪的是目前選取的藥單，重置為所有藥單
             if selectedPrescription == label {
