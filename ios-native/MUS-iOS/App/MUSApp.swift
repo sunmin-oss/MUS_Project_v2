@@ -13,12 +13,18 @@ struct MUSApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootView()
-                .environmentObject(environment)
-                .environmentObject(settings)
-                .tint(settings.theme.primaryColor)
-                .preferredColorScheme(settings.theme.colorScheme)
-                .dynamicTypeSize(settings.fontScale.dynamicTypeSize)
+            Group {
+                if environment.isAuthenticated {
+                    RootView()
+                } else {
+                    LoginView()
+                }
+            }
+            .environmentObject(environment)
+            .environmentObject(settings)
+            .tint(settings.theme.primaryColor)
+            .preferredColorScheme(settings.theme.colorScheme)
+            .dynamicTypeSize(settings.fontScale.dynamicTypeSize)
         }
     }
 }

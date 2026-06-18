@@ -34,10 +34,21 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
     }
 
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        coordinate = locations.first?.coordinate
+        if let coord = locations.first?.coordinate, Self.isInTaiwan(coord) {
+            coordinate = coord
+        } else {
+            // GPS 不在台灣範圍（如 Simulator 預設舊金山），不更新座標
+            coordinate = nil
+        }
     }
 
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {}
+
+    /// 判斷座標是否在台灣範圍（含離島）
+    private static func isInTaiwan(_ coord: CLLocationCoordinate2D) -> Bool {
+        // 台灣經緯度範圍：緯度 21.8°~26.4°, 經度 119.0°~122.5°
+        (21.8...26.4).contains(coord.latitude) && (119.0...122.5).contains(coord.longitude)
+    }
 }
 
 // MARK: - PharmacyMapView

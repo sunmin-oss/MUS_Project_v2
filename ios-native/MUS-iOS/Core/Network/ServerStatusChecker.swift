@@ -3,10 +3,14 @@ import Combine
 
 @MainActor
 final class ServerStatusChecker: ObservableObject {
-    @Published var isOnline = false
+    enum Status { case offline, checking, online }
+
+    @Published var status: Status = .checking
     @Published var visionAvailable = false
     private var timer: Timer?
     private let baseURL: URL
+
+    var isOnline: Bool { status == .online }
 
     init(baseURL: URL) {
         self.baseURL = baseURL
@@ -31,33 +35,34 @@ final class ServerStatusChecker: ObservableObject {
         var req = URLRequest(url: url)
         req.timeoutInterval = 5
         Task {
+            status = .checking
             do {
                 print("[ServerStatus] Checking \(url.absoluteString)...")
                 let (data, resp) = try await URLSession.shared.data(for: req)
                 guard let http = resp as? HTTPURLResponse else {
                     print("[ServerStatus] No HTTP response")
-                    isOnline = false
+                    status = .offline
                     visionAvailable = false
                     return
                 }
                 print("[ServerStatus] HTTP \(http.statusCode)")
                 guard http.statusCode == 200 else {
-                    isOnline = false
+                    status = .offline
                     visionAvailable = false
                     return
                 }
                 if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                    let services = json["services"] as? [String: String] {
-                    isOnline = true
+                    status = .online
                     visionAvailable = services["vision_api"] == "ready"
                 } else {
-                    isOnline = true
+                    status = .online
                     visionAvailable = false
                 }
-                print("[ServerStatus] Online=\(isOnline), Vision=\(visionAvailable)")
+                print("[ServerStatus] status=\(status), Vision=\(visionAvailable)")
             } catch {
                 print("[ServerStatus] Error: \(error.localizedDescription)")
-                isOnline = false
+                status = .offline
                 visionAvailable = false
             }
         }

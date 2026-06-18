@@ -17,6 +17,7 @@ struct MedicationsListView: View {
     @State private var prescriptionToDelete: String? = nil
     @State private var selectedTab: MedTab = .all
     @State private var selectedPrescription: String? = nil
+    @State private var showPrescriptionImages = false
 
     enum MedTab: String, CaseIterable {
         case all = "全部"
@@ -201,6 +202,11 @@ struct MedicationsListView: View {
                         } label: {
                             Image(systemName: "calendar.badge.checkmark")
                         }
+                        Button {
+                            showPrescriptionImages = true
+                        } label: {
+                            Image(systemName: "doc.text.image")
+                        }
                         if !filteredMedications.isEmpty {
                             Button {
                                 withAnimation {
@@ -226,6 +232,11 @@ struct MedicationsListView: View {
                 AddMedicationView(store: store, editingMedication: editingMedication)
             }
             .refreshable { await loadAll() }
+            .sheet(isPresented: $showPrescriptionImages) {
+                NavigationStack {
+                    PrescriptionImagesView()
+                }
+            }
             .sheet(item: $confirmingMedication, onDismiss: {
                 Task { await loadAll() }
             }) { med in
@@ -423,11 +434,17 @@ struct MedicationsListView: View {
     private func loadAll() async {
         isLoading = true
         defer { isLoading = false }
+        // 先載入快取的 profiles
+        if profiles.isEmpty, let cached = LocalCache.load([Profile].self, forKey: "profiles") {
+            profiles = cached
+        }
         do {
             profiles = try await env.apiClient.fetchProfiles()
+            LocalCache.save(profiles, forKey: "profiles")
             await store.load(profileId: env.selectedProfileId, apiClient: env.apiClient)
         } catch {
-            // silently ignore — store keeps its previous state
+            // 失敗時保留快取資料
+            await store.load(profileId: env.selectedProfileId, apiClient: env.apiClient)
         }
     }
 

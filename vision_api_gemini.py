@@ -172,12 +172,17 @@ class GeminiVisionRecognizer:
                 logger.warning("⚠️ Gemini 回應無內容部分")
                 return []
 
-            # 獲取文本回應
+            # 獲取文本回應（跳過 thinking parts）
             result_text = ""
             for part in candidate["content"]["parts"]:
+                if part.get("thought"):
+                    continue
                 if "text" in part:
                     result_text = part["text"]
-                    break
+            if not result_text:
+                for part in candidate["content"]["parts"]:
+                    if "text" in part:
+                        result_text = part["text"]
 
             logger.info(f"✓ Gemini 回應文本: {result_text[:100]}...")
 
@@ -327,12 +332,17 @@ class GeminiVisionRecognizer:
                 logger.warning("⚠️ Gemini 搜尋回應無內容部分")
                 return []
 
-            # 獲取文本回應
+            # 獲取文本回應（跳過 thinking parts）
             result_text = ""
             for part in candidate["content"]["parts"]:
+                if part.get("thought"):
+                    continue
                 if "text" in part:
                     result_text = part["text"]
-                    break
+            if not result_text:
+                for part in candidate["content"]["parts"]:
+                    if "text" in part:
+                        result_text = part["text"]
 
             logger.info(f"✓ Gemini 搜尋回應: {result_text[:100]}...")
 
@@ -518,9 +528,14 @@ class GeminiVisionRecognizer:
 
             result_text = ""
             for part in candidate["content"]["parts"]:
+                if part.get("thought"):
+                    continue
                 if "text" in part:
                     result_text = part["text"]
-                    break
+            if not result_text:
+                for part in candidate["content"]["parts"]:
+                    if "text" in part:
+                        result_text = part["text"]
 
             logger.info(f"✓ Gemini RAG 回應: {result_text[:100]}...")
 
@@ -665,26 +680,43 @@ class GeminiVisionRecognizer:
 
             response_data = response.json()
             if "candidates" not in response_data or not response_data["candidates"]:
+                logger.warning(f"⚠ 藥單 OCR: Gemini 無 candidates 回傳: {json.dumps(response_data, ensure_ascii=False)[:500]}")
                 return []
 
             candidate = response_data["candidates"][0]
             if "content" not in candidate or "parts" not in candidate["content"]:
+                logger.warning(f"⚠ 藥單 OCR: candidate 缺少 content/parts: {json.dumps(candidate, ensure_ascii=False)[:500]}")
                 return []
 
             result_text = ""
             for part in candidate["content"]["parts"]:
+                if part.get("thought"):
+                    continue
                 if "text" in part:
                     result_text = part["text"]
-                    break
+
+            if not result_text:
+                # fallback: 取最後一個有 text 的 part (即使是 thought)
+                for part in candidate["content"]["parts"]:
+                    if "text" in part:
+                        result_text = part["text"]
+
+            logger.info(f"📄 藥單 OCR Gemini 回傳文字 (前300字): {result_text[:300]}")
 
             # 嘗試解析 JSON
             import re
 
-            json_match = re.search(r"\[.*\]", result_text, re.DOTALL)
+            # 去除 markdown code fence
+            clean_text = re.sub(r"```(?:json)?\s*", "", result_text)
+            clean_text = clean_text.strip()
+
+            json_match = re.search(r"\[.*\]", clean_text, re.DOTALL)
             if not json_match:
+                logger.warning(f"⚠ 藥單 OCR: 回傳文字中找不到 JSON 陣列")
                 return []
 
             parsed = json.loads(json_match.group())
+            logger.info(f"📄 藥單 OCR: 解析到 {len(parsed)} 筆藥物資料")
 
             # 如果回傳的是新格式（dict 列表），轉換為向後相容的名稱列表
             # 同時保留結構化資料供後續比對使用
@@ -702,5 +734,5 @@ class GeminiVisionRecognizer:
             return parsed
 
         except Exception as e:
-            logger.error(f"✗ 藥單 OCR 失敗: {e}")
+            logger.error(f"✗ 藥單 OCR 失敗: {e}", exc_info=True)
             raise
