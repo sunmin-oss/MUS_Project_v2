@@ -673,7 +673,10 @@ class GeminiVisionRecognizer:
 
             if response.status_code != 200:
                 logger.error(f"✗ Gemini OCR API 錯誤: {response.text}")
-                return []
+                # 拋出 exception 讓 router 能往備用 key fallback
+                raise Exception(
+                    f"Gemini OCR HTTP {response.status_code}: {response.text[:200]}"
+                )
 
             response_data = response.json()
             if "candidates" not in response_data or not response_data["candidates"]:
@@ -737,4 +740,4 @@ class GeminiVisionRecognizer:
 
         except Exception as e:
             logger.error(f"✗ 藥單 OCR 失敗: {e}", exc_info=True)
-            return []
+            raise

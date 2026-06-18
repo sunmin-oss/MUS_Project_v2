@@ -180,6 +180,11 @@
             color: #7c3aed;
         }
 
+        .stat-icon.yellow {
+            background: #fff7db;
+            color: #b7791f;
+        }
+
         .stat-icon.red {
             background: #fce8e8;
             color: #ea4335;
@@ -406,6 +411,35 @@
             font-size: 13px;
             color: #555;
             word-break: break-all;
+        }
+
+        .upload-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        .upload-tab {
+            border: 1px solid #d7dee8;
+            background: #fff;
+            color: #2f3b52;
+            border-radius: 999px;
+            padding: 6px 12px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .upload-tab:hover {
+            background: #f4f7fb;
+        }
+
+        .upload-tab.active {
+            background: #2b6cb0;
+            border-color: #2b6cb0;
+            color: #fff;
+            box-shadow: 0 4px 10px rgba(43, 108, 176, 0.2);
         }
 
         .lightbox-backdrop {
@@ -694,6 +728,8 @@
             <li><a href="#" data-page="settings"><span class="icon">⚙️</span><span class="label">系統設定</span></a>
             </li>
             <li><a href="#" data-page="stats"><span class="icon">📈</span><span class="label">API 統計</span></a></li>
+            <li><a href="#" data-page="ai-usage"><span class="icon">🤖</span><span class="label">AI 使用</span></a></li>
+            <li><a href="#" data-page="log-explorer"><span class="icon">📜</span><span class="label">Log 紀錄</span></a></li>
             <li><a href="#" data-page="batch"><span class="icon">🔄</span><span class="label">批次更新</span></a></li>
         </ul>
         <div style="position:absolute;bottom:16px;left:0;right:0;text-align:center;">
@@ -864,6 +900,11 @@
             </div>
             <div class="stat-grid" id="uploadStats"></div>
             <div class="card">
+                <div class="upload-tabs">
+                    <button class="upload-tab active" id="uploadTab-all" onclick="setUploadCategory('all')">全部</button>
+                    <button class="upload-tab" id="uploadTab-drug" onclick="setUploadCategory('drug')">💊 藥物辨識</button>
+                    <button class="upload-tab" id="uploadTab-prescription" onclick="setUploadCategory('prescription')">📄 藥單辨識</button>
+                </div>
                 <div class="table-wrapper">
                     <table>
                         <thead>
@@ -963,6 +1004,134 @@
                             </thead>
                             <tbody id="searchTable"></tbody>
                         </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== 8. AI 使用 ========== -->
+        <div class="page-section" id="page-ai-usage">
+            <div class="page-header">
+                <div>
+                    <h1>AI 使用狀況</h1>
+                    <div class="subtitle">辨識主/備援切換與 AI 諮詢使用統計</div>
+                </div>
+                <div class="btn-group">
+                    <select class="form-control" id="aiStatsRange" onchange="loadAiStats()" style="width:auto;">
+                        <option value="1">近 1 天</option>
+                        <option value="7" selected>近 7 天</option>
+                        <option value="30">近 30 天</option>
+                    </select>
+                    <button class="btn btn-outline" onclick="loadAiStats()">🔄 重新整理</button>
+                </div>
+            </div>
+            <div class="stat-grid" id="aiStatCards"></div>
+            <div class="card">
+                <div class="card-header"><h3>依 API 分項拆分</h3></div>
+                <div class="table-wrapper">
+                    <table>
+                        <thead><tr><th>API</th><th>品牌</th><th>Model</th><th>呼叫數</th><th>成功率</th><th>平均延遲</th><th>Tokens (輸入/輸出)</th><th>最近使用</th></tr></thead>
+                        <tbody id="aiByApi"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+                <div class="card">
+                    <div class="card-header"><h3>依 Provider 拆分</h3></div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead><tr><th>Provider</th><th>品牌</th><th>呼叫數</th><th>成功率</th><th>平均延遲</th></tr></thead>
+                            <tbody id="aiByProvider"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><h3>依功能拆分</h3></div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead><tr><th>功能</th><th>呼叫數</th><th>成功率</th><th>備援使用</th><th>平均延遲</th></tr></thead>
+                            <tbody id="aiByFeature"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header"><h3>每日呈現（依 API 拆分）</h3></div>
+                <div id="aiDailyLegend" style="display:flex;flex-wrap:wrap;gap:12px;padding:4px 12px 8px;font-size:12px;color:#444;"></div>
+                <div id="aiDailyChart" style="display:flex;flex-direction:column;gap:6px;padding:6px 10px 12px;"></div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <h3>最近 50 筆呼叫</h3>
+                    <button class="btn btn-sm btn-outline" onclick="loadAiLogs()">重新載入</button>
+                </div>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>時間</th>
+                                <th>功能</th>
+                                <th>Provider</th>
+                                <th>Model</th>
+                                <th>狀態</th>
+                                <th>延遲</th>
+                                <th>HTTP</th>
+                                <th>錯誤</th>
+                                <th>tokens 輸入/輸出</th>
+                            </tr>
+                        </thead>
+                        <tbody id="aiLogsBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== 7.5 Log 紀錄 ========== -->
+        <div class="page-section" id="page-log-explorer">
+            <div class="page-header">
+                <div>
+                    <h1>Log 紀錄查詢</h1>
+                    <div class="subtitle">統一查詢系統/API/AI/服藥/安全檢查等各類 Log</div>
+                </div>
+                <button class="btn btn-outline" onclick="loadLogExplorer()">重新載入</button>
+            </div>
+
+            <div class="section-card">
+                <div id="logCategoryTabs" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;"></div>
+
+                <div id="logFilters" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:14px;">
+                    <div>
+                        <label style="display:block;font-size:12px;color:#666;">關鍵字</label>
+                        <input id="logFilterKeyword" type="text" placeholder="搜尋訊息..." style="padding:6px 8px;">
+                    </div>
+                    <div>
+                        <label style="display:block;font-size:12px;color:#666;">開始時間</label>
+                        <input id="logFilterStart" type="datetime-local" style="padding:6px 8px;">
+                    </div>
+                    <div>
+                        <label style="display:block;font-size:12px;color:#666;">結束時間</label>
+                        <input id="logFilterEnd" type="datetime-local" style="padding:6px 8px;">
+                    </div>
+                    <div id="logExtraFilters" style="display:flex;gap:10px;align-items:flex-end;"></div>
+                    <div>
+                        <button class="btn btn-primary btn-sm" onclick="queryLogs()">查詢</button>
+                        <button class="btn btn-outline btn-sm" onclick="resetLogFilters()">重設</button>
+                    </div>
+                </div>
+
+                <div style="overflow-x:auto;">
+                    <table class="data-table" id="logExplorerTable">
+                        <thead><tr id="logExplorerHead"></tr></thead>
+                        <tbody id="logExplorerBody"></tbody>
+                    </table>
+                </div>
+
+                <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;">
+                    <div id="logExplorerCount" style="color:#666;font-size:13px;"></div>
+                    <div>
+                        <button class="btn btn-sm btn-outline" onclick="changeLogPage(-1)">上一頁</button>
+                        <span id="logExplorerPage" style="margin:0 10px;">第 1 頁</span>
+                        <button class="btn btn-sm btn-outline" onclick="changeLogPage(1)">下一頁</button>
                     </div>
                 </div>
             </div>
@@ -1185,6 +1354,8 @@
         let currentDrugSearch = '';
         let currentUserPage = 1;
         let currentUserSearch = '';
+        let currentUploadCategory = 'all';
+        let uploadFilesCache = [];
 
         // ============================================
         // 頁面導航
@@ -1208,6 +1379,8 @@
                     uploads: loadUploads,
                     settings: () => { loadSettings(); loadLogs(); },
                     stats: loadApiStats,
+                    'ai-usage': loadAiStats,
+                    'log-explorer': loadLogExplorer,
                     batch: () => { loadBatchStatus(); startBatchPolling(); },
                 };
                 if (loaders[page]) loaders[page]();
@@ -1682,6 +1855,11 @@
             const data = await api('/uploads');
             if (!data.success) return showToast('載入失敗', 'error');
 
+            uploadFilesCache = Array.isArray(data.files) ? data.files : [];
+            const drugCount = uploadFilesCache.filter(f => f.mode === 'drug').length;
+            const prescriptionCount = uploadFilesCache.filter(f => f.mode === 'prescription').length;
+            const unknownCount = uploadFilesCache.filter(f => f.mode !== 'drug' && f.mode !== 'prescription').length;
+
             document.getElementById('uploadStats').innerHTML = `
                 <div class="stat-card">
                     <div class="stat-icon blue">📄</div>
@@ -1691,7 +1869,35 @@
                     <div class="stat-icon orange">💾</div>
                     <div><div class="stat-value">${data.total_size_mb} MB</div><div class="stat-label">總大小</div></div>
                 </div>
+                <div class="stat-card">
+                    <div class="stat-icon green">💊</div>
+                    <div><div class="stat-value">${drugCount}</div><div class="stat-label">藥物辨識</div></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon purple">📄</div>
+                    <div><div class="stat-value">${prescriptionCount}</div><div class="stat-label">藥單辨識</div></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon yellow">❓</div>
+                    <div><div class="stat-value">${unknownCount}</div><div class="stat-label">未知類型</div></div>
+                </div>
             `;
+
+            renderUploadsTable();
+        }
+
+        function setUploadCategory(category) {
+            currentUploadCategory = category;
+            document.querySelectorAll('.upload-tab').forEach(btn => btn.classList.remove('active'));
+            const activeBtn = document.getElementById(`uploadTab-${category}`);
+            if (activeBtn) activeBtn.classList.add('active');
+            renderUploadsTable();
+        }
+
+        function renderUploadsTable() {
+            const filteredFiles = currentUploadCategory === 'all'
+                ? uploadFilesCache
+                : uploadFilesCache.filter(f => f.mode === currentUploadCategory);
 
             const tbody = document.getElementById('uploadTableBody');
             const empty = document.getElementById('uploadsEmpty');
@@ -1701,12 +1907,20 @@
                 prescription: { text: '📄 藥單辨識', cls: 'badge-success' },
                 unknown: { text: '❓ 未知', cls: 'badge-warning' }
             };
-            if (data.files.length === 0) {
+
+            if (filteredFiles.length === 0) {
                 tbody.innerHTML = '';
+                if (currentUploadCategory === 'all') {
+                    empty.textContent = '目前沒有上傳檔案';
+                } else if (currentUploadCategory === 'drug') {
+                    empty.textContent = '目前沒有藥物辨識檔案';
+                } else {
+                    empty.textContent = '目前沒有藥單辨識檔案';
+                }
                 empty.style.display = 'block';
             } else {
                 empty.style.display = 'none';
-                tbody.innerHTML = data.files.map(f => {
+                tbody.innerHTML = filteredFiles.map(f => {
                     const ext = f.name.substring(f.name.lastIndexOf('.')).toLowerCase();
                     const isImage = imgExts.includes(ext);
                     const imgUrl = `/api/images/${encodeURIComponent(f.name)}`;
@@ -1849,6 +2063,184 @@
         }
 
         // ============================================
+        // 7b. AI 使用統計 (Phase 2)
+        // ============================================
+        async function loadAiStats() {
+            const days = document.getElementById('aiStatsRange').value || 7;
+            const data = await api(`/ai-stats?days=${days}`);
+            if (!data.success) return showToast('載入 AI 統計失敗', 'error');
+            const s = data.stats;
+
+            const pct = (n) => `${(n * 100).toFixed(1)}%`;
+            const ms = (v) => v ? `${Math.round(v)} ms` : '-';
+
+            document.getElementById('aiStatCards').innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-icon blue">🤖</div>
+                    <div><div class="stat-value">${s.total}</div><div class="stat-label">總呼叫數</div></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon green">✅</div>
+                    <div><div class="stat-value">${pct(s.success_rate)}</div><div class="stat-label">成功率 (${s.success}/${s.total})</div></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon yellow">↪️</div>
+                    <div><div class="stat-value">${pct(s.fallback_rate)}</div><div class="stat-label">備援使用率 (${s.fallback})</div></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon purple">⏱️</div>
+                    <div><div class="stat-value">${ms(s.avg_latency_ms)}</div><div class="stat-label">平均延遲</div></div>
+                </div>
+            `;
+
+            document.getElementById('aiByProvider').innerHTML =
+                (s.by_provider || []).map(p => {
+                    const sr = p.calls ? (p.success / p.calls) : 0;
+                    return `<tr>
+                        <td><code>${p.provider}</code></td>
+                        <td>${p.provider_name || '-'}</td>
+                        <td>${p.calls}</td>
+                        <td>${pct(sr)}</td>
+                        <td>${ms(p.avg_latency)}</td>
+                    </tr>`;
+                }).join('') || '<tr><td colspan="5" style="text-align:center;color:#999;">尚無資料</td></tr>';
+
+            // 友善名稱 mapping：slot 內部名 → 中文標籤
+            const apiLabel = (provider, brand) => {
+                const b = brand || '';
+                const map = {
+                    primary:          `${b ? b + ' ' : ''}主 Key`,
+                    secondary:        `${b ? b + ' ' : ''}備用 Key`,
+                    openai_fallback:  `跨品牌備援 (${b || 'openai'})`,
+                    openai_consult:   `AI 諮詢 (${b || 'openai'})`,
+                };
+                return map[provider] || provider;
+            };
+
+            document.getElementById('aiByApi').innerHTML =
+                (s.by_api || []).map(a => {
+                    const sr = a.calls ? (a.success / a.calls) : 0;
+                    const tIn  = a.tokens_in  || 0;
+                    const tOut = a.tokens_out || 0;
+                    const last = (a.last_used || '').replace('T', ' ').slice(0, 19) || '-';
+                    return `<tr>
+                        <td><b>${apiLabel(a.provider, a.provider_name)}</b><br><code style="font-size:11px;color:#888;">${a.provider}</code></td>
+                        <td>${a.provider_name || '-'}</td>
+                        <td><code>${a.model || '-'}</code></td>
+                        <td>${a.calls}</td>
+                        <td>${pct(sr)} <span style="color:#888;font-size:11px;">(${a.success}/${a.calls})</span></td>
+                        <td>${ms(a.avg_latency)}</td>
+                        <td>${tIn ? tIn.toLocaleString() : '-'} / ${tOut ? tOut.toLocaleString() : '-'}</td>
+                        <td style="font-size:11px;color:#666;">${last}</td>
+                    </tr>`;
+                }).join('') || '<tr><td colspan="8" style="text-align:center;color:#999;">尚無資料</td></tr>';
+
+            document.getElementById('aiByFeature').innerHTML =
+                (s.by_feature || []).map(f => {
+                    const sr = f.calls ? (f.success / f.calls) : 0;
+                    const fb = f.calls ? ((f.fallback || 0) / f.calls) : 0;
+                    return `<tr>
+                        <td><code>${f.feature}</code></td>
+                        <td>${f.calls}</td>
+                        <td>${pct(sr)}</td>
+                        <td>${pct(fb)}</td>
+                        <td>${ms(f.avg_latency)}</td>
+                    </tr>`;
+                }).join('') || '<tr><td colspan="5" style="text-align:center;color:#999;">尚無資料</td></tr>';
+
+            const chart = document.getElementById('aiDailyChart');
+            const legendEl = document.getElementById('aiDailyLegend');
+            if (!s.daily || s.daily.length === 0) {
+                chart.innerHTML = '<div style="color:#999;padding:20px;text-align:center;">尚無每日資料</div>';
+                if (legendEl) legendEl.innerHTML = '';
+            } else {
+                // feature 中文標籤
+                const FEATURE_LABELS = {
+                    'consult': 'AI 諮詢（聊天）',
+                    'recognize': '藥物辨識',
+                    'recognize_with_rag': '藥物辨識（RAG）',
+                    'recognize_prescription': '藥單 OCR',
+                    'recognize_drug': '藥物辨識',
+                    'drug_search': '藥物搜尋'
+                };
+                // 固定色票，feature → color
+                const PALETTE = ['#1976d2','#f57c00','#388e3c','#7b1fa2','#c62828','#0097a7','#5d4037','#455a64'];
+
+                // 由 daily_by_feature 建立 day → {feature: calls}
+                const dbf = s.daily_by_feature || [];
+                const byDay = {};
+                const featureSet = new Set();
+                dbf.forEach(r => {
+                    if (!byDay[r.day]) byDay[r.day] = {};
+                    byDay[r.day][r.feature] = (byDay[r.day][r.feature] || 0) + (r.calls || 0);
+                    featureSet.add(r.feature);
+                });
+                // 若 backend 未回 daily_by_feature，退回單色顯示
+                const features = featureSet.size ? Array.from(featureSet) : ['_total'];
+                const colorOf = {};
+                features.forEach((f, i) => { colorOf[f] = PALETTE[i % PALETTE.length]; });
+
+                // legend
+                if (legendEl) {
+                    legendEl.innerHTML = features.map(f => {
+                        const label = FEATURE_LABELS[f] || f;
+                        return `<span style="display:inline-flex;align-items:center;gap:6px;">
+                            <span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:${colorOf[f]};"></span>
+                            ${label}
+                        </span>`;
+                    }).join('');
+                }
+
+                const maxCount = Math.max(...s.daily.map(d => d.calls), 1);
+
+                chart.innerHTML = s.daily.map(d => {
+                    const dayCounts = byDay[d.day] || { _total: d.calls };
+                    const segs = features.map(f => {
+                        const v = dayCounts[f] || 0;
+                        if (!v) return '';
+                        const w = (v / maxCount) * 100;
+                        return `<div title="${FEATURE_LABELS[f] || f}：${v}" style="width:${w}%;background:${colorOf[f]};height:100%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;">${v}</div>`;
+                    }).join('');
+                    return `<div style="display:flex;align-items:center;gap:10px;">
+                        <div style="width:48px;font-size:11px;color:#666;text-align:right;">${(d.day || '').slice(5)}</div>
+                        <div style="flex:1;height:22px;background:#f1f3f5;border-radius:4px;overflow:hidden;display:flex;">${segs}</div>
+                        <div style="width:48px;font-size:11px;color:#333;text-align:left;">共 ${d.calls}</div>
+                    </div>`;
+                }).join('');
+            }
+
+            await loadAiLogs();
+        }
+
+        async function loadAiLogs() {
+            const data = await api('/ai-logs?limit=50');
+            const tbody = document.getElementById('aiLogsBody');
+            if (!data.success) { tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#c00;">載入失敗</td></tr>'; return; }
+            const items = data.items || [];
+            if (items.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#999;">尚無紀錄</td></tr>';
+                return;
+            }
+            tbody.innerHTML = items.map(r => {
+                const ok = r.success ? '<span style="color:#2e7d32;">✓</span>' : '<span style="color:#c62828;">✗</span>';
+                const fb = r.fallback_used ? ' <span style="background:#fff3e0;color:#ef6c00;padding:1px 6px;border-radius:8px;font-size:11px;">fallback</span>' : '';
+                const tIn = r.tokens_in == null ? '-' : r.tokens_in;
+                const tOut = r.tokens_out == null ? '-' : r.tokens_out;
+                return `<tr>
+                    <td>${(r.created_at || '').replace('T', ' ')}</td>
+                    <td><code>${r.feature}</code></td>
+                    <td><code>${r.provider}</code> ${r.provider_name || ''}${fb}</td>
+                    <td><code style="font-size:11px;">${r.model || '-'}</code></td>
+                    <td>${ok}</td>
+                    <td>${r.latency_ms == null ? '-' : Math.round(r.latency_ms) + ' ms'}</td>
+                    <td>${r.status_code || '-'}</td>
+                    <td>${r.error_type || '-'}</td>
+                    <td>${tIn} / ${tOut}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        // ============================================
         // 8. 批次更新
         // ============================================
         let batchPollTimer = null;
@@ -1885,6 +2277,204 @@
         async function batchResume() {
             const res = await api('/batch-update/resume', { method: 'POST' });
             showToast(res.message, res.success ? 'success' : 'error');
+        }
+
+        // ============================================
+        // Log 紀錄查詢
+        // ============================================
+        const LOG_COLUMNS = {
+            system: [
+                { key: 'created_at', label: '時間', width: '160px' },
+                { key: 'level', label: '等級', width: '70px', render: v => `<span class="badge badge-${({ERROR:'danger',WARNING:'warning',INFO:'info',DEBUG:'secondary'})[v]||'secondary'}">${v||''}</span>` },
+                { key: 'logger', label: 'Logger', width: '140px' },
+                { key: 'message', label: '訊息' },
+                { key: 'exc_info', label: '例外', render: v => v ? `<details><summary>展開</summary><pre style="white-space:pre-wrap;font-size:11px;">${escapeHtml(v)}</pre></details>` : '' }
+            ],
+            api: [
+                { key: 'created_at', label: '時間', width: '160px' },
+                { key: 'method', label: 'Method', width: '70px' },
+                { key: 'endpoint', label: '端點' },
+                { key: 'status_code', label: '狀態', width: '70px', render: v => `<span class="badge badge-${v>=500?'danger':v>=400?'warning':'success'}">${v}</span>` },
+                { key: 'duration_ms', label: '耗時(ms)', width: '90px' },
+                { key: 'query_params', label: '參數' }
+            ],
+            ai_provider: [
+                { key: 'created_at', label: '時間', width: '160px' },
+                { key: 'feature', label: '功能', width: '110px' },
+                { key: 'provider', label: 'Provider', width: '100px' },
+                { key: 'provider_name', label: '實際來源', width: '110px' },
+                { key: 'model', label: 'Model', width: '160px' },
+                { key: 'success', label: '結果', width: '70px', render: v => v ? '<span class="badge badge-success">成功</span>' : '<span class="badge badge-danger">失敗</span>' },
+                { key: 'fallback_used', label: 'Fallback', width: '70px', render: v => v ? '是' : '' },
+                { key: 'latency_ms', label: '耗時(ms)', width: '90px' },
+                { key: 'status_code', label: '狀態', width: '70px' },
+                { key: 'tokens_in', label: 'Tokens(in)', width: '80px' },
+                { key: 'tokens_out', label: 'Tokens(out)', width: '80px' },
+                { key: 'error_type', label: '錯誤類型' }
+            ],
+            adherence: [
+                { key: 'created_at', label: '時間', width: '160px' },
+                { key: 'user_id', label: 'User', width: '70px' },
+                { key: 'medication_id', label: '藥物 ID', width: '90px' },
+                { key: 'status', label: '狀態', width: '100px' },
+                { key: 'taken_at', label: '服用時間', width: '160px' },
+                { key: 'scheduled_date', label: '預定日', width: '110px' },
+                { key: 'note', label: '備註' }
+            ],
+            safety: [
+                { key: 'created_at', label: '時間', width: '160px' },
+                { key: 'user_id', label: 'User', width: '70px' },
+                { key: 'profile_id', label: 'Profile', width: '70px' },
+                { key: 'drug_id', label: '藥物 ID', width: '80px' },
+                { key: 'check_type', label: '檢查類型', width: '120px' },
+                { key: 'result', label: '結果', width: '90px' },
+                { key: 'detail', label: '詳情' }
+            ]
+        };
+
+        const LOG_EXTRA_FILTERS = {
+            system: [
+                { id: 'logExtraLevel', label: '等級', type: 'select', options: ['', 'INFO', 'WARNING', 'ERROR', 'DEBUG'], param: 'level' }
+            ],
+            api: [
+                { id: 'logExtraMethod', label: 'Method', type: 'select', options: ['', 'GET', 'POST', 'PUT', 'DELETE', 'PATCH'], param: 'method' },
+                { id: 'logExtraStatus', label: '狀態碼', type: 'text', param: 'status_code', width: '80px' }
+            ],
+            ai_provider: [
+                { id: 'logExtraFeature', label: '功能', type: 'text', param: 'feature', width: '120px' },
+                { id: 'logExtraSuccess', label: '結果', type: 'select', options: [['',''],['1','成功'],['0','失敗']], param: 'success' }
+            ],
+            adherence: [
+                { id: 'logExtraUser', label: 'User ID', type: 'text', param: 'user_id', width: '80px' }
+            ],
+            safety: [
+                { id: 'logExtraUser', label: 'User ID', type: 'text', param: 'user_id', width: '80px' }
+            ]
+        };
+
+        let _logCategories = [];
+        let _logCurrent = 'system';
+        let _logPage = 1;
+        const _LOG_PAGE_SIZE = 50;
+
+        function escapeHtml(s) {
+            if (s == null) return '';
+            return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        }
+
+        async function loadLogExplorer() {
+            try {
+                const res = await api('/logs/categories');
+                _logCategories = (res && res.success && Array.isArray(res.categories)) ? res.categories : [];
+                renderLogTabs();
+                if (_logCategories.length && !_logCategories.find(c => c.key === _logCurrent)) {
+                    _logCurrent = _logCategories[0].key;
+                }
+                renderLogExtraFilters();
+                _logPage = 1;
+                queryLogs();
+            } catch (e) {
+                showToast('載入 Log 類別失敗: ' + e.message, 'error');
+            }
+        }
+
+        function renderLogTabs() {
+            const bar = document.getElementById('logCategoryTabs');
+            if (!bar) return;
+            bar.innerHTML = _logCategories.map(c => {
+                const active = c.key === _logCurrent;
+                return `<button class="btn btn-sm ${active ? 'btn-primary' : 'btn-outline'}" onclick="switchLogCategory('${c.key}')">${escapeHtml(c.label)} <span style="opacity:.7;">(${c.count})</span></button>`;
+            }).join('');
+        }
+
+        function switchLogCategory(key) {
+            _logCurrent = key;
+            _logPage = 1;
+            renderLogTabs();
+            renderLogExtraFilters();
+            queryLogs();
+        }
+
+        function renderLogExtraFilters() {
+            const box = document.getElementById('logExtraFilters');
+            if (!box) return;
+            const filters = LOG_EXTRA_FILTERS[_logCurrent] || [];
+            box.innerHTML = filters.map(f => {
+                if (f.type === 'select') {
+                    const opts = f.options.map(o => {
+                        const [val, label] = Array.isArray(o) ? o : [o, o || '(全部)'];
+                        return `<option value="${escapeHtml(val)}">${escapeHtml(label)}</option>`;
+                    }).join('');
+                    return `<div><label style="display:block;font-size:12px;color:#666;">${f.label}</label><select id="${f.id}" style="padding:6px 8px;">${opts}</select></div>`;
+                }
+                return `<div><label style="display:block;font-size:12px;color:#666;">${f.label}</label><input id="${f.id}" type="text" style="padding:6px 8px;width:${f.width||'120px'};"></div>`;
+            }).join('');
+        }
+
+        function resetLogFilters() {
+            document.getElementById('logFilterKeyword').value = '';
+            document.getElementById('logFilterStart').value = '';
+            document.getElementById('logFilterEnd').value = '';
+            (LOG_EXTRA_FILTERS[_logCurrent] || []).forEach(f => {
+                const el = document.getElementById(f.id);
+                if (el) el.value = '';
+            });
+            _logPage = 1;
+            queryLogs();
+        }
+
+        function changeLogPage(delta) {
+            const next = _logPage + delta;
+            if (next < 1) return;
+            _logPage = next;
+            queryLogs();
+        }
+
+        async function queryLogs() {
+            const params = new URLSearchParams();
+            params.set('category', _logCurrent);
+            params.set('limit', _LOG_PAGE_SIZE);
+            params.set('offset', (_logPage - 1) * _LOG_PAGE_SIZE);
+            const kw = document.getElementById('logFilterKeyword').value.trim();
+            if (kw) params.set('keyword', kw);
+            const s = document.getElementById('logFilterStart').value;
+            if (s) params.set('start', s.replace('T', ' '));
+            const e = document.getElementById('logFilterEnd').value;
+            if (e) params.set('end', e.replace('T', ' '));
+            (LOG_EXTRA_FILTERS[_logCurrent] || []).forEach(f => {
+                const el = document.getElementById(f.id);
+                if (el && el.value) params.set(f.param, el.value);
+            });
+
+            try {
+                const res = await api('/logs/query?' + params.toString());
+                renderLogTable(res);
+            } catch (err) {
+                showToast('查詢 Log 失敗: ' + err.message, 'error');
+            }
+        }
+
+        function renderLogTable(res) {
+            const cols = LOG_COLUMNS[_logCurrent] || [];
+            const head = document.getElementById('logExplorerHead');
+            head.innerHTML = cols.map(c => `<th${c.width ? ` style="width:${c.width};"` : ''}>${escapeHtml(c.label)}</th>`).join('');
+
+            const body = document.getElementById('logExplorerBody');
+            const items = (res && res.items) || [];
+            if (!items.length) {
+                body.innerHTML = `<tr><td colspan="${cols.length}" style="text-align:center;color:#999;padding:20px;">無資料</td></tr>`;
+            } else {
+                body.innerHTML = items.map(row => {
+                    return '<tr>' + cols.map(c => {
+                        const v = row[c.key];
+                        const cell = c.render ? c.render(v, row) : escapeHtml(v == null ? '' : v);
+                        return `<td>${cell}</td>`;
+                    }).join('') + '</tr>';
+                }).join('');
+            }
+            const total = res && res.total != null ? res.total : items.length;
+            document.getElementById('logExplorerCount').textContent = `共 ${total} 筆，目前顯示第 ${(_logPage - 1) * _LOG_PAGE_SIZE + 1} - ${(_logPage - 1) * _LOG_PAGE_SIZE + items.length} 筆`;
+            document.getElementById('logExplorerPage').textContent = `第 ${_logPage} 頁`;
         }
 
         function startBatchPolling() {

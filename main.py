@@ -107,12 +107,13 @@ CORS(
 
 # 註冊 Blueprints（P0-3）
 from admin_routes import admin_bp
-from routes import auth_bp, medications_bp, safety_bp
+from routes import auth_bp, medications_bp, safety_bp, consult_bp
 
 app.register_blueprint(admin_bp)
 app.register_blueprint(auth_bp)
 app.register_blueprint(medications_bp)
 app.register_blueprint(safety_bp)
+app.register_blueprint(consult_bp)
 
 # 建立新增資料表（users 等，不影響既有表）
 with app.app_context():
@@ -274,28 +275,97 @@ def disable_cache(response):
     return response
 
 
-# 動態匯入 API 提供商
+# 動態匯入主辨識器提供商
+primary_recognizer = None
 try:
     if config.API_PROVIDER.lower() == "gemini":
         from vision_api_gemini import GeminiVisionRecognizer
 
-        recognizer = GeminiVisionRecognizer(config.GEMINI_API_KEY, config.GEMINI_MODEL)
+        primary_recognizer = GeminiVisionRecognizer(
+            config.GEMINI_API_KEY, config.GEMINI_MODEL
+        )
         logger.info("✓ Google Gemini Vision API 已初始化")
     elif config.API_PROVIDER.lower() == "google":
         from vision_api_google import GoogleVisionRecognizer
 
-        recognizer = GoogleVisionRecognizer(config.GOOGLE_VISION_API_KEY)
+        primary_recognizer = GoogleVisionRecognizer(config.GOOGLE_VISION_API_KEY)
         logger.info("✓ Google Vision API 已初始化")
     elif config.API_PROVIDER.lower() == "claude":
         from vision_api_claude import ClaudeVisionRecognizer
 
-        recognizer = ClaudeVisionRecognizer(config.CLAUDE_API_KEY)
+        primary_recognizer = ClaudeVisionRecognizer(config.CLAUDE_API_KEY)
         logger.info("✓ Claude Vision API 已初始化")
     else:
         raise ValueError(f"未知的 API 提供商: {config.API_PROVIDER}")
 except Exception as e:
-    logger.error(f"✗ 無法初始化視覺 API: {e}")
+    logger.error(f"✗ 無法初始化主視覺 API: {e}")
+    primary_recognizer = None
+
+# Phase 1：OpenAI 備援（無 Key 則不啟用）
+fallback_recognizer = None
+try:
+    if config.OPENAI_FALLBACK_API_KEY:
+        from vision_api_openai import OpenAIVisionRecognizer
+
+        fallback_recognizer = OpenAIVisionRecognizer(
+            api_key=config.OPENAI_FALLBACK_API_KEY,
+            model=config.OPENAI_FALLBACK_MODEL,
+            base_url=config.OPENAI_FALLBACK_BASE_URL,
+            timeout=config.AI_TIMEOUT_SEC,
+        )
+        logger.info(
+            f"✓ OpenAI Fallback Vision 已初始化 (model={config.OPENAI_FALLBACK_MODEL})"
+        )
+except Exception as e:
+    logger.warning(f"⚠ OpenAI Fallback 初始化失敗：{e}")
+    fallback_recognizer = None
+
+# Gemini 備用 Key（次序：primary → secondary → fallback）
+secondary_recognizer = None
+try:
+    if (
+        config.API_PROVIDER.lower() == "gemini"
+        and getattr(config, "GEMINI_BACKUP_API_KEY", None)
+    ):
+        from vision_api_gemini import GeminiVisionRecognizer
+
+        secondary_recognizer = GeminiVisionRecognizer(
+            config.GEMINI_BACKUP_API_KEY,
+            getattr(config, "GEMINI_BACKUP_MODEL", config.GEMINI_MODEL),
+        )
+        logger.info(
+            f"✓ Gemini Backup 已初始化 (model={getattr(config, 'GEMINI_BACKUP_MODEL', config.GEMINI_MODEL)})"
+        )
+except Exception as e:
+    logger.warning(f"⚠ Gemini Backup 初始化失敗：{e}")
+    secondary_recognizer = None
+
+# 組裝 Router；沒任何 provider 可用時才設 None
+if (
+    primary_recognizer is not None
+    or secondary_recognizer is not None
+    or fallback_recognizer is not None
+):
+    from services.ai import RecognizerRouter, usage_log
+
+    recognizer = RecognizerRouter(
+        primary=primary_recognizer,
+        secondary=secondary_recognizer,
+        fallback=fallback_recognizer,
+        settings=config,
+    )
+    # Phase 2：啟動 ai_provider_logs 背景寫入
+    usage_log.start_writer()
+else:
     recognizer = None
+
+# 應用程式 logging → system_logs (供後台 Log 紀錄頁查詢)
+try:
+    from services import system_log as _system_log
+
+    _system_log.install()
+except Exception as _e:  # pragma: no cover
+    logger.warning("⚠ system_log handler 安裝失敗: %s", _e)
 
 # 動態匯入資料庫模組
 try:
@@ -535,10 +605,14 @@ def recognize_drug():
                 }
             )
 
+        # Phase 1：標示實際使用的辨識來源（primary/openai_fallback）
+        provider_name = getattr(recognizer, "last_provider", None) or "primary"
         response = {
             "success": True,
             "request_id": filename.split("_")[0],
             "recognized_items": recognized_items,
+            "provider": provider_name,
+            "fallback_used": provider_name != "primary",
             "message": f"辨識完成，找到 {len(recognized_items)} 個匹配結果",
         }
 
@@ -576,73 +650,6 @@ def recognize_drug():
 @app.route("/favicon.ico")
 def favicon():
     return "", 204
-
-
-@app.route("/api/debug_prescription", methods=["POST"])
-def debug_prescription():
-    """臨時 debug endpoint，測試藥單 OCR 並回傳 Gemini 原始回應"""
-    try:
-        if recognizer is None or not hasattr(recognizer, "recognize_prescription"):
-            return jsonify({"error": "recognizer 不支持 prescription"}), 503
-
-        if "image" not in request.files:
-            return jsonify({"error": "no image"}), 400
-
-        file = request.files["image"]
-        filename = "debug_" + str(uuid.uuid4()) + "_" + secure_filename(file.filename)
-        filepath = os.path.join(config.UPLOAD_FOLDER, filename)
-        file.save(filepath)
-
-        # 直接呼叫 Gemini API 並取得原始回應
-        import base64
-        from pathlib import Path
-
-        image_file = Path(filepath)
-        with open(image_file, "rb") as f:
-            image_data = f.read()
-
-        suffix = image_file.suffix.lower()
-        mime_map = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png"}
-        mime_type = mime_map.get(suffix, "image/jpeg")
-        image_b64 = base64.standard_b64encode(image_data).decode("utf-8")
-
-        import requests as req_lib
-        api_url = f"{recognizer.base_url}/{recognizer.model_name}:generateContent?key={recognizer.api_key}"
-        payload = {
-            "contents": [{
-                "parts": [
-                    {"text": "請分析這張藥單照片，提取藥物名稱，回傳 JSON 陣列 [{\"chinese_name\":\"...\"}]。只回傳 JSON。"},
-                    {"inline_data": {"mime_type": mime_type, "data": image_b64}}
-                ]
-            }]
-        }
-        response = req_lib.post(api_url, json=payload, headers={"Content-Type": "application/json"}, timeout=30)
-
-        # 清理暫存
-        os.remove(filepath)
-
-        result = {
-            "gemini_status": response.status_code,
-            "gemini_response_keys": list(response.json().keys()) if response.status_code == 200 else None,
-        }
-
-        if response.status_code == 200:
-            data = response.json()
-            if "candidates" in data and data["candidates"]:
-                parts = data["candidates"][0].get("content", {}).get("parts", [])
-                result["parts_count"] = len(parts)
-                result["parts_info"] = [
-                    {"has_thought": part.get("thought", False), "text_preview": part.get("text", "")[:200]}
-                    for part in parts
-                ]
-            else:
-                result["raw_response_preview"] = str(response.json())[:500]
-        else:
-            result["error_response"] = response.text[:500]
-
-        return jsonify(result), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/api/recognize_prescription", methods=["POST"])

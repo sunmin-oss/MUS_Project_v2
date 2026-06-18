@@ -1168,6 +1168,249 @@ def api_stats():
 
 
 # ============================================
+# AI Provider 使用統計（Phase 2）
+# ============================================
+
+
+@admin_bp.route("/api/ai-stats", methods=["GET"])
+def ai_stats():
+    """AI 主備援與諮詢端點的使用情況彙總。"""
+    try:
+        from services.ai import usage_log
+
+        days = int(request.args.get("days", 7) or 7)
+        return jsonify({"success": True, "stats": usage_log.query_summary(days=days)})
+    except Exception as e:
+        logger.error("ai-stats 失敗: %s", e, exc_info=True)
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@admin_bp.route("/api/ai-logs", methods=["GET"])
+def ai_logs():
+    """AI 呼叫詳細紀錄（分頁，可依 feature/provider/success 過濾）。"""
+    try:
+        from services.ai import usage_log
+
+        feature = request.args.get("feature") or None
+        provider = request.args.get("provider") or None
+        success_param = request.args.get("success")
+        success = None
+        if success_param is not None:
+            success = success_param.lower() in ("1", "true", "yes")
+        limit = int(request.args.get("limit", 50) or 50)
+        offset = int(request.args.get("offset", 0) or 0)
+
+        data = usage_log.query_recent(
+            limit=limit,
+            offset=offset,
+            feature=feature,
+            provider=provider,
+            success=success,
+        )
+        return jsonify({"success": True, **data})
+    except Exception as e:
+        logger.error("ai-logs 失敗: %s", e, exc_info=True)
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ============================================
+# 統一 Log 查詢（聚合 system_logs / api_logs / ai_provider_logs / adherence_logs / safety_check_logs）
+# ============================================
+
+
+_LOG_CATEGORIES = {
+    "system": {"label": "應用程式日誌", "table": "system_logs"},
+    "api": {"label": "API 請求", "table": "api_logs"},
+    "ai_provider": {"label": "AI Provider", "table": "ai_provider_logs"},
+    "adherence": {"label": "服藥紀錄", "table": "adherence_logs"},
+    "safety": {"label": "安全檢查", "table": "safety_check_logs"},
+}
+
+
+def _logs_table_count(conn, table: str) -> int:
+    try:
+        cur = conn.execute(f"SELECT COUNT(*) FROM {table}")
+        return int(cur.fetchone()[0])
+    except sqlite3.OperationalError:
+        return 0
+
+
+@admin_bp.route("/api/logs/categories", methods=["GET"])
+def logs_categories():
+    """回傳所有 log 類別 + 各自筆數，供前端 tab 顯示。"""
+    import sqlite3 as _sql
+    from config import config
+
+    try:
+        conn = _sql.connect(config.DATABASE_PATH)
+        items = []
+        for key, meta in _LOG_CATEGORIES.items():
+            items.append(
+                {
+                    "key": key,
+                    "label": meta["label"],
+                    "count": _logs_table_count(conn, meta["table"]),
+                }
+            )
+        conn.close()
+        return jsonify({"success": True, "categories": items})
+    except Exception as e:
+        logger.error("logs/categories 失敗: %s", e, exc_info=True)
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+def _build_filter(args, conds, vals, mapping):
+    """從 query string 取出共用篩選條件。"""
+    keyword = (args.get("keyword") or "").strip()
+    start = (args.get("start") or "").strip()
+    end = (args.get("end") or "").strip()
+    if start:
+        conds.append("created_at >= ?")
+        vals.append(start)
+    if end:
+        conds.append("created_at <= ?")
+        vals.append(end)
+    if keyword and mapping["search_cols"]:
+        like = f"%{keyword}%"
+        cols = mapping["search_cols"]
+        conds.append("(" + " OR ".join(f"{c} LIKE ?" for c in cols) + ")")
+        vals.extend([like] * len(cols))
+
+
+@admin_bp.route("/api/logs/query", methods=["GET"])
+def logs_query():
+    """統一 Log 查詢端點。
+
+    Query params:
+        category   = system | api | ai_provider | adherence | safety
+        level      = INFO/WARN/ERROR (system 專用)
+        success    = 1/0 (ai_provider/api)
+        keyword    = 模糊搜尋
+        start, end = ISO datetime
+        limit, offset
+    """
+    import sqlite3 as _sql
+    from config import config
+
+    try:
+        category = (request.args.get("category") or "system").lower()
+        if category not in _LOG_CATEGORIES:
+            return (
+                jsonify({"success": False, "error": f"未知類別: {category}"}),
+                400,
+            )
+
+        limit = max(1, min(int(request.args.get("limit", 50) or 50), 500))
+        offset = max(0, int(request.args.get("offset", 0) or 0))
+        conds: list = []
+        vals: list = []
+
+        if category == "system":
+            mapping = {"search_cols": ["message", "logger"]}
+            level = (request.args.get("level") or "").upper().strip()
+            if level:
+                conds.append("level = ?")
+                vals.append(level)
+            _build_filter(request.args, conds, vals, mapping)
+            select_cols = (
+                "id, level, logger, message, module, func, lineno, exc_info, created_at"
+            )
+            table = "system_logs"
+
+        elif category == "api":
+            mapping = {"search_cols": ["endpoint", "query_params"]}
+            status = request.args.get("status_code")
+            if status:
+                conds.append("status_code = ?")
+                vals.append(int(status))
+            method = (request.args.get("method") or "").upper().strip()
+            if method:
+                conds.append("method = ?")
+                vals.append(method)
+            _build_filter(request.args, conds, vals, mapping)
+            select_cols = (
+                "id, endpoint, method, status_code, duration_ms, query_params, created_at"
+            )
+            table = "api_logs"
+
+        elif category == "ai_provider":
+            mapping = {"search_cols": ["feature", "provider", "provider_name", "model", "error_type"]}
+            success = request.args.get("success")
+            if success in ("0", "1"):
+                conds.append("success = ?")
+                vals.append(int(success))
+            feature = request.args.get("feature")
+            if feature:
+                conds.append("feature = ?")
+                vals.append(feature)
+            _build_filter(request.args, conds, vals, mapping)
+            select_cols = (
+                "id, feature, provider, provider_name, model, success, fallback_used, "
+                "latency_ms, status_code, error_type, tokens_in, tokens_out, created_at"
+            )
+            table = "ai_provider_logs"
+
+        elif category == "adherence":
+            mapping = {"search_cols": ["status", "note"]}
+            user_id = request.args.get("user_id")
+            if user_id:
+                conds.append("user_id = ?")
+                vals.append(int(user_id))
+            _build_filter(request.args, conds, vals, mapping)
+            select_cols = (
+                "id, user_id, medication_id, schedule_id, status, taken_at, "
+                "scheduled_date, note, created_at"
+            )
+            table = "adherence_logs"
+
+        else:  # safety
+            mapping = {"search_cols": ["check_type", "result", "detail"]}
+            user_id = request.args.get("user_id")
+            if user_id:
+                conds.append("user_id = ?")
+                vals.append(int(user_id))
+            _build_filter(request.args, conds, vals, mapping)
+            select_cols = (
+                "id, user_id, profile_id, drug_id, check_type, result, detail, created_at"
+            )
+            table = "safety_check_logs"
+
+        where = ("WHERE " + " AND ".join(conds)) if conds else ""
+
+        conn = _sql.connect(config.DATABASE_PATH)
+        conn.row_factory = _sql.Row
+        try:
+            total = conn.execute(
+                f"SELECT COUNT(*) FROM {table} {where}", vals
+            ).fetchone()[0]
+            rows = [
+                dict(r)
+                for r in conn.execute(
+                    f"SELECT {select_cols} FROM {table} {where} "
+                    f"ORDER BY id DESC LIMIT ? OFFSET ?",
+                    (*vals, limit, offset),
+                ).fetchall()
+            ]
+        finally:
+            conn.close()
+
+        return jsonify(
+            {
+                "success": True,
+                "category": category,
+                "label": _LOG_CATEGORIES[category]["label"],
+                "total": int(total),
+                "limit": limit,
+                "offset": offset,
+                "items": rows,
+            }
+        )
+    except Exception as e:
+        logger.error("logs 查詢失敗: %s", e, exc_info=True)
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ============================================
 # 批次更新 API
 # ============================================
 
