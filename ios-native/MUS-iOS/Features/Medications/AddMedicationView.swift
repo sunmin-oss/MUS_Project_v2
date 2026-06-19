@@ -11,7 +11,7 @@ struct AddMedicationView: View {
     @State private var dosage = ""
     @State private var frequency = "每日一次"
     @State private var mealTiming = "飯後"
-    @State private var currentStock = 10
+    @State private var currentStock: Double = 10
     @State private var notes = ""
     @State private var reminderTimes: [Date] = []
     @State private var isSaving = false
@@ -49,8 +49,8 @@ struct AddMedicationView: View {
 
                 Section {
                     Stepper(
-                        String(format: NSLocalizedString("medications.stock", comment: ""), currentStock),
-                        value: $currentStock, in: 0...999
+                        String(format: NSLocalizedString("medications.stock", comment: ""), Int(currentStock)),
+                        value: $currentStock, in: 0...999, step: 0.5
                     )
                 } header: {
                     Text("medications.stock.low")

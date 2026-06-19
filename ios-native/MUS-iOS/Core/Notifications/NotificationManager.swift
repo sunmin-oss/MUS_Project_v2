@@ -83,7 +83,7 @@ final class NotificationManager: ObservableObject {
         guard medication.currentStock <= 7 else { return }
         let content = UNMutableNotificationContent()
         content.title = "庫存不足提醒"
-        content.body = "\(medication.drugName) 剩餘 \(medication.currentStock) 顆，請盡快補充"
+        content.body = "\(medication.drugName) 剩餘 \(medication.currentStock.stockDisplay) 顆，請盡快補充"
         content.sound = .default
 
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 5, repeats: false)

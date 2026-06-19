@@ -33,7 +33,7 @@ class Medication(db.Model):
     duration_days = db.Column(db.Integer)  # 療程天數
     start_date = db.Column(db.Date, nullable=False)
     end_date = db.Column(db.Date)
-    stock_qty = db.Column(db.Integer)  # 庫存數量
+    stock_qty = db.Column(db.Float)  # 庫存數量（支援小數，如 4.5 顆）
     note = db.Column(db.Text)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)

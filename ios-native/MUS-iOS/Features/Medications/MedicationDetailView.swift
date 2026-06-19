@@ -152,14 +152,14 @@ struct MedicationDetailView: View {
                 VStack(alignment: .leading, spacing: DesignSpacing.xs) {
                     Text("庫存狀態")
                         .font(DesignTypography.headline)
-                    Text("剩餘 \(medication.currentStock) 顆")
+                    Text("剩餘 \(medication.currentStock.stockDisplay) 顆")
                         .font(DesignTypography.body)
                         .foregroundStyle(medication.currentStock <= 7 ? .red : DesignColors.textPrimary)
                     Text("今日已服 \(todayTaken) / \(dailyLimit) 次")
                         .font(DesignTypography.caption)
                         .foregroundStyle(DesignColors.textSecondary)
                     if medication.currentStock > 0 && dailyLimit > 0 {
-                        let daysLeft = medication.currentStock / dailyLimit
+                        let daysLeft = Int(medication.currentStock / Double(dailyLimit))
                         Text("預估可服用 \(daysLeft) 天")
                             .font(DesignTypography.caption)
                             .foregroundStyle(daysLeft <= 3 ? .orange : DesignColors.textSecondary)
@@ -172,8 +172,8 @@ struct MedicationDetailView: View {
 
     @ViewBuilder
     private var stockGauge: some View {
-        let total = max(medication.currentStock, 1)
-        let fraction = min(Double(medication.currentStock) / Double(max(total, 1)), 1.0)
+        let total = max(medication.currentStock, 1.0)
+        let fraction = min(medication.currentStock / max(total, 1.0), 1.0)
         ZStack {
             Circle()
                 .stroke(Color.gray.opacity(0.15), lineWidth: 6)
@@ -182,7 +182,7 @@ struct MedicationDetailView: View {
                 .stroke(medication.currentStock <= 7 ? Color.red : DesignColors.primary,
                         style: StrokeStyle(lineWidth: 6, lineCap: .round))
                 .rotationEffect(.degrees(-90))
-            Text("\(medication.currentStock)")
+            Text(medication.currentStock.stockDisplay)
                 .font(.system(size: 18, weight: .bold, design: .rounded))
                 .foregroundStyle(medication.currentStock <= 7 ? .red : DesignColors.primary)
         }

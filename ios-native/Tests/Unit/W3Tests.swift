@@ -12,7 +12,7 @@ final class W3Tests: XCTestCase {
         let newMed = Medication(
             id: UUID().uuidString, profileId: "p1", drugName: "測試藥",
             dosage: "1 顆", frequency: "每日一次", mealTiming: "飯後",
-            nextDoseAt: Date(), currentStock: 10, reminderTimes: [], notes: ""
+            nextDoseAt: Date(), currentStock: 10.0, reminderTimes: [], notes: ""
         )
         try await store.add(medication: newMed, apiClient: client)
         XCTAssertEqual(store.medications.count, initial + 1)

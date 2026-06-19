@@ -29,10 +29,17 @@ struct Medication: Identifiable, Codable, Hashable {
     var frequency: String
     var mealTiming: String
     var nextDoseAt: Date
-    var currentStock: Int
+    var currentStock: Double
     var reminderTimes: [Date]
     var notes: String
     var prescriptionLabel: String?
+}
+
+extension Double {
+    /// 庫存顯示：整數顯示無小數 (12)，非整數保留一位 (4.5)
+    var stockDisplay: String {
+        truncatingRemainder(dividingBy: 1) == 0 ? String(format: "%.0f", self) : String(format: "%.1f", self)
+    }
 }
 
 struct ConsultationSummary: Identifiable, Codable, Hashable {
