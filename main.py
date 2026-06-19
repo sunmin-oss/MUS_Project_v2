@@ -41,8 +41,9 @@ import uuid
 import logging
 import sqlite3
 import time
+import threading
 from datetime import datetime
-from typing import Dict, Any, Tuple
+from typing import Dict, Any, List, Tuple
 import sys
 
 # 載入配置
@@ -395,6 +396,83 @@ def get_file_size_mb(file) -> float:
 
 
 # ============================================
+# 背景 NHI 爬蟲（藥單辨識後自動觸發）
+# ============================================
+
+def _background_nhi_crawl(crawl_tasks: List[Dict[str, Any]], db_path: str):
+    """
+    背景執行 NHI 爬蟲，為有 drug_id 但尚無快取的藥物預先抓取資料。
+
+    Args:
+        crawl_tasks: [{"drug_id": int, "search_name": str}, ...]
+        db_path: 資料庫路徑
+    """
+    import asyncio
+    import re
+
+    async def _crawl_all(tasks):
+        from scripts.nhi_crawler import scrape_nhi_drug_info
+        from playwright.async_api import async_playwright
+
+        pw_ctx = await async_playwright().start()
+        browser = await pw_ctx.chromium.launch(headless=True)
+        crawled = 0
+
+        try:
+            for i, task in enumerate(tasks):
+                drug_id = task["drug_id"]
+                search_name = task["search_name"]
+
+                # 清理搜尋名稱（同 /api/drug/<id> 邏輯）
+                search_name = re.sub(
+                    r'^["\u201c\u201d\u300c\u300d「」]+[^"\u201c\u201d\u300c\u300d「」]*["\u201c\u201d\u300c\u300d「」]+\s*',
+                    '', search_name
+                )
+                search_name = search_name.strip('""\u201c\u201d ')
+
+                if not search_name:
+                    continue
+
+                try:
+                    logger.info(f"🕸️ [背景爬蟲 {i+1}/{len(tasks)}] 爬取: {search_name} (drug_id={drug_id})")
+                    result = await scrape_nhi_drug_info(search_name, browser=browser)
+
+                    if result and result.get("status") == "success":
+                        details = result.get("details", {})
+                        if details and len(details) > 2:
+                            from drug_database import DrugDatabase
+                            db = DrugDatabase(db_path)
+                            db.set_nhi_cache(drug_id, search_name, details)
+                            crawled += 1
+                            logger.info(f"✓ [背景爬蟲] {search_name} 已快取 (drug_id={drug_id})")
+                        else:
+                            logger.info(f"ℹ [背景爬蟲] {search_name} 無額外資訊")
+                    else:
+                        logger.info(f"ℹ [背景爬蟲] {search_name} 查無結果")
+
+                except Exception as e:
+                    logger.warning(f"⚠ [背景爬蟲] {search_name} 失敗: {e}")
+
+                # 請求間隔 2 秒，避免被封鎖
+                if i < len(tasks) - 1:
+                    await asyncio.sleep(2)
+
+        finally:
+            await browser.close()
+            await pw_ctx.stop()
+
+        logger.info(f"✓ [背景爬蟲] 完成，共爬取 {crawled}/{len(tasks)} 筆")
+
+    try:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(_crawl_all(crawl_tasks))
+        loop.close()
+    except Exception as e:
+        logger.error(f"✗ [背景爬蟲] 執行失敗: {e}", exc_info=True)
+
+
+# ============================================
 # 前端路由
 # ============================================
 
@@ -541,6 +619,10 @@ def recognize_drug():
             confidence = item.get("confidence", 0)
             source = item.get("source", "unknown")
 
+            # AI 辨識信心度上限為 0.98（不允許 100%）
+            if confidence >= 1.0:
+                confidence = 0.98
+
             # 過濾信心度低的結果
             if confidence < config.MIN_CONFIDENCE:
                 continue
@@ -641,6 +723,18 @@ def recognize_drug():
         if safety_warnings:
             response["safety_warnings"] = safety_warnings
 
+        # 儲存辨識歷史
+        if drug_db:
+            try:
+                drug_db.save_recognition_history(
+                    filename=filename,
+                    mode="drug",
+                    result=recognized_items,
+                    drug_count=len(recognized_items),
+                )
+            except Exception as e:
+                logger.warning(f"⚠ 儲存辨識歷史失敗: {e}")
+
         return jsonify(response), 200
 
     except Exception as e:
@@ -651,6 +745,94 @@ def recognize_drug():
 @app.route("/favicon.ico")
 def favicon():
     return "", 204
+
+
+def _validate_total_quantity(item, raw_total):
+    """
+    驗證總量是否合理：用 dose_per_time × frequency_number × days 計算期望值，
+    若 OCR 回傳的總量與計算值差異過大，則修正為計算值。
+    解決 4.5 被 OCR 誤讀為 45 的問題。
+    """
+    import re
+
+    try:
+        # 解析 dose_per_time 中的數字（如 "1.00", "0.50", "1 TAB"）
+        dose_str = str(item.get("dose_per_time", ""))
+        dose_match = re.search(r'(\d+\.?\d*)', dose_str)
+        dose = float(dose_match.group(1)) if dose_match else None
+
+        # 解析天數
+        days = item.get("days", 0)
+        if isinstance(days, str):
+            days_match = re.search(r'(\d+)', days)
+            days = int(days_match.group(1)) if days_match else 0
+        days = int(days) if days else 0
+
+        # 解析頻率中的次數（如 "x3", "3", "TID"=3, "BID"=2, "QD"=1, "QID"=4）
+        freq_str = str(item.get("frequency", ""))
+        freq_num = None
+        # 嘗試直接提取數字 "x3", "3次"
+        freq_match = re.search(r'x?(\d+)', freq_str.lower())
+        if freq_match:
+            freq_num = int(freq_match.group(1))
+        else:
+            # 嘗試常見醫療縮寫
+            freq_map = {
+                "qd": 1, "od": 1, "hs": 1, "prn": 1,
+                "bid": 2, "q12h": 2,
+                "tid": 3, "q8h": 3,
+                "qid": 4, "q6h": 4,
+                "q4h": 6,
+            }
+            for key, val in freq_map.items():
+                if key in freq_str.lower():
+                    freq_num = val
+                    break
+
+        # 無法計算則直接返回原值
+        if dose is None or days == 0 or freq_num is None:
+            return raw_total
+
+        # 計算期望總量
+        expected = dose * freq_num * days
+
+        # 解析 OCR 回傳的總量數字
+        total_match = re.search(r'(\d+\.?\d*)', str(raw_total))
+        if not total_match:
+            # OCR 沒回傳數字，用計算值替代
+            return f"共 {expected:g}"
+
+        ocr_total = float(total_match.group(1))
+
+        # 比對：若 OCR 值與期望值差異超過 20% 且 OCR 值是期望的約 10 倍
+        # （典型的小數點遺失問題：4.5 → 45）
+        if expected > 0 and ocr_total > 0:
+            ratio = ocr_total / expected
+            if ratio > 5:
+                # OCR 明顯過大，修正為計算值
+                logger.warning(
+                    f"⚠️ 總量驗證修正: OCR={ocr_total}, 計算值={expected:g} "
+                    f"(dose={dose} × freq={freq_num} × days={days}), 使用計算值"
+                )
+                # 保留原始單位
+                unit_match = re.search(r'[\u4e00-\u9fff]+|[A-Za-z]+', str(raw_total).replace("共", "").strip())
+                unit = unit_match.group(0) if unit_match else ""
+                return f"共 {expected:g} {unit}".strip()
+            elif ratio < 0.2:
+                # OCR 明顯過小
+                logger.warning(
+                    f"⚠️ 總量驗證修正: OCR={ocr_total}, 計算值={expected:g} "
+                    f"(dose={dose} × freq={freq_num} × days={days}), 使用計算值"
+                )
+                unit_match = re.search(r'[\u4e00-\u9fff]+|[A-Za-z]+', str(raw_total).replace("共", "").strip())
+                unit = unit_match.group(0) if unit_match else ""
+                return f"共 {expected:g} {unit}".strip()
+
+        return raw_total
+
+    except Exception as e:
+        logger.debug(f"總量驗證異常: {e}")
+        return raw_total
 
 
 @app.route("/api/recognize_prescription", methods=["POST"])
@@ -727,16 +909,22 @@ def recognize_prescription():
         prescription_details = (
             getattr(recognizer, "_last_prescription_details", None) or []
         )
-        logger.info(f"📄 OCR 結果: {len(drug_names)} 個藥名, {len(prescription_details)} 筆結構化資料")
+        logger.info(
+            f"📄 OCR 結果: {len(drug_names)} 個藥名, {len(prescription_details)} 筆結構化資料"
+        )
         if prescription_details:
-            logger.info(f"📄 結構化資料範例: {json.dumps(prescription_details[0], ensure_ascii=False)[:200]}")
+            logger.info(
+                f"📄 結構化資料 keys: {list(prescription_details[0].keys())}"
+            )
         else:
-            logger.warning(f"⚠ prescription_details 為空！")
+            logger.warning(
+                f"⚠ prescription_details 為空！_last_prescription_details={getattr(recognizer, '_last_prescription_details', 'NOT_SET')}"
+            )
 
         for idx, name in enumerate(drug_names):
             detail = {
                 "name": name,
-                "confidence": 1.0,
+                "confidence": 0.95,
                 "source": "prescription",
                 "details": None,
                 "drug_id": None,
@@ -746,12 +934,17 @@ def recognize_prescription():
             # 附加處方資訊（用法用量）— 用 index 對齊
             if idx < len(prescription_details):
                 item = prescription_details[idx]
+
+                # === 總量驗證：dose_per_time × frequency × days vs total_quantity ===
+                raw_total = item.get("total_quantity", "")
+                validated_total = _validate_total_quantity(item, raw_total)
+
                 detail["prescription_info"] = {
                     "route": item.get("route", ""),
                     "days": item.get("days", 0),
                     "frequency": item.get("frequency", ""),
                     "dose_per_time": item.get("dose_per_time", ""),
-                    "total_quantity": item.get("total_quantity", ""),
+                    "total_quantity": validated_total,
                     "ingredient": item.get("ingredient", ""),
                 }
             else:
@@ -806,14 +999,69 @@ def recognize_prescription():
 
             drug_details.append(detail)
 
+        # === 記錄未比對到的藥物 ===
+        if drug_db:
+            for idx, item in enumerate(drug_details):
+                if item.get("drug_id") is None:
+                    en_name = ""
+                    lic = ""
+                    if idx < len(prescription_details):
+                        p = prescription_details[idx]
+                        en_name = p.get("english_name", "")
+                        lic = p.get("license_number", "")
+                    drug_db.add_unmatched_drug(
+                        drug_name=item.get("name", ""),
+                        english_name=en_name,
+                        license_number=lic,
+                        source="prescription",
+                        prescription_info=item.get("prescription_info"),
+                    )
+
+        # === 背景 NHI 爬蟲：為有 drug_id 但尚無快取的藥物預先抓取 ===
+        if drug_db:
+            crawl_tasks = []
+            for item in drug_details:
+                did = item.get("drug_id")
+                if did is None:
+                    continue
+                # 跳過已有快取的
+                if drug_db.get_nhi_cache(did):
+                    continue
+                # 決定搜尋名稱
+                details = item.get("details") or {}
+                sname = details.get("chinese_name") or details.get("english_name") or item.get("name", "")
+                if sname:
+                    crawl_tasks.append({"drug_id": did, "search_name": sname})
+
+            if crawl_tasks:
+                logger.info(f"🕸️ 啟動背景 NHI 爬蟲，共 {len(crawl_tasks)} 筆待爬取")
+                t = threading.Thread(
+                    target=_background_nhi_crawl,
+                    args=(crawl_tasks, config.DATABASE_PATH),
+                    daemon=True,
+                )
+                t.start()
+
         response = {
             "success": True,
             "request_id": filename.split("_")[0],
             "image_filename": filename,
             "recognized_drugs": drug_names,
-            "recognized_items": drug_details,  # 保持與 recognize_drug 一致的格式
+            "recognized_items": drug_details,
             "message": f"辨識完成，找到 {len(drug_names)} 種藥物",
         }
+
+        # 儲存辨識歷史
+        if drug_db:
+            try:
+                drug_db.save_recognition_history(
+                    filename=filename,
+                    mode="prescription",
+                    result=drug_details,
+                    drug_count=len(drug_names),
+                )
+            except Exception as e:
+                logger.warning(f"⚠ 儲存辨識歷史失敗: {e}")
 
         return jsonify(response), 200
 
@@ -950,6 +1198,12 @@ def get_drug_detail(drug_id):
             elif drug.get("english_name"):
                 search_name = drug.get("english_name")
 
+            # 清理搜尋名稱：去掉引號包裹的廠牌前綴（如 "優良"愛克痰顆粒 → 愛克痰顆粒）
+            import re
+            search_name = re.sub(r'^["\u201c\u201d\u300c\u300d「」]+[^"\u201c\u201d\u300c\u300d「」]*["\u201c\u201d\u300c\u300d「」]+\s*', '', search_name)
+            # 去掉殘留引號
+            search_name = search_name.strip('""\u201c\u201d ')
+
             if search_name and drug_db:
                 # 1. 先查快取（7 天內有效）
                 cached = drug_db.get_nhi_cache(int(drug_id))
@@ -960,7 +1214,7 @@ def get_drug_detail(drug_id):
                     # 2. 快取未命中，啟動爬蟲
                     logger.info(f"🕸️ 快取未命中，從 NHI/TFDA 爬取: {search_name}")
                     import asyncio
-                    from nhi_crawler import scrape_nhi_drug_info
+                    from scripts.nhi_crawler import scrape_nhi_drug_info
 
                     try:
                         loop = asyncio.get_event_loop()
