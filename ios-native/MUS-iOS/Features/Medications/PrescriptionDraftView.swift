@@ -159,8 +159,9 @@ struct PrescriptionDraftView: View {
         do {
             let result = try await env.apiClient.recognizePrescription(imageData: imageData)
             drafts = result.drugDetails.map { detail in
-                DraftItem(
-                    drugName: detail.name,
+                let displayName = detail.details?.chineseName ?? detail.name
+                return DraftItem(
+                    drugName: displayName,
                     dosage: detail.prescriptionInfo?.dosePerTime ?? "1 顆",
                     frequency: detail.prescriptionInfo?.frequency ?? "",
                     days: detail.prescriptionInfo?.days,
@@ -184,9 +185,24 @@ struct PrescriptionDraftView: View {
         Task {
             var successCount = 0
             var lastError: String?
-            let label = prescriptionName.trimmingCharacters(in: .whitespaces).isEmpty
-                ? "藥單 \(Date().formatted(date: .abbreviated, time: .omitted))"
-                : prescriptionName.trimmingCharacters(in: .whitespaces)
+            let label: String
+            if prescriptionName.trimmingCharacters(in: .whitespaces).isEmpty {
+                let dateStr = Date().formatted(date: .abbreviated, time: .omitted)
+                let baseLabel = "藥單 \(dateStr)"
+                // 檢查已存在的同名藥單，自動加序號
+                let existingLabels = Set(store.medications
+                    .filter { $0.profileId == profileId }
+                    .compactMap(\.prescriptionLabel))
+                if !existingLabels.contains(baseLabel) {
+                    label = baseLabel
+                } else {
+                    var seq = 2
+                    while existingLabels.contains("\(baseLabel) (\(seq))") { seq += 1 }
+                    label = "\(baseLabel) (\(seq))"
+                }
+            } else {
+                label = prescriptionName.trimmingCharacters(in: .whitespaces)
+            }
 
             for draft in drafts where !draft.drugName.trimmingCharacters(in: .whitespaces).isEmpty {
                 let (parsedFreq, parsedMeal) = Self.parseFrequencyAndMeal(draft.frequency)

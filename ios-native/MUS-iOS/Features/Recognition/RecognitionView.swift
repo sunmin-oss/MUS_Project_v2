@@ -54,6 +54,19 @@ struct RecognitionView: View {
                         AlertBanner(level: .major,
                                     titleKey: "recognition.error.title",
                                     messageKey: LocalizedStringKey(msg))
+
+                        Button {
+                            guard let img = selectedImage else { return }
+                            Task { await run(image: img) }
+                        } label: {
+                            Label("重新辨識", systemImage: "arrow.clockwise")
+                                .font(DesignTypography.body.bold())
+                                .frame(maxWidth: .infinity)
+                                .padding(DesignSpacing.md)
+                                .background(DesignColors.primary)
+                                .foregroundStyle(.white)
+                                .clipShape(RoundedRectangle(cornerRadius: DesignSpacing.sm))
+                        }
                     }
                 }
                 .padding(DesignSpacing.md)
