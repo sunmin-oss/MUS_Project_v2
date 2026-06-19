@@ -23,6 +23,11 @@ struct DrugDetailView: View {
                         safetySection(alerts)
                     }
                     infoSection(drug)
+                } else {
+                    EmptyStateView(titleKey: "drug.notfound.title",
+                                   systemImage: "exclamationmark.triangle",
+                                   messageKey: "drug.notfound.message")
+                    .padding(.top, 40)
                 }
             }
             .padding(DesignSpacing.md)
@@ -35,10 +40,29 @@ struct DrugDetailView: View {
 
     private func load() async {
         isLoading = true
-        async let drugResult = try? env.apiClient.fetchDrug(id: drugId)
-        async let alertsResult = try? env.apiClient.checkSafety(profileId: "p1", drugIds: [drugId])
-        drug = await drugResult
-        alerts = await alertsResult ?? []
+        // 先以 ID 查詢
+        if drugId > 0 {
+            drug = try? await env.apiClient.fetchDrug(id: drugId)
+        }
+        // ID 查無結果時，以名稱搜尋
+        if drug == nil {
+            let results = (try? await env.apiClient.searchDrugs(query: name, limit: 1)) ?? []
+            drug = results.first
+        }
+        // 全名搜不到時，逐步縮短關鍵字再試
+        if drug == nil {
+            let words = name.split(separator: " ").map(String.init)
+            if words.count > 1 {
+                for len in stride(from: words.count - 1, through: 1, by: -1) {
+                    let partial = words.prefix(len).joined(separator: " ")
+                    let results = (try? await env.apiClient.searchDrugs(query: partial, limit: 1)) ?? []
+                    if let found = results.first { drug = found; break }
+                }
+            }
+        }
+        if let did = drug?.id {
+            alerts = (try? await env.apiClient.checkSafety(profileId: "p1", drugIds: [did])) ?? []
+        }
         isLoading = false
     }
 

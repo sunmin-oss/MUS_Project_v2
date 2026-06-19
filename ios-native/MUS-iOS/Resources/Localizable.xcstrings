@@ -256,6 +256,26 @@
         }
       }
     },
+    "drug.notfound.message" : {
+      "localizations" : {
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法從資料庫取得此藥物的詳細資訊"
+          }
+        }
+      }
+    },
+    "drug.notfound.title" : {
+      "localizations" : {
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "查無藥物資訊"
+          }
+        }
+      }
+    },
     "drug.section.info" : {
       "localizations" : {
         "zh-Hant" : {

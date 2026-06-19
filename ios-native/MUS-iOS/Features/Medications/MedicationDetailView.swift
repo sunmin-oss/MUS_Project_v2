@@ -45,7 +45,7 @@ struct MedicationDetailView: View {
             .padding(DesignSpacing.md)
         }
         .background(settings.theme.backgroundGradient.ignoresSafeArea())
-        .navigationTitle(medication.drugName)
+        .navigationTitle(drug?.chineseName ?? medication.drugName)
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -83,13 +83,21 @@ struct MedicationDetailView: View {
                 }
 
                 VStack(alignment: .leading, spacing: DesignSpacing.xs) {
-                    Text(medication.drugName)
+                    Text(drug?.chineseName ?? medication.drugName)
                         .font(DesignTypography.title2)
 
                     if let en = drug?.englishName, !en.isEmpty {
                         Text(en)
                             .font(DesignTypography.caption)
                             .foregroundStyle(DesignColors.textSecondary)
+                    } else if drug?.chineseName != nil {
+                        // 有中文名時把原始 drugName (英文) 也顯示
+                        let originalName = medication.drugName
+                        if originalName != drug?.chineseName {
+                            Text(originalName)
+                                .font(DesignTypography.caption)
+                                .foregroundStyle(DesignColors.textSecondary)
+                        }
                     }
 
                     if let lic = drug?.licenseNumber, !lic.isEmpty {
@@ -320,6 +328,23 @@ struct MedicationDetailView: View {
                 break
             }
         }
+
+        // 英文名逐步縮短（去尾部單詞）
+        let words = cleaned.split(separator: " ").map(String.init)
+        if words.count > 1 {
+            for len in stride(from: words.count - 1, through: 1, by: -1) {
+                let partial = words.prefix(len).joined(separator: " ")
+                if !queries.contains(partial) { queries.append(partial) }
+            }
+        }
+        // 也嘗試用 . 和 - 分割取核心（如 "T.F.SU-MIN" → "SU-MIN"）
+        let parts = cleaned.components(separatedBy: CharacterSet(charactersIn: ".-"))
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { $0.count >= 2 }
+        for part in parts where !queries.contains(part) {
+            queries.append(part)
+        }
+
         return queries
     }
 }

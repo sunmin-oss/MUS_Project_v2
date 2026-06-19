@@ -18,6 +18,7 @@ struct MedicationsListView: View {
     @State private var selectedTab: MedTab = .all
     @State private var selectedPrescription: String? = nil
     @State private var showPrescriptionImages = false
+    @State private var drugNameCache: [String: String] = [:]  // medId -> chineseName
 
     enum MedTab: String, CaseIterable {
         case all = "全部"
@@ -231,7 +232,10 @@ struct MedicationsListView: View {
             }) {
                 AddMedicationView(store: store, editingMedication: editingMedication)
             }
-            .refreshable { await loadAll() }
+            .refreshable {
+                drugNameCache.removeAll()
+                await loadAll()
+            }
             .sheet(isPresented: $showPrescriptionImages, onDismiss: {
                 Task { await loadAll() }
             }) {
@@ -369,7 +373,7 @@ struct MedicationsListView: View {
             Card {
                 VStack(alignment: .leading, spacing: DesignSpacing.sm) {
                     HStack {
-                        Text(med.drugName)
+                        Text(drugNameCache[med.id] ?? med.drugName)
                             .font(DesignTypography.title2)
                         Spacer()
                         todayBadge(todayTakenCount(for: med.id))
@@ -467,6 +471,23 @@ struct MedicationsListView: View {
         } catch {
             // 失敗時保留快取資料
             await store.load(profileId: env.selectedProfileId, apiClient: env.apiClient)
+        }
+        // 批次查詢中文名
+        await loadChineseNames()
+    }
+
+    private func loadChineseNames() async {
+        let meds = store.medications.filter { $0.profileId == env.selectedProfileId }
+        for med in meds {
+            let queries = MedicationDetailView.searchQueries(for: med.drugName)
+            for query in queries {
+                if let results = try? await env.apiClient.searchDrugs(query: query, limit: 1),
+                   let first = results.first,
+                   !first.chineseName.isEmpty {
+                    drugNameCache[med.id] = first.chineseName
+                    break
+                }
+            }
         }
     }
 
