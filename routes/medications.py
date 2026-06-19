@@ -260,9 +260,12 @@ def log_adherence():
     )
     db.session.add(log)
 
-    # 扣減庫存
+    # 扣減庫存（按每次劑量扣減）
     if status == "taken" and med.stock_qty is not None and med.stock_qty > 0:
-        med.stock_qty = max(0, med.stock_qty - 1)
+        import re
+        dose_match = re.search(r'(\d+\.?\d*)', med.dosage or '1')
+        dose_amount = float(dose_match.group(1)) if dose_match else 1.0
+        med.stock_qty = max(0, med.stock_qty - dose_amount)
 
     db.session.commit()
     return jsonify({"success": True, "log": log.to_dict()}), 201
