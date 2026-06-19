@@ -620,6 +620,14 @@
             color: #c62828;
         }
 
+        /* ===== Log 訊息展開/收合 ===== */
+        .log-msg-cell { cursor: pointer; }
+        .log-msg-cell .log-msg-full { display: none; white-space: pre-wrap; word-break: break-all; }
+        .log-msg-cell .log-msg-short { display: inline; }
+        .log-msg-cell.expanded .log-msg-full { display: inline !important; }
+        .log-msg-cell.expanded .log-msg-short { display: none !important; }
+        .log-msg-cell:hover { color: var(--primary); text-decoration: underline; }
+
         /* ===== toast 提示 ===== */
         .toast-container {
             position: fixed;
@@ -724,6 +732,7 @@
             <li><a href="#" data-page="drugs"><span class="icon">💊</span><span class="label">藥物管理</span></a></li>
             <li><a href="#" data-page="users"><span class="icon">👤</span><span class="label">使用者管理</span></a></li>
             <li><a href="#" data-page="cache"><span class="icon">🗄️</span><span class="label">NHI 快取</span></a></li>
+            <li><a href="#" data-page="unmatched"><span class="icon">❓</span><span class="label">未比對藥物</span></a></li>
             <li><a href="#" data-page="uploads"><span class="icon">📁</span><span class="label">上傳檔案</span></a></li>
             <li><a href="#" data-page="settings"><span class="icon">⚙️</span><span class="label">系統設定</span></a>
             </li>
@@ -888,6 +897,52 @@
             </div>
         </div>
 
+        <!-- ========== 4.5 未比對藥物 ========== -->
+        <div class="page-section" id="page-unmatched">
+            <div class="page-header">
+                <div>
+                    <h1>未比對藥物</h1>
+                    <div class="subtitle">藥單辨識中無法在本地資料庫比對到的藥物紀錄</div>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-outline" onclick="loadUnmatched()">🔄 重新整理</button>
+                </div>
+            </div>
+            <div class="stat-grid" id="unmatchedStats"></div>
+            <div class="search-bar">
+                <input type="text" class="form-control" id="unmatchedSearch" placeholder="搜尋藥物名稱、英文名稱、許可證字號..."
+                    onkeydown="if(event.key==='Enter')searchUnmatched()">
+                <button class="btn btn-primary" onclick="searchUnmatched()">搜尋</button>
+            </div>
+            <div class="card">
+                <div class="upload-tabs">
+                    <button class="upload-tab active" id="unmatchedTab-all" onclick="setUnmatchedFilter('')">全部</button>
+                    <button class="upload-tab" id="unmatchedTab-pending" onclick="setUnmatchedFilter('pending')">⏳ 待處理</button>
+                    <button class="upload-tab" id="unmatchedTab-resolved" onclick="setUnmatchedFilter('resolved')">✅ 已解決</button>
+                    <button class="upload-tab" id="unmatchedTab-ignored" onclick="setUnmatchedFilter('ignored')">🚫 已忽略</button>
+                </div>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>藥物名稱</th>
+                                <th>英文名稱</th>
+                                <th>許可證字號</th>
+                                <th>出現次數</th>
+                                <th>狀態</th>
+                                <th>首次出現</th>
+                                <th>最後更新</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="unmatchedTableBody"></tbody>
+                    </table>
+                </div>
+                <div id="unmatchedEmpty" class="loading" style="display:none;">目前沒有未比對藥物紀錄</div>
+                <div id="unmatchedPagination" style="display:flex;justify-content:center;gap:8px;padding:16px;"></div>
+            </div>
+        </div>
+
         <!-- ========== 5. 上傳檔案 ========== -->
         <div class="page-section" id="page-uploads">
             <div class="page-header">
@@ -933,6 +988,28 @@
                 <div class="lightbox-filename" id="lightboxFilename"></div>
             </div>
         </div>
+
+    <!-- 辨識結果 Modal -->
+    <div class="modal-backdrop" id="recognitionModal">
+        <div class="modal" style="max-width:700px;">
+            <h3 id="recognitionModalTitle">辨識結果</h3>
+            <div id="recognitionModalBody" style="max-height:60vh;overflow-y:auto;">載入中...</div>
+            <div class="modal-actions">
+                <button class="btn btn-outline" onclick="closeRecognitionModal()">關閉</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 爬蟲搜尋結果 Modal -->
+    <div class="modal-backdrop" id="crawlModal">
+        <div class="modal" style="max-width:700px;">
+            <h3 id="crawlModalTitle">🔍 爬蟲搜尋結果</h3>
+            <div id="crawlModalBody" style="max-height:60vh;overflow-y:auto;">搜尋中...</div>
+            <div class="modal-actions" id="crawlModalActions">
+                <button class="btn btn-outline" onclick="closeCrawlModal()">關閉</button>
+            </div>
+        </div>
+    </div>
 
         <!-- ========== 6. 系統設定 ========== -->
         <div class="page-section" id="page-settings">
@@ -1272,6 +1349,14 @@
             <div id="drugModalImageWrap" style="text-align:center;margin-bottom:12px;display:none;">
                 <img id="drugModalImage" src="" alt="藥物圖片" style="max-width:200px;max-height:200px;object-fit:contain;border-radius:8px;border:1px solid #e0e0e0;">
             </div>
+            <div class="form-group" id="drugImageUploadWrap">
+                <label>藥物圖片</label>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <input type="file" id="drugImageFile" accept="image/*" style="flex:1;" onchange="previewDrugImage(this)">
+                    <button type="button" class="btn btn-sm btn-outline" id="drugImageUploadBtn" onclick="uploadDrugImage()" style="white-space:nowrap;">上傳圖片</button>
+                </div>
+                <small id="drugImageUploadStatus" style="color:#666;margin-top:4px;display:block;"></small>
+            </div>
             <div class="form-group">
                 <label>中文名稱</label>
                 <input type="text" class="form-control" id="drugChName">
@@ -1394,6 +1479,7 @@
                     drugs: () => loadDrugs(1),
                     users: () => loadUsers(1),
                     cache: loadCache,
+                    unmatched: loadUnmatched,
                     uploads: loadUploads,
                     settings: () => { loadSettings(); loadLogs(); },
                     stats: loadApiStats,
@@ -1527,6 +1613,9 @@
             ['drugChName', 'drugEnName', 'drugLicense', 'drugShape', 'drugColor', 'drugUsage', 'drugFormulation', 'drugDosage']
                 .forEach(id => document.getElementById(id).value = '');
             document.getElementById('drugModalImageWrap').style.display = 'none';
+            document.getElementById('drugImageFile').value = '';
+            document.getElementById('drugImageUploadStatus').textContent = '';
+            document.getElementById('drugImageUploadBtn').style.display = 'none';
             document.getElementById('drugModal').classList.add('show');
         }
 
@@ -1550,7 +1639,67 @@
             } else {
                 imgWrap.style.display = 'none';
             }
+            // 重置圖片上傳
+            document.getElementById('drugImageFile').value = '';
+            document.getElementById('drugImageUploadStatus').textContent = '';
+            document.getElementById('drugImageUploadBtn').style.display = 'inline-block';
             document.getElementById('drugModal').classList.add('show');
+        }
+
+        function previewDrugImage(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const imgWrap = document.getElementById('drugModalImageWrap');
+            const img = document.getElementById('drugModalImage');
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                img.src = e.target.result;
+                imgWrap.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function uploadDrugImage() {
+            const id = document.getElementById('editDrugId').value;
+            if (!id) {
+                showToast('請先儲存藥物後再上傳圖片', 'warning');
+                return;
+            }
+            const fileInput = document.getElementById('drugImageFile');
+            const file = fileInput.files[0];
+            if (!file) {
+                showToast('請先選擇圖片', 'warning');
+                return;
+            }
+            const statusEl = document.getElementById('drugImageUploadStatus');
+            statusEl.textContent = '上傳中...';
+            statusEl.style.color = '#666';
+
+            const formData = new FormData();
+            formData.append('image', file);
+
+            try {
+                const resp = await fetch(`/admin/api/drugs/${id}/upload-image`, {
+                    method: 'POST',
+                    body: formData,
+                });
+                const res = await resp.json();
+                if (res.success) {
+                    statusEl.textContent = '✓ ' + res.message;
+                    statusEl.style.color = '#2e7d32';
+                    // 更新預覽圖
+                    const img = document.getElementById('drugModalImage');
+                    img.src = res.image_url + '?t=' + Date.now();
+                    document.getElementById('drugModalImageWrap').style.display = 'block';
+                    loadDrugs(currentDrugPage);
+                } else {
+                    statusEl.textContent = '✗ ' + res.error;
+                    statusEl.style.color = '#c62828';
+                }
+            } catch (e) {
+                statusEl.textContent = '✗ 上傳失敗: ' + e.message;
+                statusEl.style.color = '#c62828';
+            }
         }
 
         function closeDrugModal() {
@@ -2018,7 +2167,10 @@
                         <td>${f.size_kb} KB</td>
                         <td>${new Date(f.modified).toLocaleString('zh-TW')}</td>
                         <td>${f.age_hours < 1 ? '< 1 小時' : Math.round(f.age_hours) + ' 小時'}</td>
-                        <td><button class="btn btn-sm btn-danger" onclick="deleteUpload('${f.name}')">刪除</button></td>
+                        <td>
+                            <button class="btn btn-sm btn-primary" onclick="showRecognitionResult('${f.name.replace(/'/g, "\\'")}', '${f.mode}')" title="查看辨識結果">🔍 結果</button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteUpload('${f.name}')">刪除</button>
+                        </td>
                     </tr>`;
                 }).join('');
             }
@@ -2047,6 +2199,108 @@
         function closeLightbox() {
             document.getElementById('imageLightbox').classList.remove('show');
             document.getElementById('lightboxImg').src = '';
+        }
+
+        // ============================================
+        // 辨識結果查看
+        // ============================================
+        async function showRecognitionResult(filename, mode) {
+            const modal = document.getElementById('recognitionModal');
+            const title = document.getElementById('recognitionModalTitle');
+            const body = document.getElementById('recognitionModalBody');
+
+            title.textContent = mode === 'prescription' ? '📄 藥單辨識結果' : '💊 藥物辨識結果';
+            body.innerHTML = '<div class="loading">載入中...</div>';
+            modal.classList.add('show');
+
+            try {
+                const res = await fetch(`${BASE}/uploads/recognition/${encodeURIComponent(filename)}`);
+                const data = await res.json();
+
+                if (!data.success) {
+                    body.innerHTML = `<div style="text-align:center;padding:32px;color:#999;">
+                        <div style="font-size:48px;margin-bottom:12px;">📭</div>
+                        <p>此檔案尚無辨識紀錄</p>
+                        <p style="font-size:12px;color:#bbb;">辨識紀錄僅在新版本部署後的辨識請求才會記錄</p>
+                    </div>`;
+                    return;
+                }
+
+                const items = data.result || [];
+                const createdAt = data.created_at ? new Date(data.created_at).toLocaleString('zh-TW') : '-';
+
+                let html = `<div style="margin-bottom:12px;font-size:13px;color:#666;">
+                    <strong>檔名：</strong>${escapeHtml(data.filename)}<br>
+                    <strong>辨識時間：</strong>${createdAt}<br>
+                    <strong>辨識數量：</strong>${data.drug_count} 筆
+                </div>`;
+
+                if (items.length === 0) {
+                    html += '<p style="color:#999;">未辨識到任何藥物</p>';
+                } else if (mode === 'prescription') {
+                    html += renderPrescriptionResults(items);
+                } else {
+                    html += renderDrugResults(items);
+                }
+
+                body.innerHTML = html;
+            } catch (e) {
+                body.innerHTML = `<div style="color:red;">載入失敗: ${e.message}</div>`;
+            }
+        }
+
+        function renderPrescriptionResults(items) {
+            let html = '<table style="width:100%;font-size:13px;border-collapse:collapse;">';
+            html += '<thead><tr style="background:#f5f5f5;">';
+            html += '<th style="padding:8px;text-align:left;border-bottom:2px solid #ddd;">#</th>';
+            html += '<th style="padding:8px;text-align:left;border-bottom:2px solid #ddd;">藥物名稱</th>';
+            html += '<th style="padding:8px;text-align:left;border-bottom:2px solid #ddd;">DB 比對</th>';
+            html += '<th style="padding:8px;text-align:left;border-bottom:2px solid #ddd;">用法用量</th>';
+            html += '</tr></thead><tbody>';
+            items.forEach((item, i) => {
+                const matched = item.drug_id ? `<span class="badge badge-success">✓ ID:${item.drug_id}</span>` : '<span class="badge badge-warning">✗ 未比對</span>';
+                const pi = item.prescription_info || {};
+                const usage = [pi.frequency, pi.dose_per_time, pi.route].filter(Boolean).join(' / ') || '-';
+                const name = item.name || (item.details && item.details.chinese_name) || '(未知)';
+                html += `<tr style="border-bottom:1px solid #eee;">
+                    <td style="padding:8px;">${i + 1}</td>
+                    <td style="padding:8px;"><strong>${escapeHtml(name)}</strong></td>
+                    <td style="padding:8px;">${matched}</td>
+                    <td style="padding:8px;font-size:12px;color:#666;">${escapeHtml(usage)}</td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            return html;
+        }
+
+        function renderDrugResults(items) {
+            let html = '<table style="width:100%;font-size:13px;border-collapse:collapse;">';
+            html += '<thead><tr style="background:#f5f5f5;">';
+            html += '<th style="padding:8px;text-align:left;border-bottom:2px solid #ddd;">#</th>';
+            html += '<th style="padding:8px;text-align:left;border-bottom:2px solid #ddd;">藥物名稱</th>';
+            html += '<th style="padding:8px;text-align:left;border-bottom:2px solid #ddd;">信心度</th>';
+            html += '<th style="padding:8px;text-align:left;border-bottom:2px solid #ddd;">來源</th>';
+            html += '<th style="padding:8px;text-align:left;border-bottom:2px solid #ddd;">DB 比對</th>';
+            html += '</tr></thead><tbody>';
+            items.forEach((item, i) => {
+                const name = item.name || (item.details && item.details.chinese_name) || '(未知)';
+                const confidence = item.confidence ? (item.confidence * 100).toFixed(1) + '%' : '-';
+                const source = item.source || '-';
+                const matched = item.drug_id ? `<span class="badge badge-success">✓ ID:${item.drug_id}</span>` : '<span class="badge badge-warning">✗</span>';
+                html += `<tr style="border-bottom:1px solid #eee;">
+                    <td style="padding:8px;">${i + 1}</td>
+                    <td style="padding:8px;"><strong>${escapeHtml(name)}</strong></td>
+                    <td style="padding:8px;">${confidence}</td>
+                    <td style="padding:8px;"><span class="badge badge-info">${escapeHtml(source)}</span></td>
+                    <td style="padding:8px;">${matched}</td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            return html;
+        }
+
+        function closeRecognitionModal() {
+            document.getElementById('recognitionModal').classList.remove('show');
         }
 
         // ============================================
@@ -2418,7 +2672,13 @@
                 { key: 'created_at', label: '時間', width: '160px' },
                 { key: 'level', label: '等級', width: '70px', render: v => `<span class="badge badge-${({ERROR:'danger',WARNING:'warning',INFO:'info',DEBUG:'secondary'})[v]||'secondary'}">${v||''}</span>` },
                 { key: 'logger', label: 'Logger', width: '140px' },
-                { key: 'message', label: '訊息' },
+                { key: 'message', label: '訊息', render: (v, row) => {
+                    if (!v) return '';
+                    const text = escapeHtml(v);
+                    if (v.length <= 60) return `<span style="cursor:default;" title="${text}">${text}</span>`;
+                    const short = escapeHtml(v.substring(0, 60)) + '...';
+                    return `<span class="log-msg-cell" onclick="this.classList.toggle('expanded')" title="點擊展開/收合"><span class="log-msg-short">${short}</span><span class="log-msg-full">${text}</span></span>`;
+                }},
                 { key: 'exc_info', label: '例外', render: v => v ? `<details><summary>展開</summary><pre style="white-space:pre-wrap;font-size:11px;">${escapeHtml(v)}</pre></details>` : '' }
             ],
             api: [
@@ -2707,6 +2967,277 @@
         }
         updateDashboardClock();
         setInterval(updateDashboardClock, 1000);
+
+        // ============================================
+        // 未比對藥物
+        // ============================================
+        let unmatchedFilter = '';
+        let unmatchedPage = 1;
+        let unmatchedSearch = '';
+
+        function setUnmatchedFilter(status) {
+            unmatchedFilter = status;
+            unmatchedPage = 1;
+            document.querySelectorAll('#page-unmatched .upload-tab').forEach(t => t.classList.remove('active'));
+            document.getElementById('unmatchedTab-' + (status || 'all')).classList.add('active');
+            loadUnmatched();
+        }
+
+        function searchUnmatched() {
+            unmatchedSearch = (document.getElementById('unmatchedSearch').value || '').trim();
+            unmatchedPage = 1;
+            loadUnmatched();
+        }
+
+        async function loadUnmatched() {
+            try {
+                // summary
+                const sRes = await fetch(`${BASE}/unmatched-drugs/summary`);
+                const sData = await sRes.json();
+                if (sData.success) {
+                    const s = sData.summary;
+                    document.getElementById('unmatchedStats').innerHTML = `
+                        <div class="stat-card"><div class="stat-number">${s.pending}</div><div class="stat-label">待處理</div></div>
+                        <div class="stat-card"><div class="stat-number">${s.resolved}</div><div class="stat-label">已解決</div></div>
+                        <div class="stat-card"><div class="stat-number">${s.ignored}</div><div class="stat-label">已忽略</div></div>
+                        <div class="stat-card"><div class="stat-number">${s.total_occurrences}</div><div class="stat-label">待處理總出現次數</div></div>
+                    `;
+                }
+
+                // list
+                let url = `${BASE}/unmatched-drugs?page=${unmatchedPage}&per_page=20`;
+                if (unmatchedFilter) url += `&status=${unmatchedFilter}`;
+                if (unmatchedSearch) url += `&search=${encodeURIComponent(unmatchedSearch)}`;
+                const res = await fetch(url);
+                const data = await res.json();
+                if (!data.success) throw new Error(data.error);
+
+                const tbody = document.getElementById('unmatchedTableBody');
+                const empty = document.getElementById('unmatchedEmpty');
+
+                if (!data.items.length) {
+                    tbody.innerHTML = '';
+                    empty.style.display = 'block';
+                } else {
+                    empty.style.display = 'none';
+                    tbody.innerHTML = data.items.map(d => {
+                        const statusBadge = d.status === 'pending'
+                            ? '<span class="badge badge-warning">待處理</span>'
+                            : d.status === 'resolved'
+                                ? '<span class="badge badge-success">已解決</span>'
+                                : '<span class="badge badge-secondary">已忽略</span>';
+                        return `<tr>
+                            <td><strong>${escapeHtml(d.drug_name)}</strong></td>
+                            <td>${escapeHtml(d.english_name || '-')}</td>
+                            <td>${escapeHtml(d.license_number || '-')}</td>
+                            <td><span class="badge badge-info">${d.occurrence_count}</span></td>
+                            <td>${statusBadge}</td>
+                            <td>${d.created_at || '-'}</td>
+                            <td>${d.updated_at || '-'}</td>
+                            <td>
+                                ${d.status === 'pending' ? `
+                                    <button class="btn btn-sm btn-primary" onclick="crawlUnmatchedDrug(${d.id}, '${escapeHtml(d.drug_name)}')" title="爬蟲搜尋並加入資料庫">🔍 搜尋</button>
+                                    <button class="btn btn-sm btn-success" onclick="updateUnmatchedStatus(${d.id}, 'resolved')" title="標記為已解決">✅</button>
+                                    <button class="btn btn-sm btn-secondary" onclick="updateUnmatchedStatus(${d.id}, 'ignored')" title="忽略">🚫</button>
+                                ` : `
+                                    <button class="btn btn-sm btn-outline" onclick="updateUnmatchedStatus(${d.id}, 'pending')" title="重設為待處理">↩️</button>
+                                `}
+                            </td>
+                        </tr>`;
+                    }).join('');
+                }
+
+                // pagination
+                const totalPages = Math.ceil(data.total / data.per_page);
+                const pagDiv = document.getElementById('unmatchedPagination');
+                if (totalPages > 1) {
+                    let html = '';
+                    for (let i = 1; i <= totalPages; i++) {
+                        html += `<button class="btn btn-sm ${i === unmatchedPage ? 'btn-primary' : 'btn-outline'}" onclick="unmatchedPage=${i};loadUnmatched()">${i}</button>`;
+                    }
+                    pagDiv.innerHTML = html;
+                } else {
+                    pagDiv.innerHTML = '';
+                }
+            } catch (e) {
+                showToast('載入未比對藥物失敗: ' + e.message, 'error');
+            }
+        }
+
+        async function updateUnmatchedStatus(id, status) {
+            try {
+                const res = await fetch(`${BASE}/unmatched-drugs/${id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(`狀態已更新為${status === 'resolved' ? '已解決' : status === 'ignored' ? '已忽略' : '待處理'}`, 'success');
+                    loadUnmatched();
+                } else {
+                    showToast(data.error || '更新失敗', 'error');
+                }
+            } catch (e) {
+                showToast('更新失敗: ' + e.message, 'error');
+            }
+        }
+
+        // ============================================
+        // 未比對藥物 — 爬蟲搜尋 & 加入資料庫
+        // ============================================
+        let currentCrawlId = null;
+        let currentCrawlDetails = null;
+
+        async function crawlUnmatchedDrug(id, drugName) {
+            currentCrawlId = id;
+            currentCrawlDetails = null;
+
+            const modal = document.getElementById('crawlModal');
+            const body = document.getElementById('crawlModalBody');
+            const actions = document.getElementById('crawlModalActions');
+            const title = document.getElementById('crawlModalTitle');
+
+            title.textContent = `🔍 搜尋「${drugName}」`;
+            body.innerHTML = `<div class="loading">
+                <div style="text-align:center;padding:40px;">
+                    <div style="font-size:48px;margin-bottom:16px;">⏳</div>
+                    <p>正在從健保署/TFDA 搜尋藥物資訊...</p>
+                    <p style="color:var(--text-secondary);font-size:13px;">爬蟲搜尋可能需要 5~15 秒</p>
+                </div>
+            </div>`;
+            actions.innerHTML = '<button class="btn btn-outline" onclick="closeCrawlModal()">取消</button>';
+            modal.style.display = 'flex';
+
+            try {
+                const res = await fetch(`${BASE}/unmatched-drugs/${id}/crawl`, { method: 'POST' });
+                const data = await res.json();
+
+                if (!data.success) {
+                    body.innerHTML = `<div style="text-align:center;padding:30px;color:var(--danger);">❌ 搜尋失敗：${escapeHtml(data.error)}</div>`;
+                    actions.innerHTML = '<button class="btn btn-outline" onclick="closeCrawlModal()">關閉</button>';
+                    return;
+                }
+
+                const details = data.details;
+                if (!details || Object.keys(details).length <= 2) {
+                    body.innerHTML = `<div style="text-align:center;padding:30px;">
+                        <div style="font-size:48px;margin-bottom:16px;">🔍</div>
+                        <p>未在健保署/TFDA 找到「${escapeHtml(drugName)}」的資訊</p>
+                        <p style="color:var(--text-secondary);font-size:13px;">搜尋詞：${escapeHtml(data.search_term || drugName)}</p>
+                    </div>`;
+                    actions.innerHTML = `
+                        <button class="btn btn-secondary" onclick="updateUnmatchedStatus(${id}, 'ignored');closeCrawlModal()">🚫 忽略此藥</button>
+                        <button class="btn btn-outline" onclick="closeCrawlModal()">關閉</button>
+                    `;
+                    return;
+                }
+
+                currentCrawlDetails = details;
+
+                // 顯示爬蟲結果預覽
+                const fields = [
+                    ['中文品名', details['中文品名']],
+                    ['英文品名', details['英文品名']],
+                    ['許可證字號', details['id']],
+                    ['適應症', details['適應症']],
+                    ['主成分略述', details['主成分略述']],
+                    ['劑型', details['劑型']],
+                    ['藥品類別', details['藥品類別']],
+                    ['藥商名稱', details['藥商名稱']],
+                    ['製造廠名稱', details['製造廠名稱']],
+                    ['有效日期', details['有效日期']],
+                    ['包裝', details['包裝']],
+                    ['管制藥品分類級別', details['管制藥品分類級別']],
+                ].filter(f => f[1]);
+
+                const sourceName = details.source || 'NHI/TFDA';
+                const sourceColor = sourceName.includes('開放資料') ? '#e67e22' : '#27ae60';
+                let html = `<div style="margin-bottom:12px;font-size:13px;">
+                    <span style="color:var(--text-secondary);">搜尋詞：${escapeHtml(data.search_term || drugName)}</span>
+                    <span style="display:inline-block;margin-left:8px;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600;color:#fff;background:${sourceColor};">
+                        📌 ${escapeHtml(sourceName)}
+                    </span>
+                </div>`;
+                if (details.source_url) {
+                    html += `<div style="margin-bottom:8px;font-size:12px;color:var(--text-secondary);">
+                        來源頁面：<a href="${escapeHtml(details.source_url)}" target="_blank" rel="noopener" style="color:var(--primary);">${escapeHtml(details.source_url)}</a>
+                    </div>`;
+                }
+                html += '<table style="width:100%"><tbody>';
+                for (const [label, value] of fields) {
+                    html += `<tr>
+                        <td style="font-weight:600;white-space:nowrap;padding:8px 12px 8px 0;vertical-align:top;width:120px;">${escapeHtml(label)}</td>
+                        <td style="padding:8px 0;">${escapeHtml(value)}</td>
+                    </tr>`;
+                }
+                html += '</tbody></table>';
+
+                // 如果有圖片
+                if (details.images && details.images.length) {
+                    html += '<div style="margin-top:12px;"><strong>藥品圖片：</strong><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">';
+                    for (const img of details.images.slice(0, 4)) {
+                        html += `<img src="${escapeHtml(img)}" style="max-width:120px;max-height:120px;border-radius:8px;border:1px solid var(--border);" onerror="this.style.display='none'">`;
+                    }
+                    html += '</div></div>';
+                }
+
+                body.innerHTML = html;
+                actions.innerHTML = `
+                    <button class="btn btn-success" onclick="confirmAddToDb(${id})">✅ 加入資料庫</button>
+                    <button class="btn btn-secondary" onclick="updateUnmatchedStatus(${id}, 'ignored');closeCrawlModal()">🚫 忽略</button>
+                    <button class="btn btn-outline" onclick="closeCrawlModal()">取消</button>
+                `;
+            } catch (e) {
+                body.innerHTML = `<div style="text-align:center;padding:30px;color:var(--danger);">❌ 搜尋發生錯誤：${escapeHtml(e.message)}</div>`;
+                actions.innerHTML = '<button class="btn btn-outline" onclick="closeCrawlModal()">關閉</button>';
+            }
+        }
+
+        async function confirmAddToDb(unmatchedId) {
+            if (!currentCrawlDetails) {
+                showToast('無爬蟲資料可加入', 'error');
+                return;
+            }
+
+            const body = document.getElementById('crawlModalBody');
+            const actions = document.getElementById('crawlModalActions');
+            actions.innerHTML = '<button class="btn btn-outline" disabled>處理中...</button>';
+
+            try {
+                const res = await fetch(`${BASE}/unmatched-drugs/${unmatchedId}/add-to-db`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ details: currentCrawlDetails })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    showToast(data.message, 'success');
+                    closeCrawlModal();
+                    loadUnmatched();
+                } else if (res.status === 409) {
+                    // 已存在 → 提示直接解決
+                    showToast(data.error, 'warning');
+                    actions.innerHTML = `
+                        <button class="btn btn-success" onclick="updateUnmatchedStatus(${unmatchedId}, 'resolved');closeCrawlModal()">✅ 標記已解決</button>
+                        <button class="btn btn-outline" onclick="closeCrawlModal()">關閉</button>
+                    `;
+                } else {
+                    showToast(data.error || '加入失敗', 'error');
+                    actions.innerHTML = '<button class="btn btn-outline" onclick="closeCrawlModal()">關閉</button>';
+                }
+            } catch (e) {
+                showToast('加入資料庫失敗: ' + e.message, 'error');
+                actions.innerHTML = '<button class="btn btn-outline" onclick="closeCrawlModal()">關閉</button>';
+            }
+        }
+
+        function closeCrawlModal() {
+            document.getElementById('crawlModal').style.display = 'none';
+            currentCrawlId = null;
+            currentCrawlDetails = null;
+        }
 
         loadDashboard();
     </script>

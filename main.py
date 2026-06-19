@@ -41,8 +41,9 @@ import uuid
 import logging
 import sqlite3
 import time
+import threading
 from datetime import datetime
-from typing import Dict, Any, Tuple
+from typing import Dict, Any, List, Tuple
 import sys
 
 # 載入配置
@@ -395,6 +396,83 @@ def get_file_size_mb(file) -> float:
 
 
 # ============================================
+# 背景 NHI 爬蟲（藥單辨識後自動觸發）
+# ============================================
+
+def _background_nhi_crawl(crawl_tasks: List[Dict[str, Any]], db_path: str):
+    """
+    背景執行 NHI 爬蟲，為有 drug_id 但尚無快取的藥物預先抓取資料。
+
+    Args:
+        crawl_tasks: [{"drug_id": int, "search_name": str}, ...]
+        db_path: 資料庫路徑
+    """
+    import asyncio
+    import re
+
+    async def _crawl_all(tasks):
+        from scripts.nhi_crawler import scrape_nhi_drug_info
+        from playwright.async_api import async_playwright
+
+        pw_ctx = await async_playwright().start()
+        browser = await pw_ctx.chromium.launch(headless=True)
+        crawled = 0
+
+        try:
+            for i, task in enumerate(tasks):
+                drug_id = task["drug_id"]
+                search_name = task["search_name"]
+
+                # 清理搜尋名稱（同 /api/drug/<id> 邏輯）
+                search_name = re.sub(
+                    r'^["\u201c\u201d\u300c\u300d「」]+[^"\u201c\u201d\u300c\u300d「」]*["\u201c\u201d\u300c\u300d「」]+\s*',
+                    '', search_name
+                )
+                search_name = search_name.strip('""\u201c\u201d ')
+
+                if not search_name:
+                    continue
+
+                try:
+                    logger.info(f"🕸️ [背景爬蟲 {i+1}/{len(tasks)}] 爬取: {search_name} (drug_id={drug_id})")
+                    result = await scrape_nhi_drug_info(search_name, browser=browser)
+
+                    if result and result.get("status") == "success":
+                        details = result.get("details", {})
+                        if details and len(details) > 2:
+                            from drug_database import DrugDatabase
+                            db = DrugDatabase(db_path)
+                            db.set_nhi_cache(drug_id, search_name, details)
+                            crawled += 1
+                            logger.info(f"✓ [背景爬蟲] {search_name} 已快取 (drug_id={drug_id})")
+                        else:
+                            logger.info(f"ℹ [背景爬蟲] {search_name} 無額外資訊")
+                    else:
+                        logger.info(f"ℹ [背景爬蟲] {search_name} 查無結果")
+
+                except Exception as e:
+                    logger.warning(f"⚠ [背景爬蟲] {search_name} 失敗: {e}")
+
+                # 請求間隔 2 秒，避免被封鎖
+                if i < len(tasks) - 1:
+                    await asyncio.sleep(2)
+
+        finally:
+            await browser.close()
+            await pw_ctx.stop()
+
+        logger.info(f"✓ [背景爬蟲] 完成，共爬取 {crawled}/{len(tasks)} 筆")
+
+    try:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(_crawl_all(crawl_tasks))
+        loop.close()
+    except Exception as e:
+        logger.error(f"✗ [背景爬蟲] 執行失敗: {e}", exc_info=True)
+
+
+# ============================================
 # 前端路由
 # ============================================
 
@@ -641,6 +719,18 @@ def recognize_drug():
         if safety_warnings:
             response["safety_warnings"] = safety_warnings
 
+        # 儲存辨識歷史
+        if drug_db:
+            try:
+                drug_db.save_recognition_history(
+                    filename=filename,
+                    mode="drug",
+                    result=recognized_items,
+                    drug_count=len(recognized_items),
+                )
+            except Exception as e:
+                logger.warning(f"⚠ 儲存辨識歷史失敗: {e}")
+
         return jsonify(response), 200
 
     except Exception as e:
@@ -812,14 +902,69 @@ def recognize_prescription():
 
             drug_details.append(detail)
 
+        # === 記錄未比對到的藥物 ===
+        if drug_db:
+            for idx, item in enumerate(drug_details):
+                if item.get("drug_id") is None:
+                    en_name = ""
+                    lic = ""
+                    if idx < len(prescription_details):
+                        p = prescription_details[idx]
+                        en_name = p.get("english_name", "")
+                        lic = p.get("license_number", "")
+                    drug_db.add_unmatched_drug(
+                        drug_name=item.get("name", ""),
+                        english_name=en_name,
+                        license_number=lic,
+                        source="prescription",
+                        prescription_info=item.get("prescription_info"),
+                    )
+
+        # === 背景 NHI 爬蟲：為有 drug_id 但尚無快取的藥物預先抓取 ===
+        if drug_db:
+            crawl_tasks = []
+            for item in drug_details:
+                did = item.get("drug_id")
+                if did is None:
+                    continue
+                # 跳過已有快取的
+                if drug_db.get_nhi_cache(did):
+                    continue
+                # 決定搜尋名稱
+                details = item.get("details") or {}
+                sname = details.get("chinese_name") or details.get("english_name") or item.get("name", "")
+                if sname:
+                    crawl_tasks.append({"drug_id": did, "search_name": sname})
+
+            if crawl_tasks:
+                logger.info(f"🕸️ 啟動背景 NHI 爬蟲，共 {len(crawl_tasks)} 筆待爬取")
+                t = threading.Thread(
+                    target=_background_nhi_crawl,
+                    args=(crawl_tasks, config.DATABASE_PATH),
+                    daemon=True,
+                )
+                t.start()
+
         response = {
             "success": True,
             "request_id": filename.split("_")[0],
             "image_filename": filename,
             "recognized_drugs": drug_names,
-            "recognized_items": drug_details,  # 保持與 recognize_drug 一致的格式
+            "recognized_items": drug_details,
             "message": f"辨識完成，找到 {len(drug_names)} 種藥物",
         }
+
+        # 儲存辨識歷史
+        if drug_db:
+            try:
+                drug_db.save_recognition_history(
+                    filename=filename,
+                    mode="prescription",
+                    result=drug_details,
+                    drug_count=len(drug_names),
+                )
+            except Exception as e:
+                logger.warning(f"⚠ 儲存辨識歷史失敗: {e}")
 
         return jsonify(response), 200
 

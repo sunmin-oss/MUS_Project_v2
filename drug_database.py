@@ -67,11 +67,20 @@ class DrugDatabase:
         if not query or not query.strip():
             return []
 
+        # 常見藥品縮寫展開（用於分詞匹配）
+        _ABBREV = {
+            "CAP": "CAPSULES", "CAPS": "CAPSULES",
+            "TAB": "TABLETS", "TABS": "TABLETS",
+            "F.C.T": "F.C. TABLETS", "F.C. T": "F.C. TABLETS", "FCT": "F.C. TABLETS",
+            "INJ": "INJECTION", "SOL": "SOLUTION", "SYR": "SYRUP",
+            "SUSP": "SUSPENSION", "CR": "CREAM", "OINT": "OINTMENT",
+        }
+
         try:
             conn = self._get_connection()
             cursor = conn.cursor()
 
-            # 模糊搜尋 - 比對中文名稱、英文名稱、許可證字號
+            # 策略1: 直接模糊搜尋 - 比對中文名稱、英文名稱、許可證字號
             search_param = f"%{query}%"
             cursor.execute(
                 """
@@ -98,6 +107,38 @@ class DrugDatabase:
             results = []
             for row in cursor.fetchall():
                 results.append(dict(row))
+
+            # 策略2: 若無結果，嘗試展開縮寫後分詞 AND 匹配
+            if not results:
+                upper_query = query.strip().upper()
+                words = upper_query.split()
+                expanded_words = list(words)
+                for i, w in enumerate(words):
+                    if w in _ABBREV:
+                        expanded_words[i] = _ABBREV[w]
+
+                # 取長度>=3的詞做分詞匹配
+                search_terms = [w for w in " ".join(expanded_words).split() if len(w) >= 3]
+                if search_terms and len(search_terms) >= 2:
+                    # 用詞幹匹配
+                    stems = []
+                    for w in search_terms:
+                        if w.endswith("ULES"):
+                            stems.append(w[:-2])
+                        elif w.endswith("LETS"):
+                            stems.append(w[:-1])
+                        else:
+                            stems.append(w)
+                    conditions = " AND ".join(["UPPER(english_name) LIKE ?" for _ in stems])
+                    params = [f"%{s}%" for s in stems] + [limit]
+                    cursor.execute(
+                        f"""SELECT DISTINCT id, chinese_name, english_name, license_number,
+                                   shape, color, indications, special_dosage_form, ingredient
+                            FROM drugs WHERE {conditions} LIMIT ?""",
+                        params,
+                    )
+                    for row in cursor.fetchall():
+                        results.append(dict(row))
 
             conn.close()
             logger.info(f"✓ 搜尋 '{query}' 找到 {len(results)} 個結果")
@@ -425,3 +466,336 @@ class DrugDatabase:
             logger.info(f"✓ NHI 快取已儲存 (drug_id={drug_id}, name={search_name})")
         except Exception as e:
             logger.error(f"✗ 儲存 NHI 快取失敗: {e}")
+
+    # ============================================
+    # 未比對藥物紀錄
+    # ============================================
+
+    def _ensure_unmatched_drugs_table(self):
+        """確保 unmatched_drugs 表存在"""
+        try:
+            conn = self._get_connection()
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS unmatched_drugs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    drug_name TEXT NOT NULL,
+                    english_name TEXT,
+                    license_number TEXT,
+                    source TEXT DEFAULT 'prescription',
+                    prescription_info TEXT,
+                    occurrence_count INTEGER DEFAULT 1,
+                    status TEXT DEFAULT 'pending',
+                    resolved_drug_id INTEGER,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            logger.error(f"✗ 建立 unmatched_drugs 表失敗: {e}")
+
+    def add_unmatched_drug(
+        self,
+        drug_name: str,
+        english_name: str = "",
+        license_number: str = "",
+        source: str = "prescription",
+        prescription_info: Optional[Dict[str, Any]] = None,
+    ) -> Optional[int]:
+        """
+        記錄一筆未比對到的藥物。若同名藥物已存在且為 pending，則累加次數。
+        若藥物已在主資料庫或 unmatched_drugs 中已解決，則跳過不記錄。
+
+        回傳: 記錄的 id，或 None（失敗/跳過）
+        """
+        import json
+        import re
+
+        self._ensure_unmatched_drugs_table()
+
+        # 常見藥品縮寫展開
+        _ABBREV = {
+            "CAP": "CAPSULES", "CAPS": "CAPSULES",
+            "TAB": "TABLETS", "TABS": "TABLETS",
+            "F.C.T": "F.C. TABLETS", "F.C. T": "F.C. TABLETS", "FCT": "F.C. TABLETS",
+            "INJ": "INJECTION", "SOL": "SOLUTION", "SYR": "SYRUP",
+            "SUSP": "SUSPENSION", "CR": "CREAM", "OINT": "OINTMENT",
+        }
+
+        def _expand_name(name):
+            """展開縮寫，回傳展開後的名稱列表"""
+            names = [name]
+            upper = name.upper()
+            words = upper.split()
+            for abbr, full in _ABBREV.items():
+                if abbr in words:
+                    expanded = upper.replace(abbr, full, 1)
+                    names.append(expanded)
+            return names
+
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+
+            # 先檢查藥物是否已在主資料庫 (drugs 表) 中
+            # 策略1: 精確比對 + 不區分大小寫 + 展開縮寫後的 LIKE 比對
+            search_names = _expand_name(drug_name)
+            for sname in search_names:
+                cursor.execute(
+                    """SELECT id FROM drugs
+                       WHERE UPPER(english_name) = UPPER(?)
+                          OR UPPER(chinese_name) = UPPER(?)
+                          OR UPPER(english_name) LIKE UPPER(?)
+                       LIMIT 1""",
+                    (sname, sname, f"%{sname}%"),
+                )
+                if cursor.fetchone():
+                    conn.close()
+                    logger.debug(f"⏭️ 未比對藥物跳過（已在資料庫中）: {drug_name}")
+                    return None
+
+            # 策略2: 分詞 AND 匹配 - 所有關鍵字都出現在 english_name 中
+            # 例如 "FAMOTIDINE TABLETS" → english_name LIKE '%FAMOTIDINE%' AND english_name LIKE '%TABLET%'
+            for sname in search_names:
+                words = [w for w in sname.upper().split() if len(w) >= 3]
+                if words:
+                    # 對於 TABLETS/CAPSULES 等，用詞幹匹配 (去掉 S/ES)
+                    stems = []
+                    for w in words:
+                        if w.endswith("ULES"):  # CAPSULES → CAPSUL
+                            stems.append(w[:-2])
+                        elif w.endswith("LETS"):  # TABLETS → TABLET
+                            stems.append(w[:-1])
+                        elif w.endswith("TION"):  # INJECTION → INJECTION
+                            stems.append(w)
+                        else:
+                            stems.append(w)
+                    conditions = " AND ".join(["UPPER(english_name) LIKE ?" for _ in stems])
+                    params = [f"%{s}%" for s in stems]
+                    cursor.execute(
+                        f"SELECT id FROM drugs WHERE {conditions} LIMIT 1",
+                        params,
+                    )
+                    if cursor.fetchone():
+                        conn.close()
+                        logger.debug(f"⏭️ 未比對藥物跳過（分詞匹配已在資料庫中）: {drug_name}")
+                        return None
+
+            # 檢查是否已有同名的 resolved/ignored 記錄（用 drug_name 或 english_name 比對）
+            cursor.execute(
+                """SELECT id FROM unmatched_drugs
+                   WHERE (drug_name = ? OR english_name = ?) AND status IN ('resolved', 'ignored')""",
+                (drug_name, drug_name),
+            )
+            if cursor.fetchone():
+                conn.close()
+                logger.debug(f"⏭️ 未比對藥物跳過（已解決/已忽略）: {drug_name}")
+                return None
+
+            # 檢查是否已有同名 pending 記錄
+            cursor.execute(
+                """SELECT id, occurrence_count FROM unmatched_drugs
+                   WHERE (drug_name = ? OR english_name = ?) AND status = 'pending'""",
+                (drug_name, drug_name),
+            )
+            existing = cursor.fetchone()
+
+            if existing:
+                record_id = existing[0]
+                new_count = existing[1] + 1
+                cursor.execute(
+                    "UPDATE unmatched_drugs SET occurrence_count = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                    (new_count, record_id),
+                )
+                conn.commit()
+                conn.close()
+                logger.info(f"📝 未比對藥物已更新次數: {drug_name} (第 {new_count} 次)")
+                return record_id
+            else:
+                pi_json = json.dumps(prescription_info, ensure_ascii=False) if prescription_info else None
+                cursor.execute(
+                    """
+                    INSERT INTO unmatched_drugs (drug_name, english_name, license_number, source, prescription_info)
+                    VALUES (?, ?, ?, ?, ?)
+                    """,
+                    (drug_name, english_name, license_number, source, pi_json),
+                )
+                conn.commit()
+                record_id = cursor.lastrowid
+                conn.close()
+                logger.info(f"📝 未比對藥物已記錄: {drug_name} (id={record_id})")
+                return record_id
+
+        except Exception as e:
+            logger.error(f"✗ 記錄未比對藥物失敗: {e}")
+            return None
+
+    def get_unmatched_drugs(
+        self, page: int = 1, per_page: int = 20, status: str = "", search: str = ""
+    ) -> Dict[str, Any]:
+        """
+        取得未比對藥物列表（分頁 + 搜尋）。
+
+        回傳: {"items": [...], "total": int, "page": int, "per_page": int}
+        """
+        import json
+
+        self._ensure_unmatched_drugs_table()
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            offset = (page - 1) * per_page
+
+            where_clauses = []
+            params = []
+            if status:
+                where_clauses.append("status = ?")
+                params.append(status)
+            if search:
+                where_clauses.append(
+                    "(drug_name LIKE ? OR english_name LIKE ? OR license_number LIKE ?)"
+                )
+                like = f"%{search}%"
+                params.extend([like, like, like])
+
+            where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
+
+            cursor.execute(f"SELECT COUNT(*) FROM unmatched_drugs {where_sql}", params)
+            total = cursor.fetchone()[0]
+            cursor.execute(
+                f"""
+                SELECT * FROM unmatched_drugs {where_sql}
+                ORDER BY occurrence_count DESC, updated_at DESC
+                LIMIT ? OFFSET ?
+                """,
+                params + [per_page, offset],
+            )
+
+            rows = cursor.fetchall()
+            columns = [desc[0] for desc in cursor.description]
+            items = []
+            for row in rows:
+                item = dict(zip(columns, row))
+                if item.get("prescription_info"):
+                    try:
+                        item["prescription_info"] = json.loads(item["prescription_info"])
+                    except (json.JSONDecodeError, TypeError):
+                        pass
+                items.append(item)
+
+            conn.close()
+            return {
+                "items": items,
+                "total": total,
+                "page": page,
+                "per_page": per_page,
+            }
+
+        except Exception as e:
+            logger.error(f"✗ 取得未比對藥物列表失敗: {e}")
+            return {"items": [], "total": 0, "page": page, "per_page": per_page}
+
+    def update_unmatched_drug_status(
+        self, record_id: int, status: str, resolved_drug_id: Optional[int] = None
+    ) -> bool:
+        """更新未比對藥物狀態（resolved / ignored）"""
+        self._ensure_unmatched_drugs_table()
+        try:
+            conn = self._get_connection()
+            conn.execute(
+                """
+                UPDATE unmatched_drugs
+                SET status = ?, resolved_drug_id = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+                """,
+                (status, resolved_drug_id, record_id),
+            )
+            conn.commit()
+            conn.close()
+            logger.info(f"✓ 未比對藥物狀態已更新: id={record_id} → {status}")
+            return True
+        except Exception as e:
+            logger.error(f"✗ 更新未比對藥物狀態失敗: {e}")
+            return False
+
+    # ============================================
+    # 辨識歷史紀錄
+    # ============================================
+
+    def _ensure_recognition_history_table(self):
+        """確保 recognition_history 表存在"""
+        try:
+            conn = self._get_connection()
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS recognition_history (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    filename TEXT NOT NULL,
+                    mode TEXT NOT NULL,
+                    result_json TEXT NOT NULL,
+                    drug_count INTEGER DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            conn.execute("""
+                CREATE INDEX IF NOT EXISTS idx_rh_filename ON recognition_history(filename)
+            """)
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            logger.error(f"✗ 建立 recognition_history 表失敗: {e}")
+
+    def save_recognition_history(
+        self, filename: str, mode: str, result: Any, drug_count: int = 0
+    ):
+        """儲存一筆辨識歷史"""
+        import json
+
+        self._ensure_recognition_history_table()
+        try:
+            conn = self._get_connection()
+            conn.execute(
+                """
+                INSERT INTO recognition_history (filename, mode, result_json, drug_count)
+                VALUES (?, ?, ?, ?)
+                """,
+                (filename, mode, json.dumps(result, ensure_ascii=False, default=str), drug_count),
+            )
+            conn.commit()
+            conn.close()
+            logger.info(f"✓ 辨識歷史已儲存: {filename} ({mode}, {drug_count} 筆)")
+        except Exception as e:
+            logger.error(f"✗ 儲存辨識歷史失敗: {e}")
+
+    def get_recognition_history(self, filename: str) -> Optional[Dict[str, Any]]:
+        """依檔名查詢最近一筆辨識結果"""
+        import json
+
+        self._ensure_recognition_history_table()
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT id, filename, mode, result_json, drug_count, created_at
+                FROM recognition_history
+                WHERE filename = ?
+                ORDER BY created_at DESC LIMIT 1
+                """,
+                (filename,),
+            )
+            row = cursor.fetchone()
+            conn.close()
+            if row:
+                return {
+                    "id": row[0],
+                    "filename": row[1],
+                    "mode": row[2],
+                    "result": json.loads(row[3]),
+                    "drug_count": row[4],
+                    "created_at": row[5],
+                }
+            return None
+        except Exception as e:
+            logger.error(f"✗ 查詢辨識歷史失敗: {e}")
+            return None
