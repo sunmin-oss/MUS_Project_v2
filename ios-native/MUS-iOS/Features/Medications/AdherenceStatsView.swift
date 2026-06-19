@@ -65,7 +65,7 @@ struct AdherenceStatsView: View {
                 )
                 statCard(
                     title: NSLocalizedString("medications.stats.low.stock", comment: ""),
-                    value: lowestStockMed.map { "\($0.currentStock) 顆" } ?? "—",
+                    value: lowestStockMed.map { "\($0.currentStock.stockDisplay) 顆" } ?? "—",
                     icon: "pills.fill",
                     color: (lowestStockMed?.currentStock ?? 99) <= 7 ? .red : DesignColors.primary
                 )

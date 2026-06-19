@@ -20,15 +20,15 @@ enum MockData {
     static let medications: [Medication] = [
         Medication(id: "m1", profileId: "p1", drugName: "普拿疼 500mg",
                    dosage: "1 顆", frequency: "每 6 小時", mealTiming: "飯後",
-                   nextDoseAt: Date().addingTimeInterval(3600), currentStock: 12,
+                   nextDoseAt: Date().addingTimeInterval(3600), currentStock: 12.0,
                    reminderTimes: [], notes: ""),
         Medication(id: "m2", profileId: "p1", drugName: "胃乳片",
                    dosage: "2 顆", frequency: "三餐飯後", mealTiming: "飯後",
-                   nextDoseAt: Date().addingTimeInterval(7200), currentStock: 3,
+                   nextDoseAt: Date().addingTimeInterval(7200), currentStock: 3.0,
                    reminderTimes: [], notes: ""),
         Medication(id: "m3", profileId: "p2", drugName: "降血壓藥",
                    dosage: "1 顆", frequency: "每日一次", mealTiming: "早餐後",
-                   nextDoseAt: Date().addingTimeInterval(28800), currentStock: 25,
+                   nextDoseAt: Date().addingTimeInterval(28800), currentStock: 25.0,
                    reminderTimes: [], notes: "")
     ]
 

@@ -249,12 +249,14 @@ struct PrescriptionDraftView: View {
         var meal = ""
 
         // 判斷次數
-        if s.contains("三餐") || s.contains("tid") || s.contains("3次") {
+        if s.contains("三餐") || s.contains("tid") || s.contains("3次") || s.contains("x3") || s == "3" {
             freq = "每日 3 次"
-        } else if s.contains("早晚") || s.contains("bid") || s.contains("2次") || s.contains("兩次") {
+        } else if s.contains("早晚") || s.contains("bid") || s.contains("2次") || s.contains("兩次") || s.contains("x2") || s == "2" {
             freq = "每日 2 次"
-        } else if s.contains("四次") || s.contains("qid") || s.contains("4次") {
+        } else if s.contains("四次") || s.contains("qid") || s.contains("4次") || s.contains("x4") || s == "4" {
             freq = "每日 4 次"
+        } else if s.contains("x1") || s.contains("qd") || s.contains("od") || s == "1" {
+            freq = "每日 1 次"
         }
 
         // 判斷用餐時間
@@ -276,18 +278,14 @@ struct PrescriptionDraftView: View {
     }
 
     /// 從 totalQuantity 或 days*frequency*dose 計算庫存數量
-    static func computeStock(totalQuantity: String?, days: Int?, frequency: String, dosage: String) -> Int {
-        // 優先從 totalQuantity 解析數字 (e.g. "共 9 TAB" → 9)
+    static func computeStock(totalQuantity: String?, days: Int?, frequency: String, dosage: String) -> Double {
+        // 優先從 totalQuantity 解析數字 (e.g. "共 9 TAB" → 9, "共 4.5 TAB" → 4.5)
         if let tq = totalQuantity {
-            let digits = tq.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()
-            if let num = Double(digits), num > 0 {
-                return Int(ceil(num))
-            }
-            // 嘗試解析帶小數 (e.g. "共 4.5 TAB")
+            // 用正則提取第一個數字（含小數點）
             let pattern = #"(\d+\.?\d*)"#
             if let range = tq.range(of: pattern, options: .regularExpression),
                let num = Double(tq[range]), num > 0 {
-                return Int(ceil(num))
+                return num
             }
         }
 
@@ -309,6 +307,6 @@ struct PrescriptionDraftView: View {
         }
 
         let d = days ?? 7
-        return Int(ceil(Double(d) * Double(timesPerDay) * dose))
+        return Double(d) * Double(timesPerDay) * dose
     }
 }

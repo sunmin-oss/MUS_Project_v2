@@ -417,9 +417,9 @@ struct MedicationsListView: View {
     }
 
     @ViewBuilder
-    private func stockBadge(_ count: Int) -> some View {
+    private func stockBadge(_ count: Double) -> some View {
         let isLow = count <= 7
-        Text(String(format: NSLocalizedString("medications.stock", comment: ""), count))
+        Text(String(format: NSLocalizedString("medications.stock", comment: ""), Int(count)))
             .font(DesignTypography.caption)
             .padding(.horizontal, 8)
             .padding(.vertical, 3)

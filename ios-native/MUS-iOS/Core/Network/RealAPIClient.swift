@@ -341,7 +341,7 @@ final class RealAPIClient: APIClientProtocol {
         let durationDays: Int?
         let startDate: String?
         let endDate: String?
-        let stockQty: Int?
+        let stockQty: Double?
         let note: String?
         let isActive: Bool?
         let schedules: [ScheduleDTO]?
@@ -474,7 +474,7 @@ final class RealAPIClient: APIClientProtocol {
             frequency: humanFrequency(dto.frequency ?? "daily"),
             mealTiming: mealTiming,
             nextDoseAt: next,
-            currentStock: dto.stockQty ?? 0,
+            currentStock: dto.stockQty ?? 0.0,
             reminderTimes: reminders,
             notes: notes,
             prescriptionLabel: prescriptionLabel
