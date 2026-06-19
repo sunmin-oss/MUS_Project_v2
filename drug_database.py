@@ -108,7 +108,26 @@ class DrugDatabase:
             for row in cursor.fetchall():
                 results.append(dict(row))
 
-            # 策略2: 若無結果，嘗試展開縮寫後分詞 AND 匹配
+            # 策略2: 若無結果，嘗試去標點正規化匹配
+            # 例如 "TFSUMIN FCT" 正規化後為 "TFSUMINFCT"，可匹配 "T.F.SU-MIN F.C. T"
+            if not results:
+                import re
+                normalized_query = re.sub(r'[.\-\s\"\']', '', query.strip().upper())
+                if len(normalized_query) >= 3:
+                    cursor.execute(
+                        f"""SELECT DISTINCT id, chinese_name, english_name, license_number,
+                                   shape, color, indications, special_dosage_form, ingredient
+                            FROM drugs
+                            WHERE REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+                                    UPPER(english_name), '.', ''), '-', ''), ' ', ''), '"', ''), '''', '')
+                                  LIKE ?
+                            LIMIT ?""",
+                        (f"%{normalized_query}%", limit),
+                    )
+                    for row in cursor.fetchall():
+                        results.append(dict(row))
+
+            # 策略3: 若仍無結果，嘗試展開縮寫後分詞 AND 匹配
             if not results:
                 upper_query = query.strip().upper()
                 words = upper_query.split()

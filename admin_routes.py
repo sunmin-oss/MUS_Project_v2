@@ -326,17 +326,21 @@ def list_drugs():
 
         if search:
             search_param = f"%{search}%"
-            # 正規化搜尋：去除引號和空格後再比對，處理 "T.F.SU-MIN F.C. T" vs "T.F."Su-min F.C.T 180mg
-            compact_search = search.replace('"', '').replace('\u201c', '').replace('\u201d', '').replace("'", '').replace(' ', '')
-            compact_param = f"%{compact_search}%"
+            # 正規化搜尋：去除標點、空格後再比對
+            # 處理 "TFSUMIN FCT" vs "T.F.SU-MIN F.C. Tablets" 等
+            import re
+            normalized_search = re.sub(r'[.\-\s\"\'"\u201c\u201d]', '', search).upper()
+            normalized_param = f"%{normalized_search}%"
             search_sql = """
                 chinese_name LIKE ? OR english_name LIKE ? OR license_number LIKE ?
-                OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(english_name, '"', ''), '"', ''), '\u201c', ''), '\u201d', ''), ' ', '') LIKE ?
-                OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(chinese_name, '"', ''), '"', ''), '\u201c', ''), '\u201d', ''), ' ', '') LIKE ?
+                OR UPPER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+                    english_name, '.', ''), '-', ''), ' ', ''), '"', ''), '''', ''), '"', ''), '"', '')) LIKE ?
+                OR UPPER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+                    chinese_name, '.', ''), '-', ''), ' ', ''), '"', ''), '''', ''), '"', ''), '"', '')) LIKE ?
             """
             cursor.execute(
                 f"SELECT COUNT(*) FROM drugs WHERE {search_sql}",
-                (search_param, search_param, search_param, compact_param, compact_param),
+                (search_param, search_param, search_param, normalized_param, normalized_param),
             )
             total = cursor.fetchone()[0]
             cursor.execute(
@@ -345,7 +349,7 @@ def list_drugs():
                 WHERE {search_sql}
                 ORDER BY id LIMIT ? OFFSET ?
             """,
-                (search_param, search_param, search_param, compact_param, compact_param, per_page, offset),
+                (search_param, search_param, search_param, normalized_param, normalized_param, per_page, offset),
             )
         else:
             cursor.execute("SELECT COUNT(*) FROM drugs")

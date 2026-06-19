@@ -1476,7 +1476,7 @@
                 // 載入資料
                 const loaders = {
                     dashboard: loadDashboard,
-                    drugs: () => loadDrugs(1),
+                    drugs: () => { currentDrugSearch = ''; document.getElementById('drugSearch').value = ''; loadDrugs(1); },
                     users: () => loadUsers(1),
                     cache: loadCache,
                     unmatched: loadUnmatched,

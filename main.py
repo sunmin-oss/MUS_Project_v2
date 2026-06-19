@@ -619,6 +619,10 @@ def recognize_drug():
             confidence = item.get("confidence", 0)
             source = item.get("source", "unknown")
 
+            # AI 辨識信心度上限為 0.98（不允許 100%）
+            if confidence >= 1.0:
+                confidence = 0.98
+
             # 過濾信心度低的結果
             if confidence < config.MIN_CONFIDENCE:
                 continue
@@ -743,6 +747,94 @@ def favicon():
     return "", 204
 
 
+def _validate_total_quantity(item, raw_total):
+    """
+    驗證總量是否合理：用 dose_per_time × frequency_number × days 計算期望值，
+    若 OCR 回傳的總量與計算值差異過大，則修正為計算值。
+    解決 4.5 被 OCR 誤讀為 45 的問題。
+    """
+    import re
+
+    try:
+        # 解析 dose_per_time 中的數字（如 "1.00", "0.50", "1 TAB"）
+        dose_str = str(item.get("dose_per_time", ""))
+        dose_match = re.search(r'(\d+\.?\d*)', dose_str)
+        dose = float(dose_match.group(1)) if dose_match else None
+
+        # 解析天數
+        days = item.get("days", 0)
+        if isinstance(days, str):
+            days_match = re.search(r'(\d+)', days)
+            days = int(days_match.group(1)) if days_match else 0
+        days = int(days) if days else 0
+
+        # 解析頻率中的次數（如 "x3", "3", "TID"=3, "BID"=2, "QD"=1, "QID"=4）
+        freq_str = str(item.get("frequency", ""))
+        freq_num = None
+        # 嘗試直接提取數字 "x3", "3次"
+        freq_match = re.search(r'x?(\d+)', freq_str.lower())
+        if freq_match:
+            freq_num = int(freq_match.group(1))
+        else:
+            # 嘗試常見醫療縮寫
+            freq_map = {
+                "qd": 1, "od": 1, "hs": 1, "prn": 1,
+                "bid": 2, "q12h": 2,
+                "tid": 3, "q8h": 3,
+                "qid": 4, "q6h": 4,
+                "q4h": 6,
+            }
+            for key, val in freq_map.items():
+                if key in freq_str.lower():
+                    freq_num = val
+                    break
+
+        # 無法計算則直接返回原值
+        if dose is None or days == 0 or freq_num is None:
+            return raw_total
+
+        # 計算期望總量
+        expected = dose * freq_num * days
+
+        # 解析 OCR 回傳的總量數字
+        total_match = re.search(r'(\d+\.?\d*)', str(raw_total))
+        if not total_match:
+            # OCR 沒回傳數字，用計算值替代
+            return f"共 {expected:g}"
+
+        ocr_total = float(total_match.group(1))
+
+        # 比對：若 OCR 值與期望值差異超過 20% 且 OCR 值是期望的約 10 倍
+        # （典型的小數點遺失問題：4.5 → 45）
+        if expected > 0 and ocr_total > 0:
+            ratio = ocr_total / expected
+            if ratio > 5:
+                # OCR 明顯過大，修正為計算值
+                logger.warning(
+                    f"⚠️ 總量驗證修正: OCR={ocr_total}, 計算值={expected:g} "
+                    f"(dose={dose} × freq={freq_num} × days={days}), 使用計算值"
+                )
+                # 保留原始單位
+                unit_match = re.search(r'[\u4e00-\u9fff]+|[A-Za-z]+', str(raw_total).replace("共", "").strip())
+                unit = unit_match.group(0) if unit_match else ""
+                return f"共 {expected:g} {unit}".strip()
+            elif ratio < 0.2:
+                # OCR 明顯過小
+                logger.warning(
+                    f"⚠️ 總量驗證修正: OCR={ocr_total}, 計算值={expected:g} "
+                    f"(dose={dose} × freq={freq_num} × days={days}), 使用計算值"
+                )
+                unit_match = re.search(r'[\u4e00-\u9fff]+|[A-Za-z]+', str(raw_total).replace("共", "").strip())
+                unit = unit_match.group(0) if unit_match else ""
+                return f"共 {expected:g} {unit}".strip()
+
+        return raw_total
+
+    except Exception as e:
+        logger.debug(f"總量驗證異常: {e}")
+        return raw_total
+
+
 @app.route("/api/recognize_prescription", methods=["POST"])
 def recognize_prescription():
     """
@@ -832,7 +924,7 @@ def recognize_prescription():
         for idx, name in enumerate(drug_names):
             detail = {
                 "name": name,
-                "confidence": 1.0,
+                "confidence": 0.95,
                 "source": "prescription",
                 "details": None,
                 "drug_id": None,
@@ -842,12 +934,17 @@ def recognize_prescription():
             # 附加處方資訊（用法用量）— 用 index 對齊
             if idx < len(prescription_details):
                 item = prescription_details[idx]
+
+                # === 總量驗證：dose_per_time × frequency × days vs total_quantity ===
+                raw_total = item.get("total_quantity", "")
+                validated_total = _validate_total_quantity(item, raw_total)
+
                 detail["prescription_info"] = {
                     "route": item.get("route", ""),
                     "days": item.get("days", 0),
                     "frequency": item.get("frequency", ""),
                     "dose_per_time": item.get("dose_per_time", ""),
-                    "total_quantity": item.get("total_quantity", ""),
+                    "total_quantity": validated_total,
                     "ingredient": item.get("ingredient", ""),
                 }
             else:
