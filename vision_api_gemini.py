@@ -622,11 +622,11 @@ class GeminiVisionRecognizer:
 - license_number: 許可證字號（如 A037598116、AC42626100 等，通常在藥名後面）
 - chinese_name: 中文藥名（如 愛克痰、安鼻寧錠 等）
 - english_name: 英文藥名（如 ACTEIN GRANULES、ANPIRIN TABLETS 等）
-- route: 給藥途徑（如 口服、外用、注射 等）
-- days: 天數（純數字，如 3、7、14）
-- frequency: 服用頻率（如 三餐餐後、早晚餐後、睡前、需要時使用 等）
-- dose_per_time: 每次劑量（如 1 TAB、1 pack、1 CC 等）
-- total_quantity: 總量（如 共 9 TAB、共 6 TAB 等）
+- route: 給藥途徑（如 口服、外用、注射、PO、IM、IV 等，原樣保留藥單上的寫法）
+- days: 天數（純數字，如 3、7、14；若藥單寫「3 days」或「3 日」一律填 3）
+- frequency: 服用頻率，原樣保留藥單上的寫法（可能是 QD/BID/TID/QID/Q4H/Q6H/Q8H/HS/PRN/AC/PC 等英文縮寫，也可能是 三餐餐後/早晚餐後/睡前/需要時使用 等中文；若兩種都有，以英文縮寫優先）
+- dose_per_time: 每次劑量（如 1 TAB、1 pack、1 CC、0.5 TAB 等）
+- total_quantity: 總量（如 共 9 TAB、共 6 TAB、共 30 顆 等）
 - ingredient: 成分名稱（如 ACETYLCYSTEINE、LORATADINE 等，通常在「成分名:」後面）
 
 範例格式：
@@ -722,7 +722,9 @@ class GeminiVisionRecognizer:
             # 同時保留結構化資料供後續比對使用
             if parsed and isinstance(parsed[0], dict):
                 self._last_prescription_details = parsed
-                logger.info(f"📄 藥單 OCR: 結構化資料已儲存 ({len(parsed)} 筆), keys: {list(parsed[0].keys())}")
+                logger.info(
+                    f"📄 藥單 OCR: 結構化資料已儲存 ({len(parsed)} 筆), keys: {list(parsed[0].keys())}"
+                )
                 # 回傳中文名為主，英文名為輔的名稱列表
                 names = []
                 for item in parsed:
@@ -735,7 +737,9 @@ class GeminiVisionRecognizer:
                 return names
 
             self._last_prescription_details = None
-            logger.warning(f"⚠ 藥單 OCR: parsed 非 dict 列表, type={type(parsed[0]) if parsed else 'empty'}")
+            logger.warning(
+                f"⚠ 藥單 OCR: parsed 非 dict 列表, type={type(parsed[0]) if parsed else 'empty'}"
+            )
             return parsed
 
         except Exception as e:

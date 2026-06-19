@@ -326,18 +326,30 @@ def list_drugs():
 
         if search:
             search_param = f"%{search}%"
+            # 正規化搜尋：去除標點、空格後再比對
+            # 處理 "TFSUMIN FCT" vs "T.F.SU-MIN F.C. Tablets" 等
+            import re
+            normalized_search = re.sub(r'[.\-\s\"\'"\u201c\u201d]', '', search).upper()
+            normalized_param = f"%{normalized_search}%"
+            search_sql = """
+                chinese_name LIKE ? OR english_name LIKE ? OR license_number LIKE ?
+                OR UPPER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+                    english_name, '.', ''), '-', ''), ' ', ''), '"', ''), '''', ''), '"', ''), '"', '')) LIKE ?
+                OR UPPER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+                    chinese_name, '.', ''), '-', ''), ' ', ''), '"', ''), '''', ''), '"', ''), '"', '')) LIKE ?
+            """
             cursor.execute(
-                "SELECT COUNT(*) FROM drugs WHERE chinese_name LIKE ? OR english_name LIKE ? OR license_number LIKE ?",
-                (search_param, search_param, search_param),
+                f"SELECT COUNT(*) FROM drugs WHERE {search_sql}",
+                (search_param, search_param, search_param, normalized_param, normalized_param),
             )
             total = cursor.fetchone()[0]
             cursor.execute(
-                """
+                f"""
                 SELECT * FROM drugs
-                WHERE chinese_name LIKE ? OR english_name LIKE ? OR license_number LIKE ?
+                WHERE {search_sql}
                 ORDER BY id LIMIT ? OFFSET ?
             """,
-                (search_param, search_param, search_param, per_page, offset),
+                (search_param, search_param, search_param, normalized_param, normalized_param, per_page, offset),
             )
         else:
             cursor.execute("SELECT COUNT(*) FROM drugs")
@@ -455,6 +467,78 @@ def update_drug(drug_id):
         return jsonify({"success": True, "message": "藥物已更新"})
     except Exception as e:
         logger.error(f"✗ 更新藥物錯誤: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@admin_bp.route("/api/drugs/<int:drug_id>/upload-image", methods=["POST"])
+def upload_drug_image(drug_id):
+    """上傳藥物圖片"""
+    try:
+        import os
+        from config import config
+
+        if "image" not in request.files:
+            return jsonify({"success": False, "error": "未選擇圖片"}), 400
+
+        file = request.files["image"]
+        if file.filename == "":
+            return jsonify({"success": False, "error": "未選擇圖片"}), 400
+
+        # 驗證檔案類型
+        allowed_ext = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
+        ext = os.path.splitext(file.filename)[1].lower()
+        if ext not in allowed_ext:
+            return jsonify({"success": False, "error": f"不支援的圖片格式: {ext}"}), 400
+
+        conn = get_db_connection(config.DATABASE_PATH)
+        # 取得藥物的許可證字號作為檔名
+        drug = conn.execute("SELECT license_number FROM drugs WHERE id = ?", (drug_id,)).fetchone()
+        if not drug:
+            conn.close()
+            return jsonify({"success": False, "error": "藥物不存在"}), 404
+
+        license_number = drug["license_number"] or f"drug_{drug_id}"
+        # 儲存圖片到 medicine_photos/
+        photos_dir = os.path.join(os.path.dirname(__file__), "medicine_photos")
+        os.makedirs(photos_dir, exist_ok=True)
+        filename = f"{license_number}.jpg"
+        filepath = os.path.join(photos_dir, filename)
+
+        # 如果是 jpg/jpeg 直接儲存，否則用 PIL 轉換
+        if ext in {".jpg", ".jpeg"}:
+            file.save(filepath)
+        else:
+            try:
+                from PIL import Image
+                img = Image.open(file).convert("RGB")
+                img.save(filepath, "JPEG", quality=90)
+            except ImportError:
+                # 沒有 PIL 就直接存原格式
+                filename = f"{license_number}{ext}"
+                filepath = os.path.join(photos_dir, filename)
+                file.save(filepath)
+
+        # 更新 drug_images 表
+        existing = conn.execute(
+            "SELECT id FROM drug_images WHERE drug_id = ? AND image_filename = ?",
+            (drug_id, filename)
+        ).fetchone()
+        if not existing:
+            conn.execute(
+                "INSERT INTO drug_images (drug_id, image_filename, image_path, image_order, created_at) VALUES (?, ?, ?, 1, CURRENT_TIMESTAMP)",
+                (drug_id, filename, filepath),
+            )
+        conn.commit()
+        conn.close()
+
+        logger.info(f"✓ 藥物圖片已上傳: drug_id={drug_id}, file={filename}")
+        return jsonify({
+            "success": True,
+            "message": "圖片上傳成功",
+            "image_url": f"/api/images/{filename}",
+        })
+    except Exception as e:
+        logger.error(f"✗ 上傳圖片錯誤: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
 
 
@@ -811,6 +895,104 @@ def update_user(user_id):
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+@admin_bp.route("/api/users/<int:user_id>", methods=["DELETE"])
+def delete_user(user_id):
+    """刪除使用者並級聯清除其所有關聯資料。
+
+    Query params:
+        confirm=USERNAME  必填，需與該使用者的 username 一致以防誤刪
+    """
+    try:
+        from config import config
+
+        conn = get_db_connection(config.DATABASE_PATH)
+        row = conn.execute(
+            "SELECT id, username, is_admin FROM users WHERE id = ?", (user_id,)
+        ).fetchone()
+        if not row:
+            conn.close()
+            return jsonify({"success": False, "error": "使用者不存在"}), 404
+
+        username = row["username"] if isinstance(row, sqlite3.Row) else row[1]
+        is_admin = bool(row["is_admin"] if isinstance(row, sqlite3.Row) else row[2])
+
+        confirm = (request.args.get("confirm") or "").strip().lower()
+        if confirm != (username or "").lower():
+            conn.close()
+            return (
+                jsonify(
+                    {
+                        "success": False,
+                        "error": "需於 confirm 參數帶入正確的使用者名稱以確認刪除",
+                    }
+                ),
+                400,
+            )
+
+        # 阻止刪除最後一位管理員
+        if is_admin:
+            other_admins = conn.execute(
+                "SELECT COUNT(*) FROM users WHERE is_admin = 1 AND id != ?", (user_id,)
+            ).fetchone()[0]
+            if other_admins == 0:
+                conn.close()
+                return (
+                    jsonify(
+                        {"success": False, "error": "無法刪除系統最後一位管理員"}
+                    ),
+                    400,
+                )
+
+        # 級聯刪除（依當前已知的關聯表）
+        related_tables = (
+            "adherence_logs",
+            "safety_check_logs",
+            "medications",
+            "user_allergies",
+            "push_tokens",
+            "profiles",
+        )
+        deleted_counts = {}
+        try:
+            for tbl in related_tables:
+                cur = conn.execute(f"DELETE FROM {tbl} WHERE user_id = ?", (user_id,))
+                deleted_counts[tbl] = cur.rowcount
+            cur = conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
+            deleted_counts["users"] = cur.rowcount
+            conn.commit()
+        except sqlite3.OperationalError as e:
+            # 某些表可能不存在；回滾並重試逐張
+            conn.rollback()
+            for tbl in related_tables:
+                try:
+                    cur = conn.execute(
+                        f"DELETE FROM {tbl} WHERE user_id = ?", (user_id,)
+                    )
+                    deleted_counts[tbl] = cur.rowcount
+                except sqlite3.OperationalError:
+                    deleted_counts[tbl] = "skipped"
+            cur = conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
+            deleted_counts["users"] = cur.rowcount
+            conn.commit()
+            logger.warning("刪除使用者時部份表略過: %s", e)
+
+        conn.close()
+        logger.warning(
+            "管理員刪除使用者 id=%s username=%s 關聯刪除=%s",
+            user_id, username, deleted_counts,
+        )
+        return jsonify(
+            {
+                "success": True,
+                "message": f"使用者 {username} 已刪除",
+                "deleted": deleted_counts,
+            }
+        )
+    except Exception as e:
+        logger.error(f"✗ 刪除使用者失敗: {e}", exc_info=True)
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 # ============================================
 # NHI 快取管理 API
 # ============================================
@@ -922,7 +1104,7 @@ def refresh_cache(drug_id):
 
         # 重新爬取
         import asyncio
-        from nhi_crawler import scrape_nhi_drug_info
+        from scripts.nhi_crawler import scrape_nhi_drug_info
 
         try:
             loop = asyncio.get_event_loop()
@@ -954,6 +1136,26 @@ def refresh_cache(drug_id):
 # ============================================
 # 上傳檔案管理 API
 # ============================================
+
+
+@admin_bp.route("/api/uploads/recognition/<path:filename>", methods=["GET"])
+def get_upload_recognition(filename):
+    """查詢上傳檔案的辨識結果"""
+    try:
+        from drug_database import DrugDatabase
+        from config import config
+
+        if ".." in filename or filename.startswith("/"):
+            return jsonify({"success": False, "error": "不安全的檔名"}), 400
+
+        db = DrugDatabase(config.DATABASE_PATH)
+        result = db.get_recognition_history(filename)
+        if result:
+            return jsonify({"success": True, **result})
+        return jsonify({"success": False, "error": "無辨識紀錄"}), 404
+    except Exception as e:
+        logger.error(f"✗ 查詢辨識歷史失敗: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 @admin_bp.route("/api/uploads", methods=["GET"])
@@ -1108,30 +1310,419 @@ def get_logs():
 
 
 # ============================================
-# API 使用統計
+# 未比對藥物管理
 # ============================================
 
 
-@admin_bp.route("/api/stats", methods=["GET"])
-def api_stats():
-    """取得 API 使用統計"""
+@admin_bp.route("/api/unmatched-drugs", methods=["GET"])
+def list_unmatched_drugs():
+    """取得未比對藥物列表（分頁 + 狀態篩選）"""
+    try:
+        from drug_database import DrugDatabase
+        from config import config
+
+        page = max(int(request.args.get("page", 1)), 1)
+        per_page = min(max(int(request.args.get("per_page", 20)), 1), 100)
+        status = request.args.get("status", "").strip()
+        search = request.args.get("search", "").strip()
+
+        db = DrugDatabase(config.DATABASE_PATH)
+        result = db.get_unmatched_drugs(page=page, per_page=per_page, status=status, search=search)
+
+        return jsonify({"success": True, **result})
+    except Exception as e:
+        logger.error(f"✗ 取得未比對藥物列表失敗: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@admin_bp.route("/api/unmatched-drugs/<int:record_id>", methods=["PATCH"])
+def update_unmatched_drug(record_id):
+    """更新未比對藥物狀態 (resolved / ignored)"""
+    try:
+        from drug_database import DrugDatabase
+        from config import config
+
+        data = request.get_json(silent=True) or {}
+        status = data.get("status", "").strip()
+        if status not in ("resolved", "ignored", "pending"):
+            return jsonify({"success": False, "error": "status 必須為 resolved / ignored / pending"}), 400
+
+        resolved_drug_id = data.get("resolved_drug_id")
+        db = DrugDatabase(config.DATABASE_PATH)
+        ok = db.update_unmatched_drug_status(record_id, status, resolved_drug_id)
+        if ok:
+            return jsonify({"success": True, "message": f"狀態已更新為 {status}"})
+        return jsonify({"success": False, "error": "更新失敗"}), 500
+    except Exception as e:
+        logger.error(f"✗ 更新未比對藥物狀態失敗: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@admin_bp.route("/api/unmatched-drugs/summary", methods=["GET"])
+def unmatched_drugs_summary():
+    """取得未比對藥物摘要統計"""
     try:
         from config import config
 
         conn = get_db_connection(config.DATABASE_PATH)
         cursor = conn.cursor()
 
-        stats = {"daily": [], "top_searches": [], "endpoints": [], "errors": 0}
+        # 確保表存在
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS unmatched_drugs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                drug_name TEXT NOT NULL,
+                english_name TEXT,
+                license_number TEXT,
+                source TEXT DEFAULT 'prescription',
+                prescription_info TEXT,
+                occurrence_count INTEGER DEFAULT 1,
+                status TEXT DEFAULT 'pending',
+                resolved_drug_id INTEGER,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        pending = cursor.execute(
+            "SELECT COUNT(*) FROM unmatched_drugs WHERE status = 'pending'"
+        ).fetchone()[0]
+        resolved = cursor.execute(
+            "SELECT COUNT(*) FROM unmatched_drugs WHERE status = 'resolved'"
+        ).fetchone()[0]
+        ignored = cursor.execute(
+            "SELECT COUNT(*) FROM unmatched_drugs WHERE status = 'ignored'"
+        ).fetchone()[0]
+        total_occurrences = cursor.execute(
+            "SELECT COALESCE(SUM(occurrence_count), 0) FROM unmatched_drugs WHERE status = 'pending'"
+        ).fetchone()[0]
+
+        # 出現最頻繁的 top 5
+        top5 = cursor.execute(
+            """
+            SELECT drug_name, occurrence_count, created_at
+            FROM unmatched_drugs WHERE status = 'pending'
+            ORDER BY occurrence_count DESC LIMIT 5
+            """
+        ).fetchall()
+        conn.close()
+
+        return jsonify({
+            "success": True,
+            "summary": {
+                "pending": pending,
+                "resolved": resolved,
+                "ignored": ignored,
+                "total_occurrences": total_occurrences,
+                "top_unmatched": [
+                    {"drug_name": r[0], "occurrence_count": r[1], "first_seen": r[2]}
+                    for r in top5
+                ],
+            },
+        })
+    except Exception as e:
+        logger.error(f"✗ 取得未比對藥物摘要失敗: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@admin_bp.route("/api/unmatched-drugs/<int:record_id>/crawl", methods=["POST"])
+def crawl_unmatched_drug(record_id):
+    """用 NHI 爬蟲搜尋未比對藥物的詳細資訊，NHI 查不到則 fallback 到 TFDA 開放資料"""
+    try:
+        from config import config
+
+        conn = get_db_connection(config.DATABASE_PATH)
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT drug_name, english_name, license_number FROM unmatched_drugs WHERE id = ?",
+            (record_id,),
+        )
+        row = cursor.fetchone()
+        conn.close()
+
+        if not row:
+            return jsonify({"success": False, "error": "紀錄不存在"}), 404
+
+        drug_name = row[0]
+        english_name = row[1] or ""
+        license_number = row[2] or ""
+
+        # 使用 NHI 爬蟲搜尋
+        import asyncio
+        from scripts.nhi_crawler import scrape_nhi_drug_info
 
         try:
-            # 每日請求數（最近 7 天）
-            cursor.execute("""
+            loop = asyncio.get_event_loop()
+            if loop.is_closed():
+                raise RuntimeError
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
+        # 判斷 NHI 結果是否有實質資料（排除全為 "--" 的情況）
+        def _has_real_data(details_dict):
+            """檢查 details 中是否有非空、非 '--' 的實質欄位"""
+            skip_keys = {"id", "source", "source_url"}
+            for k, v in details_dict.items():
+                if k in skip_keys:
+                    continue
+                if v and v != "--":
+                    return True
+            return False
+
+        # 優先用中文名搜尋 NHI，若無結果再試英文名
+        result = loop.run_until_complete(scrape_nhi_drug_info(drug_name))
+
+        if result and result.get("status") == "success":
+            details = result.get("details", {})
+            if details and len(details) > 2 and _has_real_data(details):
+                details["source"] = "衛生福利部食品藥物管理署 (TFDA)"
+                return jsonify({
+                    "success": True,
+                    "details": details,
+                    "search_term": drug_name,
+                    "message": "NHI/TFDA 搜尋成功",
+                })
+
+            # 中文名無結果，嘗試英文名
+            if english_name:
+                result2 = loop.run_until_complete(scrape_nhi_drug_info(english_name))
+                if result2 and result2.get("status") == "success":
+                    details2 = result2.get("details", {})
+                    if details2 and len(details2) > 2 and _has_real_data(details2):
+                        details2["source"] = "衛生福利部食品藥物管理署 (TFDA)"
+                        return jsonify({
+                            "success": True,
+                            "details": details2,
+                            "search_term": english_name,
+                            "message": "NHI/TFDA 搜尋成功（英文名）",
+                        })
+
+        # === Fallback: TFDA 開放資料平臺 ===
+        logger.info(f"NHI 未找到「{drug_name}」，嘗試 TFDA 開放資料...")
+        try:
+            from scripts.fda_opendata_crawler import search_fda_drug
+
+            fda_result = search_fda_drug(drug_name)
+            if fda_result and fda_result.get("status") == "success":
+                fda_details = fda_result.get("details", {})
+                if fda_details and len(fda_details) > 2:
+                    return jsonify({
+                        "success": True,
+                        "details": fda_details,
+                        "search_term": drug_name,
+                        "message": "TFDA 開放資料搜尋成功",
+                    })
+
+            # 用英文名再試一次
+            if english_name and english_name != drug_name:
+                fda_result2 = search_fda_drug(english_name)
+                if fda_result2 and fda_result2.get("status") == "success":
+                    fda_details2 = fda_result2.get("details", {})
+                    if fda_details2 and len(fda_details2) > 2:
+                        return jsonify({
+                            "success": True,
+                            "details": fda_details2,
+                            "search_term": english_name,
+                            "message": "TFDA 開放資料搜尋成功（英文名）",
+                        })
+        except Exception as fda_err:
+            logger.warning(f"TFDA 開放資料 fallback 失敗: {fda_err}")
+
+        return jsonify({
+            "success": True,
+            "details": {},
+            "search_term": drug_name,
+            "message": "NHI/TFDA 與 TFDA 開放資料平臺均未找到相關資訊",
+        })
+    except Exception as e:
+        logger.error(f"✗ 爬蟲搜尋未比對藥物失敗: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@admin_bp.route("/api/unmatched-drugs/<int:record_id>/add-to-db", methods=["POST"])
+def add_unmatched_drug_to_db(record_id):
+    """將爬蟲取得的藥物資訊加入 drugs 資料庫"""
+    try:
+        from drug_database import DrugDatabase
+        from config import config
+
+        data = request.get_json(silent=True) or {}
+        details = data.get("details", {})
+
+        if not details:
+            return jsonify({"success": False, "error": "缺少藥物詳細資訊"}), 400
+
+        # 取得 unmatched record
+        conn = get_db_connection(config.DATABASE_PATH)
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT drug_name, english_name, license_number FROM unmatched_drugs WHERE id = ?",
+            (record_id,),
+        )
+        row = cursor.fetchone()
+        if not row:
+            conn.close()
+            return jsonify({"success": False, "error": "紀錄不存在"}), 404
+
+        # 從爬蟲資料取得欄位（與 NHI_FIELD_MAP 對應）
+        chinese_name = details.get("中文品名", row[0])
+        english_name = details.get("英文品名", row[1] or "")
+        license_number = details.get("id", row[2] or "")
+
+        # 檢查是否已有同名或同許可證字號的藥物
+        cursor.execute(
+            "SELECT id FROM drugs WHERE chinese_name = ? OR (license_number = ? AND license_number != '')",
+            (chinese_name, license_number),
+        )
+        existing = cursor.fetchone()
+        if existing:
+            conn.close()
+            return jsonify({
+                "success": False,
+                "error": f"資料庫已有此藥物 (ID: {existing[0]})，可直接標記為已解決",
+                "existing_drug_id": existing[0],
+            }), 409
+
+        # 插入新藥物
+        cursor.execute(
+            """
+            INSERT INTO drugs (
+                license_number, chinese_name, english_name,
+                indications, special_dosage_form, ingredient,
+                category, manufacturer, expiry_info,
+                created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            """,
+            (
+                license_number,
+                chinese_name,
+                english_name,
+                details.get("適應症", ""),
+                details.get("劑型", ""),
+                details.get("主成分略述", ""),
+                details.get("藥品類別", ""),
+                details.get("製造廠名稱", ""),
+                details.get("有效日期", ""),
+            ),
+        )
+        new_drug_id = cursor.lastrowid
+
+        # 同時存入 NHI 快取
+        import json
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS nhi_cache (
+                drug_id INTEGER PRIMARY KEY,
+                search_name TEXT NOT NULL,
+                nhi_data TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cursor.execute(
+            """
+            INSERT OR REPLACE INTO nhi_cache (drug_id, search_name, nhi_data, created_at, updated_at)
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            """,
+            (new_drug_id, chinese_name, json.dumps(details, ensure_ascii=False)),
+        )
+
+        # 更新 unmatched_drugs 狀態為 resolved
+        cursor.execute(
+            "UPDATE unmatched_drugs SET status = 'resolved', resolved_drug_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+            (new_drug_id, record_id),
+        )
+        conn.commit()
+        conn.close()
+
+        # 嘗試下載藥品外觀圖片
+        image_url = details.get("image_url", "")
+        if image_url and license_number:
+            try:
+                import requests as req
+                img_resp = req.get(image_url, timeout=30)
+                if img_resp.status_code == 200:
+                    import os
+                    photos_dir = os.path.join(os.path.dirname(__file__), "medicine_photos")
+                    os.makedirs(photos_dir, exist_ok=True)
+                    img_path = os.path.join(photos_dir, f"{license_number}.jpg")
+                    with open(img_path, "wb") as f:
+                        f.write(img_resp.content)
+                    logger.info(f"✓ 已下載藥品圖片: {img_path}")
+            except Exception as img_err:
+                logger.warning(f"下載藥品圖片失敗: {img_err}")
+
+        logger.info(f"✓ 未比對藥物已加入資料庫: {chinese_name} (drug_id={new_drug_id}, unmatched_id={record_id})")
+
+        return jsonify({
+            "success": True,
+            "drug_id": new_drug_id,
+            "message": f"藥物「{chinese_name}」已成功加入資料庫 (ID: {new_drug_id})",
+        })
+    except Exception as e:
+        logger.error(f"✗ 加入藥物至資料庫失敗: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ============================================
+# API 使用統計
+# ============================================
+
+
+@admin_bp.route("/api/stats", methods=["GET"])
+def api_stats():
+    """取得 API 使用統計（可透過 ?days=N 指定日期範圍，預設 7 天）"""
+    try:
+        from config import config
+
+        try:
+            days = int(request.args.get("days", 7) or 7)
+        except (TypeError, ValueError):
+            days = 7
+        days = max(1, min(days, 90))
+
+        conn = get_db_connection(config.DATABASE_PATH)
+        cursor = conn.cursor()
+
+        stats = {"daily": [], "top_searches": [], "endpoints": [], "errors": 0, "days": days}
+
+        try:
+            since = f"-{days} days"
+            # 每日請求數
+            cursor.execute(
+                """
                 SELECT date(created_at) as day, COUNT(*) as count
                 FROM api_logs
-                WHERE created_at >= datetime('now', '-7 days')
+                WHERE created_at >= datetime('now', ?)
                 GROUP BY day ORDER BY day
-            """)
+                """,
+                (since,),
+            )
             stats["daily"] = [{"date": r[0], "count": r[1]} for r in cursor.fetchall()]
+
+            # 每日請求依分類拆分（OCR 藥物辨識 / 備用辨識 / 聊天 API / 其他）
+            cursor.execute(
+                """
+                SELECT date(created_at) as day,
+                       CASE
+                         WHEN endpoint = '/api/recognize'                THEN 'ocr'
+                         WHEN endpoint LIKE '/api/recognize_prescription%' THEN 'fallback'
+                         WHEN endpoint LIKE '/api/consult%'              THEN 'chat'
+                         WHEN endpoint LIKE '/api/consultation%'         THEN 'chat'
+                         ELSE 'other'
+                       END AS category,
+                       COUNT(*) as count
+                FROM api_logs
+                WHERE created_at >= datetime('now', ?)
+                GROUP BY day, category
+                ORDER BY day
+                """,
+                (since,),
+            )
+            stats["daily_by_category"] = [
+                {"date": r[0], "category": r[1], "count": r[2]}
+                for r in cursor.fetchall()
+            ]
 
             # 熱門搜尋關鍵字
             cursor.execute("""
