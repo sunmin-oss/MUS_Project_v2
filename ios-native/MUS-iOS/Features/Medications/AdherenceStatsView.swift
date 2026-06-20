@@ -67,7 +67,7 @@ struct AdherenceStatsView: View {
                     title: NSLocalizedString("medications.stats.low.stock", comment: ""),
                     value: lowestStockMed.map { "\($0.currentStock.stockDisplay) 顆" } ?? "—",
                     icon: "pills.fill",
-                    color: (lowestStockMed?.currentStock ?? 99) <= 7 ? .red : DesignColors.primary
+                    color: (lowestStockMed?.isStockLow ?? false) ? .red : DesignColors.primary
                 )
             }
             .padding(.horizontal, DesignSpacing.md)

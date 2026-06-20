@@ -377,7 +377,7 @@ struct MedicationsListView: View {
                             .font(DesignTypography.title2)
                         Spacer()
                         todayBadge(todayTakenCount(for: med.id))
-                        stockBadge(med.currentStock)
+                        stockBadge(med)
                     }
                     Text("\(med.dosage) ・ \(med.frequency) ・ \(med.mealTiming)")
                         .font(DesignTypography.body)
@@ -417,9 +417,9 @@ struct MedicationsListView: View {
     }
 
     @ViewBuilder
-    private func stockBadge(_ count: Double) -> some View {
-        let isLow = count <= 7
-        Text(String(format: NSLocalizedString("medications.stock", comment: ""), Int(count)))
+    private func stockBadge(_ med: Medication) -> some View {
+        let isLow = med.isStockLow
+        Text(String(format: NSLocalizedString("medications.stock", comment: ""), med.currentStock.stockDisplay))
             .font(DesignTypography.caption)
             .padding(.horizontal, 8)
             .padding(.vertical, 3)

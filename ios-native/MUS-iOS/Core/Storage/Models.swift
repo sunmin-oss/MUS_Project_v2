@@ -33,6 +33,34 @@ struct Medication: Identifiable, Codable, Hashable {
     var reminderTimes: [Date]
     var notes: String
     var prescriptionLabel: String?
+
+    /// 每日用量（從 frequency 和 dosage 推算）
+    var dailyDoseCount: Double {
+        let s = frequency.lowercased()
+        let timesPerDay: Double
+        if s.contains("4") || s.contains("四") || s.contains("qid") { timesPerDay = 4 }
+        else if s.contains("3") || s.contains("三") || s.contains("tid") { timesPerDay = 3 }
+        else if s.contains("2") || s.contains("二") || s.contains("早晚") || s.contains("bid") { timesPerDay = 2 }
+        else { timesPerDay = 1 }
+
+        let pattern = #"(\d+\.?\d*)"#
+        if let range = dosage.range(of: pattern, options: .regularExpression),
+           let dose = Double(dosage[range]) {
+            return timesPerDay * dose
+        }
+        return timesPerDay
+    }
+
+    /// 剩餘可服用天數
+    var daysRemaining: Int {
+        guard dailyDoseCount > 0 else { return 0 }
+        return Int(currentStock / dailyDoseCount)
+    }
+
+    /// 庫存是否不足（剩餘 ≤ 2 天）
+    var isStockLow: Bool {
+        daysRemaining <= 2
+    }
 }
 
 extension Double {

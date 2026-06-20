@@ -154,7 +154,7 @@ struct MedicationDetailView: View {
                         .font(DesignTypography.headline)
                     Text("剩餘 \(medication.currentStock.stockDisplay) 顆")
                         .font(DesignTypography.body)
-                        .foregroundStyle(medication.currentStock <= 7 ? .red : DesignColors.textPrimary)
+                        .foregroundStyle(medication.isStockLow ? .red : DesignColors.textPrimary)
                     Text("今日已服 \(todayTaken) / \(dailyLimit) 次")
                         .font(DesignTypography.caption)
                         .foregroundStyle(DesignColors.textSecondary)
@@ -179,12 +179,12 @@ struct MedicationDetailView: View {
                 .stroke(Color.gray.opacity(0.15), lineWidth: 6)
             Circle()
                 .trim(from: 0, to: fraction)
-                .stroke(medication.currentStock <= 7 ? Color.red : DesignColors.primary,
+                .stroke(medication.isStockLow ? Color.red : DesignColors.primary,
                         style: StrokeStyle(lineWidth: 6, lineCap: .round))
                 .rotationEffect(.degrees(-90))
             Text(medication.currentStock.stockDisplay)
                 .font(.system(size: 18, weight: .bold, design: .rounded))
-                .foregroundStyle(medication.currentStock <= 7 ? .red : DesignColors.primary)
+                .foregroundStyle(medication.isStockLow ? .red : DesignColors.primary)
         }
         .frame(width: 64, height: 64)
     }
