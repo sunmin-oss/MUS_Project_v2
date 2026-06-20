@@ -159,10 +159,9 @@ struct MedicationDetailView: View {
                         .font(DesignTypography.caption)
                         .foregroundStyle(DesignColors.textSecondary)
                     if medication.currentStock > 0 && dailyLimit > 0 {
-                        let daysLeft = Int(medication.currentStock / Double(dailyLimit))
-                        Text("預估可服用 \(daysLeft) 天")
+                        Text("預估可服用 \(medication.daysRemaining) 天")
                             .font(DesignTypography.caption)
-                            .foregroundStyle(daysLeft <= 3 ? .orange : DesignColors.textSecondary)
+                            .foregroundStyle(medication.daysRemaining <= 3 ? .orange : DesignColors.textSecondary)
                     }
                 }
                 Spacer()
