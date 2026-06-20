@@ -47,6 +47,7 @@ struct MedicationConfirmView: View {
                             systemImage: "checkmark.circle.fill")
                     }
                     .buttonStyle(SpacedButtonStyle(filled: true))
+                    .accessibilityIdentifier("confirm.taken")
 
                     Button {
                         dismiss()
@@ -56,6 +57,7 @@ struct MedicationConfirmView: View {
                             systemImage: "alarm")
                     }
                     .buttonStyle(SpacedButtonStyle(filled: false, tint: DesignColors.textPrimary))
+                    .accessibilityIdentifier("confirm.snooze")
 
                     Button {
                         Task {
@@ -73,6 +75,7 @@ struct MedicationConfirmView: View {
                             systemImage: "xmark.circle")
                     }
                     .buttonStyle(SpacedButtonStyle(filled: false, tint: .red))
+                    .accessibilityIdentifier("confirm.skip")
                 }
                 .padding(.horizontal, DesignSpacing.md)
                 .padding(.bottom, DesignSpacing.lg)

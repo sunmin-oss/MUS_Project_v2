@@ -122,6 +122,7 @@ struct ProfileView: View {
                                 Spacer()
                             }
                         }
+                        .accessibilityIdentifier("profile.logout")
                     }
                 }
             }

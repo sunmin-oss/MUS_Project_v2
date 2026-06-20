@@ -77,6 +77,7 @@ struct AIChatView: View {
                 .focused($isInputFocused)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
+                .accessibilityIdentifier("chat.input")
                 .background(
                     RoundedRectangle(cornerRadius: 20)
                         .fill(Color(.secondarySystemBackground))
@@ -92,6 +93,7 @@ struct AIChatView: View {
                                     : DesignColors.primary)
             }
             .disabled(inputText.trimmingCharacters(in: .whitespaces).isEmpty || isLoading)
+            .accessibilityIdentifier("chat.send")
         }
         .padding(.horizontal, DesignSpacing.md)
         .padding(.vertical, 10)
