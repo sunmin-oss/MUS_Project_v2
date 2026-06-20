@@ -278,25 +278,17 @@ struct PrescriptionDraftView: View {
     }
 
     /// 從 totalQuantity 或 days*frequency*dose 計算庫存數量
+    /// 包含交叉驗算：若 totalQuantity 與 dose×freq×days 差異超過 5 倍，採用計算值
     static func computeStock(totalQuantity: String?, days: Int?, frequency: String, dosage: String) -> Double {
-        // 優先從 totalQuantity 解析數字 (e.g. "共 9 TAB" → 9, "共 4.5 TAB" → 4.5)
-        if let tq = totalQuantity {
-            // 用正則提取第一個數字（含小數點）
-            let pattern = #"(\d+\.?\d*)"#
-            if let range = tq.range(of: pattern, options: .regularExpression),
-               let num = Double(tq[range]), num > 0 {
-                return num
-            }
-        }
-
-        // fallback: days * timesPerDay * dosePerTime
+        // 解析頻率次數
         let timesPerDay: Int
         let s = frequency.lowercased()
-        if s.contains("三餐") || s.contains("tid") || s.contains("3") { timesPerDay = 3 }
-        else if s.contains("早晚") || s.contains("bid") || s.contains("2") { timesPerDay = 2 }
-        else if s.contains("四") || s.contains("qid") || s.contains("4") { timesPerDay = 4 }
+        if s.contains("三餐") || s.contains("tid") || s.contains("3次") || s.contains("x3") || s == "3" { timesPerDay = 3 }
+        else if s.contains("早晚") || s.contains("bid") || s.contains("2次") || s.contains("x2") || s == "2" { timesPerDay = 2 }
+        else if s.contains("四次") || s.contains("qid") || s.contains("4次") || s.contains("x4") || s == "4" { timesPerDay = 4 }
         else { timesPerDay = 1 }
 
+        // 解析每次劑量
         let dose: Double
         let dosePattern = #"(\d+\.?\d*)"#
         if let range = dosage.range(of: dosePattern, options: .regularExpression),
@@ -306,7 +298,29 @@ struct PrescriptionDraftView: View {
             dose = 1.0
         }
 
+        // 計算期望總量（用於驗算）
         let d = days ?? 7
-        return Double(d) * Double(timesPerDay) * dose
+        let expected = Double(d) * Double(timesPerDay) * dose
+
+        // 優先從 totalQuantity 解析數字 (e.g. "共 9 TAB" → 9, "共 4.5 TAB" → 4.5)
+        if let tq = totalQuantity {
+            let pattern = #"(\d+\.?\d*)"#
+            if let range = tq.range(of: pattern, options: .regularExpression),
+               let ocrTotal = Double(tq[range]), ocrTotal > 0 {
+                // 交叉驗算：OCR 值與 dose×freq×days 差異超過 5 倍，採用計算值
+                // 解決 4.5 被 OCR 誤讀為 45 的小數點遺失問題
+                if expected > 0 {
+                    let ratio = ocrTotal / expected
+                    if ratio > 5 || ratio < 0.2 {
+                        print("[computeStock] 總量驗算修正: OCR=\(ocrTotal), 計算值=\(expected) (dose=\(dose) × freq=\(timesPerDay) × days=\(d))")
+                        return expected
+                    }
+                }
+                return ocrTotal
+            }
+        }
+
+        // fallback: days * timesPerDay * dosePerTime
+        return expected
     }
 }
