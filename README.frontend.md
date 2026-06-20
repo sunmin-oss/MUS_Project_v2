@@ -1,8 +1,9 @@
-# 📗 藥知道 — 前端 / iOS App 文件
+# 📗 藥知道 — Web 前端文件
 
-Web 前端（年長者友好設計）與 Capacitor iOS App 封裝說明。
+Web 前端（年長者友好設計）與管理員後台說明。
 
-> 後端／API 請見 [README.backend.md](README.backend.md)。
+> 後端／API 請見 [README.backend.md](README.backend.md)。  
+> iOS App 請見 [README.app.md](README.app.md)。
 
 ---
 
@@ -10,21 +11,10 @@ Web 前端（年長者友好設計）與 Capacitor iOS App 封裝說明。
 
 ```
 MUS_Project_v2/
-├── index.html              # 使用者前端首頁（年長者友好）
-├── admin.html              # 管理員後台 SPA
-├── www/                    # Capacitor 同步後的前端輸出
-│   └── index.html
-├── ios/                    # Capacitor iOS 原生專案
-│   ├── App/
-│   │   ├── App/
-│   │   │   ├── AppDelegate.swift
-│   │   │   ├── Info.plist
-│   │   │   └── Assets.xcassets/
-│   │   └── App.xcodeproj/
-│   └── CapApp-SPM/         # Swift Package
-├── ios-native/             # 原生 iOS 實驗專案（保留）
-├── package.json            # Capacitor 依賴
-└── capacitor.config.json   # Capacitor 設定
+├── frontend/
+│   ├── index.html          # 使用者前端首頁（年長者友好）
+│   └── admin.html          # 管理員後台 SPA
+└── ...
 ```
 
 ---
@@ -94,60 +84,6 @@ MUS_Project_v2/
 
 ---
 
-## 📱 iOS App（Capacitor）
-
-### 技術棧
-
-| 元件 | 技術 |
-|------|------|
-| App 容器 | Capacitor 8.x |
-| 前端 | `index.html`（與 Web 版相同） |
-| 相機 | `@capacitor/camera` |
-| 觸覺回饋 | `@capacitor/haptics` |
-| 狀態列 | `@capacitor/status-bar` |
-| 啟動畫面 | `@capacitor/splash-screen` |
-
-### 前置要求
-
-- macOS + Xcode 15+
-- Node.js 18+
-- CocoaPods 或 Swift Package Manager
-
-### 建置步驟
-
-```bash
-# 安裝 Capacitor 依賴
-npm install
-
-# 同步 Web 前端到 www/ 並推進 iOS 專案
-npx cap sync ios
-
-# 開啟 Xcode
-npx cap open ios
-```
-
-在 Xcode 中按 ▶ 即可在模擬器或實機執行。
-
-### iOS 權限（已於 `ios/App/App/Info.plist` 設定）
-
-| Key | 用途 |
-|-----|------|
-| `NSCameraUsageDescription` | 拍攝藥物照片 |
-| `NSPhotoLibraryUsageDescription` | 從相簿選取藥物照片 |
-| `NSPhotoLibraryAddUsageDescription` | 儲存辨識結果圖片 |
-| `NSAppTransportSecurity` | 允許連線本地開發伺服器 |
-
-### 連線後端
-
-App 預設透過 `capacitor.config.json` 中的 `server.url` 或內嵌的 `fetch` 連到後端：
-
-- 模擬器 → `http://127.0.0.1:5001`
-- 實機 → `http://<電腦區網 IP>:5001`（例：`http://192.168.1.103:5001`）
-
-修改 `index.html` 內的 `API_BASE` 常數即可切換。
-
----
-
 ## 🧪 測試前端
 
 ### Web 瀏覽器
@@ -168,27 +104,9 @@ curl -X POST http://127.0.0.1:5001/api/search \
   -d "{\"query\":\"普拿疼\",\"limit\":5}"
 ```
 
-### iOS 實機
-
-1. 確認 Mac 與 iPhone 在同一區網
-2. 修改 `index.html` 的 `API_BASE` 為電腦 IP
-3. 在 Xcode 選擇實機 → ▶
-4. 首次執行需在 iPhone「設定 → 一般 → VPN 與裝置管理」信任開發者憑證
-
 ---
 
-## 🐛 前端常見問題
-
-### Q: iOS App 顯示「無法連線」
-**A:**
-1. 後端是否啟動？`curl http://127.0.0.1:5001/api/health` 回 200 才算正常
-2. 實機需用區網 IP（不是 `127.0.0.1`）
-3. `Info.plist` 的 `NSAppTransportSecurity → NSAllowsArbitraryLoads` 應為 `true`（開發階段）
-
-### Q: `npx cap sync ios` 報錯
-**A:**
-1. 先 `npm install` 確保所有 Capacitor 套件版本一致
-2. 在 `ios/App/` 跑 `pod install --repo-update`
+## 🐛 常見問題
 
 ### Q: 上傳圖片後顯示「未能識別」
 **A:**

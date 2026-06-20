@@ -60,6 +60,7 @@ protocol APIClientProtocol {
     func updateMedication(_ medication: Medication) async throws -> Medication
     func deleteMedication(id: String) async throws
     func recordMedicationTaken(record: MedicationRecord) async throws -> MedicationRecord
+    func deleteAdherenceRecord(id: String) async throws
 
     // MARK: - W3: Allergy
     func fetchAllergyItems(profileId: String) async throws -> [AllergyItem]

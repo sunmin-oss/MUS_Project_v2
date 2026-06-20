@@ -567,6 +567,11 @@ final class RealAPIClient: APIClientProtocol {
         }
     }
 
+    func deleteAdherenceRecord(id: String) async throws {
+        guard let logId = Int(id) else { throw APIError.invalidURL }
+        _ = try await authedJSON(method: "DELETE", path: "api/user/adherence/\(logId)")
+    }
+
     // MARK: - Safety
 
     private struct SafetyCheckResponse: Decodable {

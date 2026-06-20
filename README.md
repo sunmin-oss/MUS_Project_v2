@@ -7,7 +7,8 @@
 | 文件 | 內容 |
 |------|------|
 | 📘 [README.backend.md](README.backend.md) | Flask 後端、API、AI Provider、後台、Docker、環境變數 |
-| 📗 [README.frontend.md](README.frontend.md) | Web 前端（index.html / admin.html）、Capacitor iOS App |
+| 📗 [README.frontend.md](README.frontend.md) | Web 前端（index.html / admin.html）|
+| 📱 [README.app.md](README.app.md) | iOS 原生 App（SwiftUI）、建置、功能說明 |
 | 🤝 [CONTRIBUTING.md](CONTRIBUTING.md) | Git 分支規範、Commit message 格式 |
 | 🏗 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | 系統架構 |
 | 🎨 [docs/DESIGN.md](docs/DESIGN.md) | UI/UX 設計 |

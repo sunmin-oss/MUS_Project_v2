@@ -19,6 +19,10 @@ struct MedicationsListView: View {
     @State private var selectedPrescription: String? = nil
     @State private var showPrescriptionImages = false
     @State private var drugNameCache: [String: String] = [:]  // medId -> chineseName
+    @State private var showUndoBar = false
+    @State private var undoRecordId: String?
+    @State private var undoMedName: String?
+    @State private var undoTask: Task<Void, Never>?
 
     enum MedTab: String, CaseIterable {
         case all = "全部"
@@ -246,6 +250,20 @@ struct MedicationsListView: View {
                 .environmentObject(store)
             }
             .sheet(item: $confirmingMedication, onDismiss: {
+                if let rec = store.lastTakenRecord {
+                    let medName = store.medications.first(where: { $0.id == rec.medicationId })?.drugName
+                    undoRecordId = rec.id
+                    undoMedName = medName
+                    store.lastTakenRecord = nil
+                    withAnimation { showUndoBar = true }
+                    undoTask?.cancel()
+                    undoTask = Task {
+                        try? await Task.sleep(nanoseconds: 5_000_000_000)
+                        if !Task.isCancelled {
+                            withAnimation { showUndoBar = false }
+                        }
+                    }
+                }
                 Task { await loadAll() }
             }) { med in
                 MedicationConfirmView(medication: med, store: store, profileId: env.selectedProfileId)
@@ -279,6 +297,14 @@ struct MedicationsListView: View {
             } message: {
                 if let name = prescriptionToDelete {
                     Text("將刪除「\(name)」藥單中的所有藥物，此操作無法恢復。")
+                }
+            }
+            .overlay(alignment: .bottom) {
+                if showUndoBar {
+                    undoSnackbar
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .padding(.bottom, 16)
+                        .padding(.horizontal, 16)
                 }
             }
         }
@@ -544,6 +570,43 @@ struct MedicationsListView: View {
                 selectedPrescription = nil
             }
             prescriptionToDelete = nil
+            await loadAll()
+        }
+    }
+
+    @ViewBuilder
+    private var undoSnackbar: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundStyle(.white)
+            Text("已記錄 \(undoMedName ?? "藥物") 服藥")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(.white)
+                .lineLimit(1)
+            Spacer()
+            Button {
+                performUndo()
+            } label: {
+                Text("撤銷")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(.yellow)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(Color(.darkGray).cornerRadius(12))
+        .shadow(color: .black.opacity(0.15), radius: 8, y: 4)
+    }
+
+    private func performUndo() {
+        guard let recordId = undoRecordId else { return }
+        undoTask?.cancel()
+        withAnimation { showUndoBar = false }
+        Task {
+            try? await store.undoRecord(recordId: recordId, apiClient: env.apiClient)
+            undoRecordId = nil
+            undoMedName = nil
             await loadAll()
         }
     }

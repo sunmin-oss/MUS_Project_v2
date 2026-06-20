@@ -2,7 +2,8 @@
 
 Flask 後端：API 路由、AI Provider 策略、管理員後台、Docker、環境變數。
 
-> 前端／iOS App 請見 [README.frontend.md](README.frontend.md)。
+> 前端請見 [README.frontend.md](README.frontend.md)。  
+> iOS App 請見 [README.app.md](README.app.md)。
 
 ---
 
