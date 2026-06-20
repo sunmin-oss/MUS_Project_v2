@@ -789,6 +789,19 @@ def _validate_total_quantity(item, raw_total):
                     freq_num = val
                     break
 
+            # 中文頻率支援
+            if freq_num is None:
+                cn_freq_map = {
+                    "四次": 4, "qid": 4,
+                    "三餐": 3, "三次": 3,
+                    "早晚": 2, "兩次": 2, "二次": 2,
+                    "睡前": 1, "一次": 1, "每日": 1,
+                }
+                for key, val in cn_freq_map.items():
+                    if key in freq_str:
+                        freq_num = val
+                        break
+
         # 無法計算則直接返回原值
         if dose is None or days == 0 or freq_num is None:
             return raw_total
