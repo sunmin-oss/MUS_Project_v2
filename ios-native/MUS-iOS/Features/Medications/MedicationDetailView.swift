@@ -35,6 +35,7 @@ struct MedicationDetailView: View {
                 headerCard
                 usageCard
                 stockCard
+                todayRecordsCard
                 if !alerts.isEmpty {
                     safetyCard
                 }
@@ -186,6 +187,56 @@ struct MedicationDetailView: View {
                 .foregroundStyle(medication.isStockLow ? .red : DesignColors.primary)
         }
         .frame(width: 64, height: 64)
+    }
+
+    // MARK: - Today Records Card
+
+    private var todayRecords: [MedicationRecord] {
+        let start = Calendar.current.startOfDay(for: Date())
+        return store.records.filter {
+            $0.medicationId == medication.id && $0.scheduledAt >= start
+        }
+    }
+
+    @ViewBuilder
+    private var todayRecordsCard: some View {
+        if !todayRecords.isEmpty {
+            Card {
+                VStack(alignment: .leading, spacing: DesignSpacing.sm) {
+                    Text("今日服藥紀錄")
+                        .font(DesignTypography.headline)
+                    ForEach(todayRecords) { record in
+                        HStack {
+                            Image(systemName: record.status == .taken ? "checkmark.circle.fill" : "xmark.circle")
+                                .foregroundStyle(record.status == .taken ? .green : .orange)
+                            Text(record.status == .taken ? "已服藥" : "已跳過")
+                                .font(DesignTypography.body)
+                            if let t = record.takenAt {
+                                Text(t.formatted(date: .omitted, time: .shortened))
+                                    .font(DesignTypography.caption)
+                                    .foregroundStyle(DesignColors.textSecondary)
+                            }
+                            Spacer()
+                            Button(role: .destructive) {
+                                Task {
+                                    try? await store.undoRecord(recordId: record.id, apiClient: env.apiClient)
+                                    await store.load(profileId: medication.profileId, apiClient: env.apiClient)
+                                }
+                            } label: {
+                                Label("撤銷", systemImage: "arrow.uturn.backward")
+                                    .font(.system(size: 13))
+                                    .foregroundStyle(.red)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .padding(.vertical, 2)
+                        if record.id != todayRecords.last?.id {
+                            Divider()
+                        }
+                    }
+                }
+            }
+        }
     }
 
     // MARK: - Safety Card

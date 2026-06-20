@@ -298,6 +298,30 @@ def list_adherence():
     return jsonify({"success": True, "logs": [l.to_dict() for l in logs]}), 200
 
 
+@medications_bp.route("/adherence/<int:log_id>", methods=["DELETE"])
+@jwt_required()
+def delete_adherence(log_id):
+    """撤銷服藥紀錄（恢復庫存）"""
+    user_id = int(get_jwt_identity())
+    log = AdherenceLog.query.filter_by(id=log_id, user_id=user_id).first()
+    if not log:
+        return jsonify({"success": False, "error": "紀錄不存在"}), 404
+
+    # 恢復庫存
+    if log.status in ("taken", "late"):
+        med = Medication.query.filter_by(id=log.medication_id, user_id=user_id).first()
+        if med and med.stock_qty is not None:
+            import re
+            dose_match = re.search(r'(\d+\.?\d*)', med.dosage or '1')
+            dose_amount = float(dose_match.group(1)) if dose_match else 1.0
+            med.stock_qty += dose_amount
+
+    db.session.delete(log)
+    db.session.commit()
+    logger.info(f"✓ 撤銷服藥紀錄: log_id={log_id} (user={user_id})")
+    return jsonify({"success": True}), 200
+
+
 @medications_bp.route("/adherence/stats", methods=["GET"])
 @jwt_required()
 def adherence_stats():

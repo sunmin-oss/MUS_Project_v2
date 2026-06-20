@@ -4,6 +4,7 @@ import Foundation
 final class MedicationStore: ObservableObject {
     @Published var medications: [Medication] = []
     @Published var records: [MedicationRecord] = []
+    @Published var lastTakenRecord: MedicationRecord?
 
     private func cacheKey(_ profileId: String) -> String { "medications_\(profileId)" }
     private func recordsCacheKey(_ profileId: String) -> String { "med_records_\(profileId)" }
@@ -58,6 +59,7 @@ final class MedicationStore: ObservableObject {
         )
         let saved = try await apiClient.recordMedicationTaken(record: record)
         records.append(saved)
+        lastTakenRecord = saved
     }
 
     func recordSkipped(medicationId: String, profileId: String, apiClient: APIClientProtocol) async throws {
@@ -71,6 +73,11 @@ final class MedicationStore: ObservableObject {
         )
         let saved = try await apiClient.recordMedicationTaken(record: record)
         records.append(saved)
+    }
+
+    func undoRecord(recordId: String, apiClient: APIClientProtocol) async throws {
+        try await apiClient.deleteAdherenceRecord(id: recordId)
+        records.removeAll { $0.id == recordId }
     }
 
     /// Adherence rate (0.0–1.0) for the past `days` days

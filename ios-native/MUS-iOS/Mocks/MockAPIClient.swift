@@ -102,6 +102,10 @@ final class MockAPIClient: APIClientProtocol {
         return record
     }
 
+    func deleteAdherenceRecord(id: String) async throws {
+        await delay()
+    }
+
     func fetchAllergyItems(profileId: String) async throws -> [AllergyItem] {
         await delay()
         return MockData.allergyItems.filter { $0.profileId == profileId }
