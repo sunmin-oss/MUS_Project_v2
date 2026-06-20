@@ -807,7 +807,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "剩餘：%d 顆"
+            "value" : "剩餘：%@ 顆"
           }
         }
       }

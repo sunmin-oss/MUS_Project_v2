@@ -49,7 +49,7 @@ struct AddMedicationView: View {
 
                 Section {
                     Stepper(
-                        String(format: NSLocalizedString("medications.stock", comment: ""), Int(currentStock)),
+                        String(format: NSLocalizedString("medications.stock", comment: ""), currentStock.stockDisplay),
                         value: $currentStock, in: 0...999, step: 0.5
                     )
                 } header: {
