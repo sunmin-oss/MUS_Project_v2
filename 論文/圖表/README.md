@@ -45,6 +45,7 @@
 | 圖 6 | 爬蟲批次更新流程圖 | fig_06_crawler_flow.md | 3.7 | flowchart |
 | 圖 7 | 資料庫 ER 圖 | fig_07_er_diagram.md | 3.8 | erDiagram |
 | 圖 8 | JWT 認證流程圖 | fig_08_jwt_auth.md | 3.9 | sequence |
+| 圖 9 | iOS 原生 App 架構圖 | fig_09_ios_architecture.md | 3.10 | graph TB |
 
 ---
 
@@ -91,10 +92,10 @@
 ### 建議排版順序
 1. **前言**：無圖表
 2. **研究目的**：表 II（v1 vs v2）
-3. **原理與分析**：圖 1~8、表 V、VII、VIII、Code 1~6
+3. **原理與分析**：圖 1~9、表 V、VII、VIII、Code 1~6
 4. **實驗結果**：表 I、III、IV、VI、IX、SS-01~11
 5. **結論**：無圖表（或引用前述圖表）
 
 ### 論文頁數控制（4~6 頁）
 建議精選 4~5 張圖 + 3~4 張表即可，不需全部使用。
-優先選用：圖 1（架構）、圖 2（RAG）、表 I（RAG 比較）、表 II（v1 vs v2）、SS-02（首頁）、SS-08（後台）。
+優先選用：圖 1（架構）、圖 2（RAG）、圖 9（iOS 架構）、表 I（RAG 比較）、表 II（v1 vs v2）、SS-02（首頁）、SS-08（後台）。
