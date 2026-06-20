@@ -80,7 +80,7 @@ final class NotificationManager: ObservableObject {
     }
 
     func scheduleStockAlert(medication: Medication) async {
-        guard medication.currentStock <= 7 else { return }
+        guard medication.isStockLow else { return }
         let content = UNMutableNotificationContent()
         content.title = "庫存不足提醒"
         content.body = "\(medication.drugName) 剩餘 \(medication.currentStock.stockDisplay) 顆，請盡快補充"
