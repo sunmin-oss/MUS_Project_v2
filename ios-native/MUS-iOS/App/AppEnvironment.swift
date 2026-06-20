@@ -39,6 +39,9 @@ final class AppEnvironment: ObservableObject {
 
         if isDemoMode {
             isAuthenticated = true
+        } else if CommandLine.arguments.contains("--uitesting") {
+            // UI 測試時不恢復登入狀態，確保從 LoginView 開始
+            isAuthenticated = false
         } else {
             // 檢查是否有已保存的 token（恢復登入狀態）
             Task {

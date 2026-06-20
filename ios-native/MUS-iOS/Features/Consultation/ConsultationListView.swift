@@ -41,6 +41,7 @@ struct ConsultationListView: View {
                     )
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("consultation.ai.entry")
                 .padding(.horizontal, DesignSpacing.md)
                 .padding(.top, DesignSpacing.sm)
 

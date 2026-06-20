@@ -435,6 +435,7 @@ struct MedicationsListView: View {
                                 .clipShape(Capsule())
                         }
                         .buttonStyle(.plain)
+                        .accessibilityIdentifier("med.confirm.\(med.id)")
                     }
                 }
             }
@@ -592,6 +593,7 @@ struct MedicationsListView: View {
                     .foregroundStyle(.yellow)
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier("med.undo")
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
