@@ -409,9 +409,11 @@ class GeminiVisionRecognizer:
         """
         使用 RAG (檢索增強生成) 方式識別藥物
 
-        這種方法將資料庫中的所有藥物作為上下文提供給 Gemini，
-        讓 AI 從真實的藥物列表中選擇，而不是盲目猜測。
-        這大幅提高了識別準確度。
+        流程:
+        1. 先用 AI 辨識藥物上的刻印標記文字
+        2. 用標記文字去資料庫精確搜尋
+        3. 如果搜尋到結果，直接回傳
+        4. 如果搜不到，才走原本的 RAG 比對流程
 
         參數:
             image_path: 圖片檔案路徑
@@ -423,13 +425,6 @@ class GeminiVisionRecognizer:
         try:
             if drug_database is None:
                 logger.warning("⚠️ RAG 模式需要資料庫實例")
-                return self.recognize(image_path)
-
-            # 取得資料庫中的藥物特徵列表
-            drug_features = drug_database.get_drug_features_for_rag(sample_size=500)
-
-            if not drug_features:
-                logger.warning("⚠️ 無法取得藥物特徵清單，回退到普通模式")
                 return self.recognize(image_path)
 
             # 讀取圖片
@@ -450,6 +445,24 @@ class GeminiVisionRecognizer:
             }
             mime_type = mime_type_map.get(suffix, "image/jpeg")
             image_b64 = base64.standard_b64encode(image_data).decode("utf-8")
+
+            # === 階段一：先辨識刻印標記，用標記搜尋資料庫 ===
+            marking_results = self._recognize_marking_and_search(
+                image_b64, mime_type, drug_database
+            )
+            if marking_results:
+                logger.info(f"✓ 標記搜尋模式成功，找到 {len(marking_results)} 個結果")
+                return marking_results
+
+            # === 階段二：標記搜尋無結果，走 RAG 比對流程 ===
+            logger.info("📋 標記搜尋無結果，切換至 RAG 比對模式")
+
+            # 取得資料庫中的藥物特徵列表
+            drug_features = drug_database.get_drug_features_for_rag(sample_size=500)
+
+            if not drug_features:
+                logger.warning("⚠️ 無法取得藥物特徵清單，回退到普通模式")
+                return self.recognize(image_path)
 
             # 準備改進的提示詞 - 讓 AI 從資料庫中選擇
             prompt = f"""你是藥物識別專家。分析照片中的藥物，從下方藥物庫選擇最匹配的藥物。
@@ -593,6 +606,136 @@ class GeminiVisionRecognizer:
         medicines.sort(key=lambda x: x["confidence"], reverse=True)
 
         return medicines[:10]
+
+    def _recognize_marking_and_search(
+        self, image_b64: str, mime_type: str, drug_database
+    ) -> List[Dict[str, Any]]:
+        """
+        階段一：辨識藥物刻印標記，用標記搜尋資料庫
+
+        參數:
+            image_b64: base64 編碼的圖片
+            mime_type: 圖片 MIME 類型
+            drug_database: DrugDatabase 實例
+
+        回傳:
+            搜尋結果列表，如果找不到回傳空列表
+        """
+        try:
+            # 讓 AI 只辨識刻印文字、顏色、形狀
+            prompt = """分析照片中藥物的外觀特徵。只回傳 JSON，不要其他文字：
+{
+    "markings": ["刻印文字1", "刻印文字2"],
+    "color": "顏色描述",
+    "shape": "形狀描述"
+}
+
+注意：
+- markings 陣列放所有能看到的刻印/印刷文字（正面和背面分開列出）
+- 如果看到多組文字用空格分隔的，整組放一個字串（如 "YSP IBC"）
+- 也把每個獨立字拆開放（如 "YSP", "IBC"）
+- 只回傳 JSON"""
+
+            api_url = (
+                f"{self.base_url}/{self.model_name}:generateContent?key={self.api_key}"
+            )
+
+            payload = {
+                "contents": [
+                    {
+                        "parts": [
+                            {"text": prompt},
+                            {
+                                "inline_data": {
+                                    "mime_type": mime_type,
+                                    "data": image_b64,
+                                }
+                            },
+                        ]
+                    }
+                ]
+            }
+
+            headers = {"Content-Type": "application/json"}
+            response = requests.post(api_url, json=payload, headers=headers, timeout=30)
+
+            if response.status_code != 200:
+                logger.warning(f"⚠️ 標記辨識 API 錯誤: {response.status_code}")
+                return []
+
+            response_data = response.json()
+            if "candidates" not in response_data or not response_data["candidates"]:
+                return []
+
+            result_text = ""
+            for part in response_data["candidates"][0].get("content", {}).get("parts", []):
+                if part.get("thought"):
+                    continue
+                if "text" in part:
+                    result_text = part["text"]
+                    break
+            if not result_text:
+                for part in response_data["candidates"][0].get("content", {}).get("parts", []):
+                    if "text" in part:
+                        result_text = part["text"]
+                        break
+
+            # 解析 JSON
+            import re
+            json_match = re.search(r"\{.*\}", result_text, re.DOTALL)
+            if not json_match:
+                return []
+
+            data = json.loads(json_match.group())
+            markings = data.get("markings", [])
+            color = data.get("color", "")
+            shape = data.get("shape", "")
+
+            logger.info(f"🔍 AI 辨識到標記: {markings}, 顏色: {color}, 形狀: {shape}")
+
+            if not markings:
+                return []
+
+            # 用每個標記去資料庫搜尋
+            all_results = []
+            seen_ids = set()
+
+            for marking in markings:
+                if not marking or len(marking) < 2:
+                    continue
+                results = drug_database.search_by_marking(marking, limit=5)
+                for r in results:
+                    drug_id = r.get("id")
+                    if drug_id not in seen_ids:
+                        seen_ids.add(drug_id)
+                        all_results.append(r)
+
+            if not all_results:
+                return []
+
+            # 轉換為辨識結果格式
+            medicines = []
+            for i, drug in enumerate(all_results[:5]):
+                # 計算信心度：完全匹配標記的給高分
+                confidence = 0.9 - (i * 0.05)
+                reason = f"標記匹配: {drug.get('label_front', '')} {drug.get('label_back', '') or ''}"
+
+                medicines.append(
+                    {
+                        "name": drug.get("chinese_name", "未知藥物"),
+                        "confidence": confidence,
+                        "license_number": drug.get("license_number", ""),
+                        "drug_id": str(drug.get("id", "")),
+                        "reason": reason.strip(),
+                        "source": "marking_search",
+                    }
+                )
+
+            return medicines
+
+        except Exception as e:
+            logger.warning(f"⚠️ 標記辨識搜尋失敗: {e}")
+            return []
 
     def recognize_prescription(self, image_path: str) -> List[str]:
         """
