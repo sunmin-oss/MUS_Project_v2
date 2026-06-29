@@ -3,12 +3,12 @@ import Vision
 import CoreImage
 import CoreImage.CIFilterBuiltins
 
-/// 影像預處理：自動矩形裁切 (Vision) + 亮度/對比調整 (CoreImage)
+/// 可選影像預處理：預設不做自動裁切與亮度/對比調整
 struct ImageProcessor {
     struct Options {
-        var autoCrop: Bool = true
-        var brightnessAdjust: Float = 0.05
-        var contrastAdjust: Float = 1.05
+        var autoCrop: Bool = false
+        var brightnessAdjust: Float = 0
+        var contrastAdjust: Float = 1
     }
 
     static func process(_ image: UIImage, options: Options = Options()) async -> UIImage {
@@ -18,12 +18,14 @@ struct ImageProcessor {
             result = cropped
         }
 
-        if let adjusted = adjustBrightnessContrast(
-            result,
-            brightness: options.brightnessAdjust,
-            contrast: options.contrastAdjust
-        ) {
-            result = adjusted
+        if options.brightnessAdjust != 0 || options.contrastAdjust != 1 {
+            if let adjusted = adjustBrightnessContrast(
+                result,
+                brightness: options.brightnessAdjust,
+                contrast: options.contrastAdjust
+            ) {
+                result = adjusted
+            }
         }
 
         return result

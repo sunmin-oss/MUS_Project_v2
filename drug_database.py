@@ -271,6 +271,51 @@ class DrugDatabase:
             logger.error(f"✗ 無法取得表結構: {e}")
             return []
 
+    def search_by_marking(self, marking: str, limit: int = 10) -> List[Dict[str, Any]]:
+        """
+        用刻印標記搜尋藥物（搜尋 label_front 和 label_back 欄位）
+
+        參數:
+            marking: 刻印標記文字，如 "YSP IBC"
+            limit: 最多回傳筆數
+
+        回傳:
+            匹配的藥物列表
+        """
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+
+            # 精確匹配優先，再模糊匹配
+            search_param = f"%{marking}%"
+            cursor.execute(
+                """
+                SELECT id, license_number, chinese_name, english_name,
+                       shape, color, label_front, label_back, indications,
+                       ingredient, manufacturer, dosage
+                FROM drugs
+                WHERE label_front LIKE ? OR label_back LIKE ?
+                ORDER BY
+                    CASE
+                        WHEN label_front = ? THEN 0
+                        WHEN label_back = ? THEN 0
+                        ELSE 1
+                    END
+                LIMIT ?
+            """,
+                (search_param, search_param, marking, marking, limit),
+            )
+
+            results = [dict(row) for row in cursor.fetchall()]
+            conn.close()
+
+            logger.info(f"✓ 標記搜尋 '{marking}' 找到 {len(results)} 筆結果")
+            return results
+
+        except Exception as e:
+            logger.error(f"✗ 標記搜尋失敗: {e}")
+            return []
+
     def get_drug_features_for_rag(self, sample_size: int = 500) -> str:
         """
         取得藥物特徵列表用於 RAG

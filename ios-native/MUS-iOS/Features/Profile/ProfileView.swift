@@ -28,8 +28,24 @@ struct ProfileView: View {
                             .padding(.vertical, 4)
                         }
                     } else {
-                        Label("profile.guest", systemImage: "person.crop.circle")
-                            .font(DesignTypography.body)
+                        Button {
+                            Task { await env.logout() }
+                        } label: {
+                            HStack {
+                                Image(systemName: "person.crop.circle")
+                                    .font(.system(size: 36))
+                                    .foregroundStyle(DesignColors.textSecondary)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("profile.guest")
+                                        .font(.system(size: 16, weight: .semibold))
+                                    Text("點擊登入帳號")
+                                        .font(DesignTypography.caption)
+                                        .foregroundStyle(DesignColors.primary)
+                                }
+                                .padding(.leading, 6)
+                            }
+                            .padding(.vertical, 4)
+                        }
                     }
                 }
 

@@ -60,15 +60,23 @@ struct MedicationsListView: View {
         // 時段篩選
         switch selectedTab {
         case .all:
-            return meds
+            break
         case .morning:
-            return meds.filter { isMorning($0) }
+            meds = meds.filter { isMorning($0) }
         case .noon:
-            return meds.filter { isNoon($0) }
+            meds = meds.filter { isNoon($0) }
         case .evening:
-            return meds.filter { isEvening($0) }
+            meds = meds.filter { isEvening($0) }
         case .bedtime:
-            return meds.filter { isBedtime($0) }
+            meds = meds.filter { isBedtime($0) }
+        }
+
+        // 今日有服藥記錄的藥物排到最下面
+        return meds.sorted { a, b in
+            let aDone = todayTakenCount(for: a.id) > 0
+            let bDone = todayTakenCount(for: b.id) > 0
+            if aDone == bDone { return false }
+            return !aDone
         }
     }
 
