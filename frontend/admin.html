@@ -60,6 +60,7 @@
         .nav-menu a {
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 10px;
             padding: 11px 16px;
             color: #b0b8d0;
@@ -723,27 +724,25 @@
     <!-- ===== 側邊欄 ===== -->
     <div class="sidebar">
         <div class="sidebar-header">
-            <h2>💊 藥知道</h2>
+            <h2>藥知道</h2>
             <small>後台管理</small>
         </div>
         <ul class="nav-menu">
-            <li><a href="#" class="active" data-page="dashboard"><span class="icon">📊</span><span
+            <li><a href="#" class="active" data-page="dashboard"><span
                         class="label">儀表板</span></a></li>
-            <li><a href="#" data-page="drugs"><span class="icon">💊</span><span class="label">藥物管理</span></a></li>
-            <li><a href="#" data-page="users"><span class="icon">👤</span><span class="label">使用者管理</span></a></li>
-            <li><a href="#" data-page="cache"><span class="icon">🗄️</span><span class="label">NHI 快取</span></a></li>
-            <li><a href="#" data-page="unmatched"><span class="icon">❓</span><span class="label">未比對藥物</span></a></li>
-            <li><a href="#" data-page="uploads"><span class="icon">📁</span><span class="label">上傳檔案</span></a></li>
-            <li><a href="#" data-page="settings"><span class="icon">⚙️</span><span class="label">系統設定</span></a>
+            <li><a href="#" data-page="drugs"><span class="label">藥物管理</span></a></li>
+            <li><a href="#" data-page="users"><span class="label">使用者管理</span></a></li>
+            <li><a href="#" data-page="cache"><span class="label">NHI 快取</span></a></li>
+            <li><a href="#" data-page="unmatched"><span class="label">未比對藥物</span></a></li>
+            <li><a href="#" data-page="uploads"><span class="label">上傳檔案</span></a></li>
+            <li><a href="#" data-page="settings"><span class="label">系統設定</span></a>
             </li>
-            <li><a href="#" data-page="stats"><span class="icon">📈</span><span class="label">API 統計</span></a></li>
-            <li><a href="#" data-page="ai-usage"><span class="icon">🤖</span><span class="label">AI 使用</span></a></li>
-            <li><a href="#" data-page="log-explorer"><span class="icon">📜</span><span class="label">Log 紀錄</span></a></li>
-            <li><a href="#" data-page="batch"><span class="icon">🔄</span><span class="label">批次更新</span></a></li>
+            <li><a href="#" data-page="stats"><span class="label">API 統計</span></a></li>
+            <li><a href="#" data-page="ai-usage"><span class="label">AI 使用</span></a></li>
+            <li><a href="#" data-page="log-explorer"><span class="label">Log 紀錄</span></a></li>
+            <li><a href="#" data-page="batch"><span class="label">批次更新</span></a></li>
+            <li><a href="/"><span class="label">← 回前台</span></a></li>
         </ul>
-        <div style="position:absolute;bottom:16px;left:0;right:0;text-align:center;">
-            <a href="/" style="color:#8892b0;text-decoration:none;font-size:12px;">← 回前台</a>
-        </div>
     </div>
 
     <!-- ===== Toast ===== -->
@@ -2107,7 +2106,7 @@
                     <div><div class="stat-value">${drugCount}</div><div class="stat-label">藥物辨識</div></div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-icon purple">📄</div>
+                    <div class="stat-icon purple">📋</div>
                     <div><div class="stat-value">${prescriptionCount}</div><div class="stat-label">藥單辨識</div></div>
                 </div>
                 <div class="stat-card">

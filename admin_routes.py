@@ -398,19 +398,21 @@ def create_drug():
 
         columns = []
         values = []
-        for key in [
-            "chinese_name",
-            "english_name",
-            "license_number",
-            "shape",
-            "color",
-            "usage",
-            "formulation",
-            "dosage_strength",
-            "special_dosage_form",
-        ]:
+        field_map = {
+            "chinese_name": "chinese_name",
+            "english_name": "english_name",
+            "license_number": "license_number",
+            "shape": "shape",
+            "color": "color",
+            "usage": "indications",
+            "formulation": "special_dosage_form",
+            "dosage_strength": "dosage_strength",
+            "special_dosage_form": "special_dosage_form",
+            "indications": "indications",
+        }
+        for key, col in field_map.items():
             if data.get(key):
-                columns.append(key)
+                columns.append(col)
                 values.append(data[key])
 
         if not columns:
@@ -440,19 +442,21 @@ def update_drug(drug_id):
 
         updates = []
         values = []
-        for key in [
-            "chinese_name",
-            "english_name",
-            "license_number",
-            "shape",
-            "color",
-            "usage",
-            "formulation",
-            "dosage_strength",
-            "special_dosage_form",
-        ]:
+        field_map = {
+            "chinese_name": "chinese_name",
+            "english_name": "english_name",
+            "license_number": "license_number",
+            "shape": "shape",
+            "color": "color",
+            "usage": "indications",
+            "formulation": "special_dosage_form",
+            "dosage_strength": "dosage_strength",
+            "special_dosage_form": "special_dosage_form",
+            "indications": "indications",
+        }
+        for key, col in field_map.items():
             if key in data:
-                updates.append(f"{key} = ?")
+                updates.append(f"{col} = ?")
                 values.append(data[key])
 
         if not updates:
