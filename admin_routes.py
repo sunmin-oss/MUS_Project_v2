@@ -17,7 +17,7 @@
 """
 
 from flask import Blueprint, request, jsonify, send_from_directory
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_request
 from functools import wraps
 import os
 import sqlite3
@@ -30,6 +30,27 @@ import bcrypt
 logger = logging.getLogger(__name__)
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
+
+
+@admin_bp.before_request
+def _guard_admin_api():
+    """統一保護 /admin/api/*：需 JWT 且 is_admin=True。"""
+    if not request.path.startswith("/admin/api/"):
+        return None
+
+    try:
+        verify_jwt_in_request()
+    except Exception:
+        return jsonify({"success": False, "error": "未授權"}), 401
+
+    from models.user import User
+
+    user_id = int(get_jwt_identity())
+    user = User.query.get(user_id)
+    if not user or not user.is_admin:
+        return jsonify({"success": False, "error": "需要管理員權限"}), 403
+
+    return None
 
 
 def admin_required(fn):
