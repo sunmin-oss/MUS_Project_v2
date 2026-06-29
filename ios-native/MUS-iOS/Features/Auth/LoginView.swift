@@ -125,9 +125,13 @@ struct LoginView: View {
     private func login() async {
         isLoading = true
         errorMessage = nil
+        // 如果是 Demo 模式，自動切換為正式模式
+        if env.isDemoMode {
+            env.isDemoMode = false
+        }
         do {
             guard let client = env.apiClient as? RealAPIClient else {
-                errorMessage = "請先關閉 Demo 模式"
+                errorMessage = "登入失敗，請重新啟動 App"
                 isLoading = false
                 return
             }
