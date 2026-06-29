@@ -6,7 +6,7 @@ import CoreImage.CIFilterBuiltins
 /// 影像預處理：自動矩形裁切 (Vision) + 亮度/對比調整 (CoreImage)
 struct ImageProcessor {
     struct Options {
-        var autoCrop: Bool = true
+        var autoCrop: Bool = false
         var brightnessAdjust: Float = 0.05
         var contrastAdjust: Float = 1.05
     }
