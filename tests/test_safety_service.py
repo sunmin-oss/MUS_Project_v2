@@ -137,6 +137,47 @@ class TestSafetyCheck:
         resp = client.post("/api/safety/check", json={"drug_id": 1})
         assert resp.status_code == 401
 
+    def test_check_existing_medication_does_not_match_itself(
+        self, client, auth_tokens, app
+    ):
+        from datetime import date
+
+        from models import db
+        from models.drug import Drug
+        from models.medication import Medication
+        user_id = auth_tokens["user"]["id"]
+        profile = client.post(
+            "/api/auth/profiles",
+            headers=auth_header(auth_tokens["access"]),
+            json={"name": "本人", "relationship": "本人"},
+        ).get_json()["profile"]
+        with app.app_context():
+            drug = Drug.query.first()
+            drug_id = drug.id
+            medication = Medication(
+                user_id=user_id,
+                profile_id=profile["id"],
+                drug_id=drug_id,
+                name=drug.chinese_name,
+                start_date=date.today(),
+            )
+            db.session.add(medication)
+            db.session.commit()
+            medication_id = medication.id
+
+        response = client.post(
+            "/api/safety/check",
+            headers=auth_header(auth_tokens["access"]),
+            json={"drug_id": drug_id, "medication_id": medication_id},
+        )
+
+        duplicate = next(
+            check
+            for check in response.get_json()["checks"]
+            if check["type"] == "duplicate"
+        )
+        assert duplicate["result"] == "safe"
+
 
 class TestAllergiesCRUD:
     def test_add_allergy(self, client, auth_tokens, app):

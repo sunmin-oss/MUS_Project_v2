@@ -348,7 +348,8 @@ struct MedicationDetailView: View {
                     drug = first
                     let safetyResults = try? await env.apiClient.checkSafety(
                         profileId: medication.profileId,
-                        drugIds: [first.id]
+                        drugIds: [first.id],
+                        medicationId: Int(medication.id)
                     )
                     alerts = safetyResults ?? []
                     return
