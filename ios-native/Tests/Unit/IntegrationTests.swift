@@ -36,7 +36,11 @@ final class IntegrationTests: XCTestCase {
 
     func testSafetyCheck() async throws {
         guard let client = realClient else { throw XCTSkip("BACKEND_URL not set") }
-        let alerts = try await client.checkSafety(profileId: "p1", drugIds: [101, 103])
+        let alerts = try await client.checkSafety(
+            profileId: "p1",
+            drugIds: [101, 103],
+            medicationId: nil
+        )
         XCTAssertNotNil(alerts)
     }
 

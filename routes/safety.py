@@ -32,7 +32,8 @@ def safety_check():
     請求 JSON:
         {
             "drug_id": 123,
-            "profile_id": 1    // 可選
+            "profile_id": 1,   // 可選
+            "medication_id": 1 // 檢查既有用藥時可排除自己
         }
 
     回應:
@@ -51,6 +52,7 @@ def safety_check():
         user_id=user_id,
         drug_id=data["drug_id"],
         profile_id=data.get("profile_id"),
+        medication_id=data.get("medication_id"),
     )
 
     return jsonify({"success": True, **result}), 200

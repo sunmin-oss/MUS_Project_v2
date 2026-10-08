@@ -155,7 +155,11 @@ struct AddMedicationView: View {
                     try await store.add(medication: med, apiClient: env.apiClient)
                 }
                 // Trigger safety check after save
-                let alerts = try await env.apiClient.checkSafety(profileId: profileId, drugIds: [0])
+                let alerts = try await env.apiClient.checkSafety(
+                    profileId: profileId,
+                    drugIds: [0],
+                    medicationId: nil
+                )
                 isSaving = false
                 if alerts.isEmpty {
                     dismiss()
