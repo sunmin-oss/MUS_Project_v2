@@ -153,6 +153,8 @@ class TestSafetyCheck:
         ).get_json()["profile"]
         with app.app_context():
             drug = Drug.query.first()
+            if not drug:
+                pytest.skip("測試資料庫沒有藥物資料")
             drug_id = drug.id
             medication = Medication(
                 user_id=user_id,

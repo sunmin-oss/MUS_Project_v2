@@ -132,14 +132,7 @@ final class RealAPIClient: APIClientProtocol {
         let (data, resp) = try await session.data(for: req)
         if let http = resp as? HTTPURLResponse, http.statusCode == 401 {
             await AuthStore.shared.clear()
-            await ensureAuthenticated()
-            var retry = try await build()
-            if let token = await AuthStore.shared.accessToken() {
-                retry.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-            }
-            let (data2, resp2) = try await session.data(for: retry)
-            try validate(resp2)
-            return data2
+            throw APIError.unauthorized
         }
         try validate(resp)
         return data
