@@ -49,6 +49,76 @@ def _setup_user_with_allergy(client, app):
 
 
 class TestSafetyCheck:
+    def test_check_excludes_current_medication_from_duplicate(self, client, auth_tokens, app):
+        hdr = auth_header(auth_tokens["access"])
+
+        from models.drug import Drug
+
+        with app.app_context():
+            drug = Drug.query.first()
+            if not drug:
+                pytest.skip("測試資料庫沒有藥物資料")
+            drug_id = drug.id
+            drug_name = drug.chinese_name
+
+        profile = client.post(
+            "/api/auth/profiles",
+            headers=hdr,
+            json={"name": "本人", "relationship": "本人"},
+        ).get_json()["profile"]
+        medication = client.post(
+            "/api/user/medications",
+            headers=hdr,
+            json={
+                "profile_id": profile["id"],
+                "drug_id": drug_id,
+                "name": drug_name,
+                "start_date": "2026-05-27",
+            },
+        ).get_json()["medication"]
+
+        response = client.post(
+            "/api/safety/check",
+            headers=hdr,
+            json={
+                "drug_id": drug_id,
+                "profile_id": profile["id"],
+                "medication_id": medication["id"],
+            },
+        )
+
+        assert response.status_code == 200
+        duplicate = next(
+            check for check in response.get_json()["checks"] if check["type"] == "duplicate"
+        )
+        assert duplicate["result"] == "safe"
+
+        second_medication = client.post(
+            "/api/user/medications",
+            headers=hdr,
+            json={
+                "profile_id": profile["id"],
+                "drug_id": drug_id,
+                "name": drug_name,
+                "start_date": "2026-05-27",
+            },
+        ).get_json()["medication"]
+        response = client.post(
+            "/api/safety/check",
+            headers=hdr,
+            json={
+                "drug_id": drug_id,
+                "profile_id": profile["id"],
+                "medication_id": medication["id"],
+            },
+        )
+
+        duplicate = next(
+            check for check in response.get_json()["checks"] if check["type"] == "duplicate"
+        )
+        assert duplicate["result"] == "warning"
+        assert duplicate["duplicates"] == [second_medication["name"]]
+
     def test_check_safe(self, client, auth_tokens):
         hdr = auth_header(auth_tokens["access"])
         # drug_id=1 假設存在（已有資料庫）

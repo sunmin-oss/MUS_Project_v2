@@ -10,6 +10,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from models import db
+from models.medication import Medication
 from models.safety import DrugInteraction, Ingredient, UserAllergy
 from services import SafetyCheckService
 
@@ -32,7 +33,8 @@ def safety_check():
     請求 JSON:
         {
             "drug_id": 123,
-            "profile_id": 1    // 可選
+            "profile_id": 1,   // 可選
+            "medication_id": 456 // 可選，檢查既有藥單時排除自身
         }
 
     回應:
@@ -47,10 +49,19 @@ def safety_check():
     if not data or not data.get("drug_id"):
         return jsonify({"success": False, "error": "drug_id 為必填"}), 400
 
+    medication_id = data.get("medication_id")
+    if medication_id:
+        medication = Medication.query.filter_by(
+            id=medication_id, user_id=user_id
+        ).first()
+        if not medication:
+            return jsonify({"success": False, "error": "用藥紀錄不存在"}), 404
+
     result = SafetyCheckService.check(
         user_id=user_id,
         drug_id=data["drug_id"],
         profile_id=data.get("profile_id"),
+        medication_id=medication_id,
     )
 
     return jsonify({"success": True, **result}), 200
