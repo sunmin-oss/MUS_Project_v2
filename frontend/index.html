@@ -1307,6 +1307,12 @@
                 localStorage.setItem('mus_username', STATE.username);
                 localStorage.setItem('mus_display_name', STATE.displayName);
                 localStorage.setItem('mus_profile_id', STATE.profileId);
+                const params = new URLSearchParams(window.location.search);
+                const returnTo = params.get('returnTo');
+                if (returnTo) {
+                    window.location.replace(returnTo);
+                    return;
+                }
                 showMainApp();
             } else {
                 showAuthError('login', data.error || '登入失敗');
@@ -1586,6 +1592,9 @@
                     STATE.prescriptionImages[prescriptionName] = data.image_filename;
                     localStorage.setItem('mus_prescription_images', JSON.stringify(STATE.prescriptionImages));
                 }
+                const prescriptionName = (data.recognized_drugs && data.recognized_drugs.length)
+                    ? data.recognized_drugs.join('、').substring(0, 20) + ' 藥單'
+                    : '藥單辨識結果';
                 let html = '<div style="padding:16px;">';
                 if (data.recognized_drugs && data.recognized_drugs.length) {
                     html += '<div class="card-title" style="margin-bottom:12px;">辨識到的藥物</div>';
@@ -1596,7 +1605,7 @@
                 if (data.drug_details && data.drug_details.length) {
                     html += '<div class="card-title" style="margin:16px 0 12px;">藥物詳細資訊</div>';
                     data.drug_details.forEach(drug => {
-                        html += '<div class="result-item" onclick="showDrugDetailPage(this.dataset.drug)" data-drug="' + escapeAttr(JSON.stringify(drug)) + '"><div class="result-thumb">💊</div><div class="result-info"><div class="result-name">' + escapeHtml(drug.chinese_name || drug.name) + '</div><div class="result-sub">' + escapeHtml(drug.english_name || '') + '</div></div><span class="s-arrow">›</span></div>';
+                        html += '<div class="result-item" onclick="showDrugDetailPage(this.dataset.drug)" data-drug="' + escapeAttr(JSON.stringify(drug)) + '"><div class="result-thumb">💊</div><div class="result-info"><div class="result-name">' + escapeHtml(drug.chinese_name || drug.name) + '</div><div class="result-sub">' + escapeHtml(drug.english_name || '') + '</div></div><button class="btn btn-primary" style="padding:8px 12px;font-size:13px;white-space:nowrap;" onclick="event.stopPropagation(); addPrescriptionDrugToMedication(this.dataset.drug, this.dataset.pname)" data-drug="' + escapeAttr(JSON.stringify(drug)) + '" data-pname="' + escapeAttr(prescriptionName) + '">加入我的用藥</button></div>';
                     });
                 }
                 html += '</div>';
@@ -2070,6 +2079,58 @@
             }
         } catch (e) {
             showToast('新增失敗', 'error');
+        }
+    }
+
+    async function addPrescriptionDrugToMedication(drugJson, prescriptionName) {
+        let drug;
+        try {
+            drug = JSON.parse(drugJson);
+        } catch {
+            showToast('藥單資料格式錯誤', 'error');
+            return;
+        }
+
+        const profileId = parseInt(STATE.profileId || '', 10);
+        if (!profileId) {
+            showToast('請先選擇個人資料，再新增到個人用藥', 'error');
+            return;
+        }
+
+        const info = drug.prescription_info || {};
+        const name = (drug.chinese_name || drug.name || '').trim();
+        if (!name) {
+            showToast('找不到藥物名稱', 'error');
+            return;
+        }
+
+        const dosageParts = [];
+        if (info.dose_per_time) dosageParts.push(String(info.dose_per_time).trim());
+        if (info.total_quantity) dosageParts.push(String(info.total_quantity).trim());
+        const dosage = dosageParts.filter(Boolean).join(' / ');
+        const frequency = [info.route, info.frequency].filter(Boolean).map(v => String(v).trim()).join(' · ');
+
+        try {
+            const body = {
+                profile_id: profileId,
+                name: name,
+                dosage: dosage || null,
+                frequency: frequency || null,
+                note: prescriptionName || '藥單辨識結果',
+                start_date: new Date().toISOString().split('T')[0],
+                drug_id: drug.drug_id || null,
+            };
+            if (info.days) body.duration_days = parseInt(info.days, 10) || null;
+            const res = await api('/api/user/medications', { method: 'POST', json: body });
+            const data = await res.json();
+            if (data.success) {
+                showToast('已加入個人用藥', 'success');
+                await loadMedications();
+            } else {
+                showToast(data.error || '新增失敗', 'error');
+            }
+        } catch (e) {
+            showToast('新增失敗，請稍後再試', 'error');
         }
     }
 

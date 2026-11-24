@@ -97,3 +97,48 @@ class TestAdminAuth:
         assert "endpoints" in data
         assert "hourly_trend" in data
         _cleanup(app, username)
+
+    def test_update_drug_uses_existing_schema_columns(self, client, app):
+        """藥物更新應使用 drugs 表現有欄位"""
+        username = _create_user(app, is_admin=True)
+        token = _login(client, username)
+        headers = {"Authorization": f"Bearer {token}"}
+
+        try:
+            listing = client.get(
+                "/admin/api/drugs?page=1&per_page=1", headers=headers
+            )
+            assert listing.status_code == 200
+            drug = listing.json["drugs"][0]
+            original = {
+                "indications": drug.get("indications"),
+                "dosage": drug.get("dosage"),
+                "special_dosage_form": drug.get("special_dosage_form"),
+            }
+
+            response = client.put(
+                f"/admin/api/drugs/{drug['id']}",
+                json={
+                    "indications": "測試適應症",
+                    "dosage": "測試劑量",
+                    "special_dosage_form": "測試劑型",
+                },
+                headers=headers,
+            )
+
+            assert response.status_code == 200
+            assert response.json["success"] is True
+
+            updated = client.get(
+                "/admin/api/drugs?page=1&per_page=1", headers=headers
+            ).json["drugs"][0]
+            assert updated["indications"] == "測試適應症"
+            assert updated["dosage"] == "測試劑量"
+            assert updated["special_dosage_form"] == "測試劑型"
+        finally:
+            client.put(
+                f"/admin/api/drugs/{drug['id']}",
+                json=original,
+                headers=headers,
+            )
+            _cleanup(app, username)

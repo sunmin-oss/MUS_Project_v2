@@ -1,5 +1,6 @@
 """Sprint 4 — E2E 全鏈路測試"""
 
+from datetime import date, timedelta
 import uuid
 import pytest
 from tests.conftest import auth_header
@@ -10,6 +11,7 @@ class TestE2EMedicationFlow:
 
     def test_full_medication_lifecycle(self, client, app):
         username = f"e2e_{uuid.uuid4().hex[:8]}"
+        today = date.today()
 
         # 1. 註冊
         r = client.post(
@@ -55,7 +57,7 @@ class TestE2EMedicationFlow:
                 "dosage": "1",
                 "unit": "顆",
                 "frequency": "tid",
-                "start_date": "2026-05-27",
+                "start_date": today.isoformat(),
                 "stock_qty": 20,
                 "schedules": [
                     {"time_slot": "morning", "scheduled_time": "08:00"},
@@ -76,7 +78,7 @@ class TestE2EMedicationFlow:
             json={
                 "medication_id": mid,
                 "status": "taken",
-                "scheduled_date": "2026-05-27",
+                "scheduled_date": today.isoformat(),
             },
         )
         assert r.status_code == 201
@@ -93,7 +95,8 @@ class TestE2EMedicationFlow:
 
         # 8. 查看服藥紀錄
         r = client.get(
-            "/api/user/adherence?start=2026-05-01&end=2026-05-31", headers=hdr
+            f"/api/user/adherence?start={(today - timedelta(days=30)).isoformat()}&end={today.isoformat()}",
+            headers=hdr,
         )
         assert len(r.get_json()["logs"]) >= 1
 

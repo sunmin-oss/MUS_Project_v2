@@ -425,9 +425,8 @@ def create_drug():
             "license_number",
             "shape",
             "color",
-            "usage",
-            "formulation",
-            "dosage_strength",
+            "indications",
+            "dosage",
             "special_dosage_form",
         ]:
             if data.get(key):
@@ -467,9 +466,8 @@ def update_drug(drug_id):
             "license_number",
             "shape",
             "color",
-            "usage",
-            "formulation",
-            "dosage_strength",
+            "indications",
+            "dosage",
             "special_dosage_form",
         ]:
             if key in data:

@@ -21,8 +21,8 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-# 載入 .env 檔案
-load_dotenv()
+# 載入 .env 檔案（優先覆蓋既有環境變數，避免舊設定蓋掉 .env）
+load_dotenv(override=True)
 
 
 class Config:
@@ -66,11 +66,27 @@ class Config:
     )
 
     # Key B：AI 諮詢（與辨識備援完全分流）
+    # 預設走 GPT / OpenAI；若要保留舊的 Groq 設定，可明確指定 OPENAI_CONSULT_PROVIDER=groq。
     OPENAI_CONSULT_API_KEY = os.getenv("OPENAI_CONSULT_API_KEY")
-    OPENAI_CONSULT_MODEL = os.getenv("OPENAI_CONSULT_MODEL", "gpt-4o-mini")
-    OPENAI_CONSULT_BASE_URL = os.getenv(
-        "OPENAI_CONSULT_BASE_URL", "https://api.openai.com/v1"
-    )
+    _consult_provider = os.getenv("OPENAI_CONSULT_PROVIDER", "openai").strip().lower()
+    _consult_model_env = os.getenv("OPENAI_CONSULT_MODEL", "").strip()
+    _consult_base_url_env = os.getenv("OPENAI_CONSULT_BASE_URL", "").strip()
+
+    if _consult_provider == "groq":
+        OPENAI_CONSULT_MODEL = _consult_model_env or "llama-3.3-70b-versatile"
+        OPENAI_CONSULT_BASE_URL = _consult_base_url_env or "https://api.groq.com/openai/v1"
+    else:
+        # 舊版 Groq 預設值若仍殘留在環境中，直接改用 GPT。
+        OPENAI_CONSULT_MODEL = (
+            _consult_model_env
+            if _consult_model_env and "llama-3.3-70b-versatile" not in _consult_model_env.lower()
+            else "gpt-4o-mini"
+        )
+        OPENAI_CONSULT_BASE_URL = (
+            _consult_base_url_env
+            if _consult_base_url_env and "groq" not in _consult_base_url_env.lower()
+            else "https://api.openai.com/v1"
+        )
 
     # ========== AI 切換策略 ==========
     AI_FALLBACK_ENABLED = os.getenv("AI_FALLBACK_ENABLED", "true").lower() == "true"
