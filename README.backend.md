@@ -202,8 +202,8 @@ OpenAI Fallback（OPENAI_FALLBACK_*，預設關閉）
 
 ### AI 諮詢（consult）
 
-使用 `OPENAI_CONSULT_*` 設定，預設指向 Groq 免費層（`llama-3.3-70b-versatile`）。  
-要改用 OpenAI：把 `OPENAI_CONSULT_BASE_URL` 改成 `https://api.openai.com/v1`、`OPENAI_CONSULT_MODEL` 改為 `gpt-4o-mini`。
+使用 `OPENAI_CONSULT_*` 設定，預設指向 GPT / OpenAI 相容介面（`gpt-4o-mini`）。  
+請在 `.env` 中設定 `OPENAI_CONSULT_API_KEY`，即可啟用藥師諮詢。
 
 ---
 
@@ -217,9 +217,9 @@ OpenAI Fallback（OPENAI_FALLBACK_*，預設關閉）
 | `GEMINI_API_KEY` | Gemini 主 key | - |
 | `GEMINI_BACKUP_API_KEY` | Gemini 備用 key | - |
 | `OPENAI_FALLBACK_API_KEY` | OpenAI 相容備援 | - |
-| `OPENAI_CONSULT_API_KEY` | 諮詢用 key（預設 Groq） | - |
-| `OPENAI_CONSULT_MODEL` | 諮詢模型 | llama-3.3-70b-versatile |
-| `OPENAI_CONSULT_BASE_URL` | 諮詢 API base url | https://api.groq.com/openai/v1 |
+| `OPENAI_CONSULT_API_KEY` | 諮詢用 key（OpenAI / GPT） | - |
+| `OPENAI_CONSULT_MODEL` | 諮詢模型 | gpt-4o-mini |
+| `OPENAI_CONSULT_BASE_URL` | 諮詢 API base url | https://api.openai.com/v1 |
 | `AI_FALLBACK_ENABLED` | 啟用主備切換 | true |
 | `AI_FALLBACK_COOLDOWN_SEC` | 主 provider 冷卻秒數 | 300 |
 | `AI_FALLBACK_FAIL_THRESHOLD` | 連續失敗幾次觸發 fallback | 3 |
