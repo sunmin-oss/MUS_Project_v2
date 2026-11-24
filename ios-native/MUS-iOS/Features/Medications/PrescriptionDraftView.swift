@@ -181,8 +181,21 @@ struct PrescriptionDraftView: View {
 
     private func addAll() {
         isSaving = true
-        let profileId = env.selectedProfileId
         Task {
+            let profileId: String
+            do {
+                profileId = try await resolveProfileId()
+            } catch {
+                isSaving = false
+                if case APIError.unauthorized = error {
+                    env.isAuthenticated = false
+                    phase = .error("登入已過期，請重新登入後再加入藥單")
+                } else {
+                    phase = .error("無法取得用藥成員資料：\(error.localizedDescription)")
+                }
+                return
+            }
+
             var successCount = 0
             var lastError: String?
             let label: String
@@ -240,6 +253,20 @@ struct PrescriptionDraftView: View {
                 phase = .error("新增失敗：\(err)")
             }
         }
+    }
+
+    private func resolveProfileId() async throws -> String {
+        let profiles = try await env.apiClient.fetchProfiles()
+        guard !profiles.isEmpty else {
+            throw NSError(domain: "PrescriptionDraft", code: 1,
+                          userInfo: [NSLocalizedDescriptionKey: "目前帳號沒有可用的用藥成員"])
+        }
+        if profiles.contains(where: { $0.id == env.selectedProfileId }) {
+            return env.selectedProfileId
+        }
+        let profileId = profiles[0].id
+        env.selectedProfileId = profileId
+        return profileId
     }
 
     /// 解析 OCR frequency (如「三餐餐後」「每天睡前」「早晚餐後」) → (displayFrequency, mealTiming)

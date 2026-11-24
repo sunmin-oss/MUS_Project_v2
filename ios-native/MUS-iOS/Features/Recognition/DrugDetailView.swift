@@ -61,7 +61,11 @@ struct DrugDetailView: View {
             }
         }
         if let did = drug?.id {
-            alerts = (try? await env.apiClient.checkSafety(profileId: "p1", drugIds: [did])) ?? []
+            alerts = (try? await env.apiClient.checkSafety(
+                profileId: "p1",
+                drugIds: [did],
+                medicationId: nil
+            )) ?? []
         }
         isLoading = false
     }

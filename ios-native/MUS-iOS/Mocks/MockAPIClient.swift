@@ -70,7 +70,7 @@ final class MockAPIClient: APIClientProtocol {
         return MockData.pharmacies
     }
 
-    func checkSafety(profileId: String, drugIds: [Int]) async throws -> [SafetyAlert] {
+    func checkSafety(profileId: String, drugIds: [Int], medicationId: Int?) async throws -> [SafetyAlert] {
         await delay()
         return MockData.safetyAlerts
     }

@@ -23,7 +23,12 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
     }
 
     func requestPermissionAndLocation() {
-        manager.requestWhenInUseAuthorization()
+        let status = manager.authorizationStatus
+        if status == .authorizedWhenInUse || status == .authorizedAlways {
+            manager.requestLocation()
+        } else {
+            manager.requestWhenInUseAuthorization()
+        }
     }
 
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {

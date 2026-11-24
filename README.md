@@ -19,7 +19,7 @@
 - 📷 拍照辨識單顆藥物與整張藥單（OCR）
 - 💊 個人用藥清單、服藥提醒、服藥紀錄（adherence）
 - ⚠️ 過敏／交互作用安全檢查
-- 💬 AI 用藥諮詢（Groq / OpenAI 相容介面）
+- 💬 AI 用藥諮詢（GPT / OpenAI 相容介面）
 - 🛠 管理員後台（藥物 CRUD、批次更新、AI Provider 監控、**統一 Log 紀錄查詢**）
 - 📱 iOS App（Capacitor 8）
 - 🔒 JWT 認證 + 多 Profile（一帳號管理多位家人）

@@ -521,6 +521,7 @@ def recognize_drug():
     請求:
         - 檔案: image (multipart/form-data)
         - 可選: language ('zh' for 中文, 'en' for English)
+        - 可選: medication_id（檢查既有藥單時排除自身）
         - 可選: Authorization: Bearer <token>（記錄辨識歷史）
 
     回應:
@@ -708,11 +709,22 @@ def recognize_drug():
             uid = get_jwt_identity()
             if uid:
                 from services import SafetyCheckService
+                from models.medication import Medication
+
+                medication_id = request.form.get("medication_id", type=int)
+                if medication_id and not Medication.query.filter_by(
+                    id=medication_id, user_id=int(uid)
+                ).first():
+                    medication_id = None
 
                 for item in recognized_items:
                     did = item.get("drug_id")
                     if did:
-                        result = SafetyCheckService.check(user_id=int(uid), drug_id=did)
+                        result = SafetyCheckService.check(
+                            user_id=int(uid),
+                            drug_id=did,
+                            medication_id=medication_id,
+                        )
                         if result["overall"] != "safe":
                             safety_warnings.append(
                                 {"drug_id": did, "name": item["name"], **result}

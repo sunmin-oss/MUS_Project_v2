@@ -1,5 +1,7 @@
 """Sprint 3 — 服藥紀錄 + Push Token 測試（S1-7 / S1-2）"""
 
+from datetime import date, timedelta
+
 import pytest
 from tests.conftest import auth_header
 
@@ -15,7 +17,7 @@ def _setup_med(client, token):
         json={
             "name": "測試藥",
             "profile_id": pid,
-            "start_date": "2026-05-27",
+            "start_date": date.today().isoformat(),
             "stock_qty": 10,
         },
     )
@@ -33,7 +35,7 @@ class TestAdherence:
             json={
                 "medication_id": mid,
                 "status": "taken",
-                "scheduled_date": "2026-05-27",
+                "scheduled_date": date.today().isoformat(),
             },
         )
         assert resp.status_code == 201
@@ -48,7 +50,7 @@ class TestAdherence:
             json={
                 "medication_id": mid,
                 "status": "skipped",
-                "scheduled_date": "2026-05-27",
+                "scheduled_date": date.today().isoformat(),
             },
         )
         assert resp.status_code == 201
@@ -62,7 +64,7 @@ class TestAdherence:
             json={
                 "medication_id": mid,
                 "status": "taken",
-                "scheduled_date": "2026-05-27",
+                "scheduled_date": date.today().isoformat(),
             },
         )
         med = client.get(f"/api/user/medications/{mid}", headers=hdr)
@@ -77,11 +79,12 @@ class TestAdherence:
             json={
                 "medication_id": mid,
                 "status": "taken",
-                "scheduled_date": "2026-05-27",
+                "scheduled_date": date.today().isoformat(),
             },
         )
         resp = client.get(
-            "/api/user/adherence?start=2026-05-01&end=2026-05-31", headers=hdr
+            f"/api/user/adherence?start={(date.today() - timedelta(days=30)).isoformat()}&end={date.today().isoformat()}",
+            headers=hdr,
         )
         assert resp.status_code == 200
         assert len(resp.get_json()["logs"]) >= 1
@@ -89,13 +92,14 @@ class TestAdherence:
     def test_adherence_stats(self, client, auth_tokens):
         hdr = auth_header(auth_tokens["access"])
         _, mid = _setup_med(client, auth_tokens["access"])
+        today = date.today()
         client.post(
             "/api/user/adherence",
             headers=hdr,
             json={
                 "medication_id": mid,
                 "status": "taken",
-                "scheduled_date": "2026-05-27",
+                "scheduled_date": today.isoformat(),
             },
         )
         client.post(
@@ -104,7 +108,7 @@ class TestAdherence:
             json={
                 "medication_id": mid,
                 "status": "skipped",
-                "scheduled_date": "2026-05-26",
+                "scheduled_date": (today - timedelta(days=1)).isoformat(),
             },
         )
         resp = client.get("/api/user/adherence/stats?days=30", headers=hdr)

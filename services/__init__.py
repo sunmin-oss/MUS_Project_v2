@@ -25,7 +25,12 @@ class SafetyCheckService:
     """用藥安全檢查服務"""
 
     @staticmethod
-    def check(user_id: int, drug_id: int, profile_id: Optional[int] = None) -> dict:
+    def check(
+        user_id: int,
+        drug_id: int,
+        profile_id: Optional[int] = None,
+        medication_id: Optional[int] = None,
+    ) -> dict:
         """
         對指定藥物執行四層安全檢查。
 
@@ -57,6 +62,7 @@ class SafetyCheckService:
             drug_id,
             drug.name if hasattr(drug, "name") else drug.chinese_name,
             profile_id,
+            medication_id,
         )
         checks.append(dup_result)
 
@@ -129,7 +135,11 @@ class SafetyCheckService:
 
     @staticmethod
     def _check_duplicate(
-        user_id: int, drug_id: int, drug_name: str, profile_id: Optional[int]
+        user_id: int,
+        drug_id: int,
+        drug_name: str,
+        profile_id: Optional[int],
+        medication_id: Optional[int] = None,
     ) -> dict:
         q = Medication.query.filter(
             Medication.user_id == user_id,
@@ -137,6 +147,8 @@ class SafetyCheckService:
         )
         if profile_id:
             q = q.filter_by(profile_id=profile_id)
+        if medication_id:
+            q = q.filter(Medication.id != medication_id)
 
         # 同一 drug_id 或同名
         active = q.filter(

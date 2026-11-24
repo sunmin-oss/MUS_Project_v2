@@ -52,7 +52,7 @@ protocol APIClientProtocol {
     func fetchNearbyPharmacies(latitude: Double, longitude: Double, radius: Double) async throws -> [Pharmacy]
 
     // MARK: - Safety (Spec 06)
-    func checkSafety(profileId: String, drugIds: [Int]) async throws -> [SafetyAlert]
+    func checkSafety(profileId: String, drugIds: [Int], medicationId: Int?) async throws -> [SafetyAlert]
 
     // MARK: - W3: Medication Records & CRUD
     func fetchMedicationRecords(profileId: String) async throws -> [MedicationRecord]

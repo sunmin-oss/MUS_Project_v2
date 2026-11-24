@@ -132,14 +132,7 @@ final class RealAPIClient: APIClientProtocol {
         let (data, resp) = try await session.data(for: req)
         if let http = resp as? HTTPURLResponse, http.statusCode == 401 {
             await AuthStore.shared.clear()
-            await ensureAuthenticated()
-            var retry = try await build()
-            if let token = await AuthStore.shared.accessToken() {
-                retry.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-            }
-            let (data2, resp2) = try await session.data(for: retry)
-            try validate(resp2)
-            return data2
+            throw APIError.unauthorized
         }
         try validate(resp)
         return data
@@ -587,11 +580,14 @@ final class RealAPIClient: APIClientProtocol {
         let duplicates: [String]?
     }
 
-    func checkSafety(profileId: String, drugIds: [Int]) async throws -> [SafetyAlert] {
+    func checkSafety(profileId: String, drugIds: [Int], medicationId: Int?) async throws -> [SafetyAlert] {
         let pid = await resolvedProfileId(from: profileId)
         var alerts: [SafetyAlert] = []
         for drugId in drugIds {
-            let body: [String: Any] = ["drug_id": drugId, "profile_id": pid]
+            var body: [String: Any] = ["drug_id": drugId, "profile_id": pid]
+            if let medicationId {
+                body["medication_id"] = medicationId
+            }
             do {
                 let data = try await authedJSON(method: "POST", path: "api/safety/check", body: body)
                 let decoded = try decoder.decode(SafetyCheckResponse.self, from: data)

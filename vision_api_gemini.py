@@ -713,11 +713,59 @@ class GeminiVisionRecognizer:
             if not all_results:
                 return []
 
+            # 用 AI 辨識到的顏色和形狀對結果重新評分
+            scored_results = []
+            for drug in all_results:
+                score = 0.5  # 基礎分（有標記匹配）
+
+                db_color = (drug.get("color") or "").lower()
+                db_shape = (drug.get("shape") or "").lower()
+                ai_color = color.lower() if color else ""
+                ai_shape = shape.lower() if shape else ""
+
+                # 標記完全匹配加分
+                front = (drug.get("label_front") or "").upper()
+                back = (drug.get("label_back") or "").upper()
+                for m in markings:
+                    m_upper = m.upper()
+                    if front == m_upper or back == m_upper:
+                        score += 0.25  # 完全匹配
+                        break
+                    elif m_upper in front or m_upper in back:
+                        score += 0.1   # 部分匹配
+
+                # 顏色匹配加分 / 不匹配扣分
+                if ai_color and db_color:
+                    # 拆解多色（如 "紅/白"）
+                    db_colors = [c.strip() for c in db_color.replace("/", " ").replace("、", " ").split()]
+                    ai_colors = [c.strip() for c in ai_color.replace("/", " ").replace("、", " ").split() if len(c.strip()) >= 1]
+                    if any(c in ai_color for c in db_colors):
+                        score += 0.15
+                    elif any(ai_c in db_color for ai_c in ai_colors):
+                        score += 0.1
+                    else:
+                        # 顏色完全不匹配，扣分
+                        score -= 0.2
+
+                # 形狀匹配加分
+                if ai_shape and db_shape:
+                    if db_shape in ai_shape or ai_shape in db_shape:
+                        score += 0.1
+
+                scored_results.append((score, drug))
+
+            # 按分數排序
+            scored_results.sort(key=lambda x: x[0], reverse=True)
+
+            # 如果最高分太低（標記匹配但顏色形狀都不對），放棄標記搜尋
+            if scored_results[0][0] < 0.7:
+                logger.info(f"📋 標記搜尋結果信心度過低 ({scored_results[0][0]:.2f})，回退至 RAG")
+                return []
+
             # 轉換為辨識結果格式
             medicines = []
-            for i, drug in enumerate(all_results[:5]):
-                # 計算信心度：完全匹配標記的給高分
-                confidence = 0.9 - (i * 0.05)
+            for i, (score, drug) in enumerate(scored_results[:5]):
+                confidence = min(score, 0.95)
                 reason = f"標記匹配: {drug.get('label_front', '')} {drug.get('label_back', '') or ''}"
 
                 medicines.append(
